@@ -1,0 +1,339 @@
+@import url(base-weblog.css);
+
+/*
+name: Iconic
+designer: Carrie Petri
+designer_url: http://carriep63.livejournal.com
+description: A clean and bright theme using icons from Tango and Silk.
+*/
+
+body{
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/blue-bg.gif) repeat-x;
+}
+
+body, font, div{
+font-size:13px;
+font-family:tahoma, sans-serif;
+}
+
+a{
+color:#c00;
+font-weight:normal;
+text-decoration:none !important;
+}
+
+a:hover{
+color:#f00;
+}
+
+h1,h2,h3{
+margin:0 !important;
+padding:0 !important;
+}
+
+ul{
+list-style-type:none;
+margin:0;
+padding:0;
+}
+
+
+
+.layout-two-column-left #alpha{
+width:35%;
+}
+.layout-two-column-left #beta{
+width:64%;
+}
+.layout-two-column-left #beta-inner{
+border-left:1px solid black;
+}
+
+
+
+.layout-two-column-right #alpha{
+width:64%;
+}
+.layout-two-column-right #beta{
+width:35%;
+}
+.layout-two-column-right #alpha-inner{
+border-right:1px solid black;
+}
+
+
+
+.layout-three-column #alpha{
+width:25%;
+}
+.layout-three-column #beta{
+width:49%;
+}
+.layout-three-column #beta-inner{
+border-left:1px solid black;
+border-right:1px solid black;
+}
+.layout-three-column #gamma{
+width:25%;
+}
+.layout-three-column #pagebody{
+width:95% !important;
+margin:0 auto;
+padding-top:40px;
+}
+
+
+/* Main */
+#container{
+width:100% !important;
+}
+
+#pagebody{
+width:750px !important;
+margin:0 auto;
+padding-top:40px;
+}
+
+#pagebody-inner .pkg{
+padding:0 5%;
+}
+
+
+/* Banner */
+
+#banner{
+width:780px;
+margin:0 auto;
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/banner-bg.3.gif) no-repeat;
+text-align:center;
+}
+
+#banner-header{
+font-family:serif;
+padding-top:50px !important;
+padding-bottom:10px !important;
+}
+
+#banner-header a{
+color:#000;
+text-decoration:none;
+font-size:34pt;
+}
+
+#banner-description{
+font-family:serif;
+text-transform:uppercase;
+font-size:20px;
+line-height:20px;
+letter-spacing:1px;
+}
+
+
+/* Entries */
+
+.date-header{
+font-family:serif;
+font-style:normal;
+font-size:22px;
+font-variant:small-caps;
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/date.gif) no-repeat left;
+padding-left:24px !important;
+line-height:42px;
+}
+
+.entry-header{
+font-size:16px;
+font-style:italic;
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/subject.gif) no-repeat;
+padding-left:22px !important;
+line-height:22px;
+}
+
+.entry-content img{
+border:1px solid black;
+}
+
+.entry-userpic{
+display:none;
+}
+
+.entry-content{
+}
+
+.entry-footer{
+text-align:;
+}
+
+.post-footers{
+display:block;
+padding-left:20px !important;
+font-weight:bold;
+font-size:11px;
+border-bottom:1px dotted black;
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/user.gif) no-repeat;
+text-align:left;
+line-height:16px;
+padding-bottom:3px;
+margin-bottom:3px;
+}
+
+.entry-footer .permalink{
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/link.0.png) no-repeat right
+}
+
+.separator{
+display:none;
+}
+
+.entry-footer a{
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/comment.gif) no-repeat right;
+padding:5px 0 !important;
+padding-right:25px !important;
+}
+
+.entry ul li{
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/bullet_blue.gif) no-repeat;
+padding-left:15px;
+color:#000;
+width:90%;
+font-family:serif;
+margin:1em 0;
+}
+
+.entry ol li{
+font-family:serif;
+margin:1em 0;
+}
+
+blockquote{
+font-style:italic;
+}
+
+
+/* Modules */
+
+.module-header{
+font-size:16px;
+font-style:italic;
+color:#000;
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/orange-sbh.gif) no-repeat left;
+padding-left:16px !important;
+}
+
+.module-search .module-header{
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/search.0.gif) no-repeat;
+line-height:22px;
+padding-left:22px !important;
+font-family:serif;
+font-style:normal;
+font-size:22px;
+font-variant:small-caps;
+}
+
+.module ul{
+margin:0;
+}
+
+.module li{
+list-style-type:none;
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/li-arrow.gif) no-repeat;
+background-position:0 .2em;
+padding-left:15px;
+}
+
+.module li li{
+list-style-type:none;
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/li-li.gif) no-repeat;
+background-position:0 .2em;
+padding-left:15px;
+}
+
+.module li li a{
+color:#c00;
+}
+
+.module a{
+color:#CE5C00;
+font-size:11px !important;
+}
+
+.module-header a{
+font-size:16px !important;
+color:black;
+}
+
+.module-syndicate .module-content{
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/feed.2.gif) no-repeat;
+padding-left:20px;
+}
+
+.module input{
+background:#CADBED;
+border:1px solid black;
+margin-top:2px;
+}
+.module input#search{
+background:#fff;
+}
+
+.module-powered a{
+color:#c00;
+}
+
+
+
+/* Trackbacks */
+
+.trackbacks-header, .comments-header, .comments-open-header{
+font-family:serif;
+font-size:20px;
+text-transform:uppercase;
+padding-left:22px !important;
+}
+
+.trackbacks-header{
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/track.gif) no-repeat;
+}
+
+.trackback-footer{
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/track-small.gif) no-repeat;
+margin:0 !important;
+padding-left:15px;
+font-weight:bold;
+}
+
+#trackbacks-info{
+background:#E3ECF5;
+border:1px dotted black;
+padding:0 1em;
+}
+
+/* Comments */
+.comment-userpic{
+float:left;
+margin:.2em;
+border:1px solid black;
+}
+
+.comment-footer{
+font-weight:bold;
+border-bottom:1px dotted black;
+padding-bottom:5px;
+}
+
+.commenter-profile img{
+visibility:hidden
+}
+
+.commenter-profile{
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/user.gif) no-repeat;
+padding:1px;
+}
+
+.comments-open-header{
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/post.gif) no-repeat;
+}
+
+.comments-header{
+background: url(http://photos1.blogger.com/blogger/5442/340/1600/comment.gif) no-repeat;
+}
