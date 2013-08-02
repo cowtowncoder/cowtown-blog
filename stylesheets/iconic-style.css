@@ -1,0 +1,279 @@
+@import url(base-weblog.css);
+
+
+/*
+name: Iconic
+designer: Carrie Petri
+designer_url: http://carriep63.livejournal.com
+description: A clean and bright theme using icons from Tango and Silk.
+layouts: one-column, two-column-left, two-column-right, three-column
+*/
+
+html, body{
+margin:0 !important;
+padding:0 !important;
+}
+
+body, div, font{
+font-family: Tahoma;
+font-size:13px;
+}
+
+h1, h2, h3{
+margin:0 !important;
+padding:0 !important;
+}
+
+body{
+background: url(blue-bg.gif) repeat-x;
+}
+.layout-two-column-left #alpha{
+width:30%;
+}
+.layout-two-column-left #beta-inner.pkg{
+border-left:1px solid black;
+}
+.layout-two-column-left #beta{
+width:70%;
+}
+
+
+.layout-two-column-right #alpha{
+width:70%;
+}
+.layout-two-column-right #alpha-inner.pkg{
+border-right:1px solid black;
+}
+.layout-two-column-right #beta{
+width:30%;
+}
+
+
+.layout-three-column #alpha{
+width:25%;
+}
+.layout-three-column #beta{
+width:50%;
+}
+.layout-three-column #beta-inner.pkg{
+border-left:1px solid black;
+border-right:1px solid black;
+}
+.layout-three-column #gamma{
+width:25%
+}
+
+.layout-three-column #pagebody{
+width:85% !important;
+}
+a{
+color:#C00;
+}
+a:hover{
+color:#EF0000;
+}
+#container{
+background: url(banner-bg.gif) no-repeat top center;
+width:100% !important;
+}
+
+#banner{
+text-align:center;
+padding-top:50px;
+}
+#banner-header{
+font-size:46px;
+font-family:serif;
+}
+#banner-header a{
+color:#000;
+text-decoration:none;
+}
+#banner-description{
+font-variant:small-caps;
+font-family:serif;
+font-size:24px;
+letter-spacing:1px;
+}
+
+#pagebody{
+padding-top:40px;
+width:800px !important;
+margin:0 auto;
+}
+#pagebody-inner .pkg{
+padding:0 15px;
+}
+
+.date-header{
+font-family:serif;
+font-variant:small-caps;
+font-size:22px;
+background: url(date.gif) no-repeat left;
+padding-left:25px !important;
+}
+.entry-header{
+font-style:italic;
+font-size:16px;
+background: url(subject.gif) no-repeat left;
+padding-left:25px !important;
+line-height:24px;
+}
+.entry-userpic{
+display:none;
+}
+
+.entry ul{
+margin:0;
+padding:0;
+list-style:none;
+}
+.entry ul li{
+background: url(bullet_blue.gif) no-repeat;
+padding-left:15px;
+padding-bottom:5px;
+font-weight:bold;
+font-size:11px;
+}
+.entry ol li{
+font-weight:bold;
+font-size:11px;
+padding-bottom:5px;
+}
+.post-footers{
+font-weight:bold;
+background: url(user.gif) no-repeat;
+padding:0 0 5px 18px;
+margin-bottom:5px;
+border-bottom:1px dotted black;
+display:block;
+font-size:11px;
+}
+
+.separator{
+display:none !important;
+}
+
+.entry-footer{
+padding:10px 0;
+}
+.entry-footer a{
+background: url(comment.gif) no-repeat top right;
+padding-right:22px;
+padding-bottom:5px;
+}
+
+a.permalink {
+background:none;
+}
+.permalink {
+background: url(permalink.gif) no-repeat top right !important;
+}
+
+blockquote{
+font-style:italic;
+font-size:1.1em;
+background: url(quote.jpg) no-repeat top left;
+margin:0;
+padding:0 35px;
+}
+
+.module-search .module-header{
+font-family:serif;
+font-variant:small-caps;
+font-size:22px;
+font-style:normal;
+background: url(search.gif) no-repeat left;
+padding-left:25px !important;
+}
+.module-header{
+background: url(orange.gif) no-repeat left;
+padding-left:18px !important;
+font-size:16px;
+font-style:italic;
+}
+.module-header a{
+font-size:16px !important;
+color:#000 !important;
+}
+.module a{
+color:#CE5C00;
+font-size:11px;
+}
+.module a:hover{
+color:#c00;
+}
+
+.module input{
+background:#CADBED;
+border:1px solid black;
+margin-bottom:2px;
+}
+.module input#search{
+background: #fff;
+}
+.module li{
+background: url(li-arrow.gif) no-repeat;
+background-position:0 3px;
+padding-left:15px;
+}
+.module li li{
+background: url(li-li.gif) no-repeat;
+}
+.module li li a{
+color:#c00;
+}
+.module-syndicate .module-content{
+background: url(feed.gif) no-repeat;
+padding-left:20px;
+}
+.module-powered a{
+color:#c00;
+}
+
+.trackbacks-header, .comments-header, .comments-open-header{
+font-size:22px;
+font-family:serif;
+font-variant:small-caps;
+}
+.trackbacks-header{
+background: url(track.gif) no-repeat left;
+padding-left:25px !important;
+}
+#trackbacks-info{
+background:#E3ECF5;
+border:1px solid #000;
+}
+
+.trackback-footer{
+background: url(track-small.gif) no-repeat left;
+padding-left:15px;
+font-weight:bold;
+font-size:11px;
+}
+.comments-header{
+background: url(comment.gif) no-repeat left;
+padding-left:25px !important;
+}
+.comment-userpic{
+float:left;
+padding:0 5px;
+}
+.comment-footer{
+font-weight:bold;
+font-size:11px;
+line-height:20px;
+}
+.commenter-profile img{
+visibility:hidden;
+}
+.commenter-profile{
+background: url(user.gif) no-repeat right;
+padding:5px 0 !important;
+line-height:25px !important;
+}
+
+.comments-open-header{
+background: url(post.gif) no-repeat left;
+padding-left:25px !important;
+}
