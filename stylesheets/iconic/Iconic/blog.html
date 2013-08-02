@@ -1,0 +1,993 @@
+<html lang="en">
+<head>
+<title>CowTalk</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for CowTownCoder.com regulars" />
+
+ 
+<style type="text/css">
+@import url('iconic-style.css');
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<!-- HaloScan comments: -->
+<script type="text/javascript" src="http://www.haloscan.com/load/cowtowncoder">
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for CowTownCoder.com regulars</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+
+
+   
+   
+
+	<h2 class="date-header">Tuesday, September 18, 2007 </h2>
+
+<div class="entry" id="post-47">
+			<h3 class="entry-header">Jackson is Fast... but how fast?</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      <b>Faster Than The Speeding Bullet?</b>
+    </p>
+    <p>
+      Nope: that would be Superman. But perhaps <a href="/hatchery/jackson/index.html">Jackson</a> 
+      can at least sting like a bee? Anyway, to try to answer the question, I 
+      decided to repurpose code from StaxTest (loose set of performance test 
+      components used for <a href="http://woodstox.codehaus.org">Woodstox</a> 
+      development) and see how Jackson compares to the venerable <a href="http://www.json.org/java/index.html">Json.org</a> 
+      reference implementation. Test classes in question will be available as 
+      part of the next Jackson source code bundle (under src/perf), and others 
+      can check out their experiences. But here are some choice tidbits until 
+      then.
+    </p>
+    <p>
+      First of all, I decided to use sample documents from <a href="http://www.json.org/example.html">http://www.json.org/example.html</a>. 
+      The documents are quite short (from less than 1 kB to about 4), but 
+      since there do not seem to be similar sample document repositories as 
+      there are for xml, these would have to do. The test consists of repeated 
+      parsing of specified document. Document is first read into a byte array 
+      before running tests (to minimize I/O overhead), and then feed using 
+      implementation dependant mechanism.
+    </p>
+    <p>
+      For repetition count of 2500 over the largest (4 kB) of sample JSON 
+      documents, on my (t)rusty old single-CPU Athlon box, I got following 
+      numbers:
+    </p>
+    <ul>
+      <li>
+        Jackson, fully streaming: 224 milliseconds
+      </li>
+      <li>
+        Jackson using simple Java type mapper: 333 milliseconds
+      </li>
+      <li>
+        Json.org reference implementation: 883 milliseconds
+      </li>
+    </ul>
+    <p>
+      (I also did test out the other documets; numbers I saw were similar)
+    </p>
+    <p>
+      Fully streaming case will just iterate over all tokens of the input, 
+      without further processing. Java mapper, on the other hand, will 
+      actually construct in-memory representation (Lists, Maps, Numbers, 
+      Strings, Booleans). So for this particular case, Jackson would be about 
+      4 times as fast as the reference implementation, when using the fastest 
+      mode. This comparison is not completely fair, of course, since the 
+      reference implementation does actually build an in-memory 
+      representation. Of course it is not necessarily true that one always 
+      needs such &quot;tree&quot;, so your mileage may vary.
+    </p>
+    <p>
+      At any rate, a simplified and somewhat naive answer would be that 
+      Jackson may be <b>3 - 4 times as fast as the reference implementation</b> 
+      if you use the fastest access mode (streaming); and<b> 2 - 3 times as 
+      fast if you need an Object representation of JSON data</b>. The usual 
+      disclaimers apply, of course: it is not always easy to give fair 
+      comparison; different kind of input might give different results and so 
+      forth. But hopefully this gives some perspective on kinds of 
+      improvements one could get. And I would love to see others doing similar 
+      measurements.
+    </p>
+    <p>
+      <b>But how about the absolute speed?</b>
+    </p>
+    <p>
+      So it seems like Jackson might be a wee bit faster than the most 
+      commonly used alternative. But beyond this, how would JSON compare to, 
+      say, equivalent XML parsing? Well, given the input document size and 
+      repetition counts, streaming parsing with JSON appears to proceed with 
+      respectable rate of about 50 MBps on this particular system. The usual 
+      XML processing rates using Woodstox, on same machine, is anywhere 
+      between 10 and 30 MBps, depending on complexity of the document (plain 
+      text and elements are fastest to process, attribute slower and so 
+      forth). So assuming similar information density (some people claim JSON 
+      has less fluff, but this seems debatable -- however, I haven't heard 
+      anyone claim that XML would have more compact representation in its 
+      textual serialization) it would appear that processing JSON is indeed 
+      somewhat faster, which is to be expected given simplifity of JSON as a 
+      data (transfer) format.
+    </p>
+    <p>
+      The real question is whether this advantage can be converted to even 
+      more significant speed boost at higher level, like when doing full Java 
+      data binding (a la JAXB). We should find it in near future once people 
+      get more serious about building toolkits on top of efficient JSON 
+      parsers...
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, September 18, 2007 10:38 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_47.html">Permalink</a>
+
+
+<a href="javascript:HaloScan('47');" target="_self"><script
+type="text/javascript">postCount('47'); </script></a> | <a href="javascript:HaloScanTB('47');" target="_self"><script type="text/javascript">postCountTB('47');
+</script></a>
+
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_47.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+
+
+   
+   
+
+	<h2 class="date-header">Monday, September 17, 2007 </h2>
+
+<div class="entry" id="post-46">
+			<h3 class="entry-header">Jackson JSON-processor, v0.7</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      After some bugfixes, added unit testing, and one significant new 
+      feature, it is good time to release the next pre-1.0 version of <a href="http://www.cowtowncoder.com/hatchery/jackson/index.html">Jackson 
+      JSON-processor</a>.
+    </p>
+    <p>
+      So what's new? In addition to the basic stream parser (reader) and 
+      generator (writer) implementations, there is now support for simple data 
+      binding, implemented by mapper class <b>org.codehaus.jackson.map.JavaTypeMapper</b>. 
+      This mapper allows for mapping from JSON content into corresponding 
+      basic JDK data types (Lists, Maps, Strings, Numbers, Booleans and null) 
+      and back. When mapping from Java objects to JSON, a few more types are 
+      recognized (like primitive arrays, various basic Collections and so on), 
+      but no attempt is done to handle Java beans. Such support may be added 
+      via other mappers, but for now it is more important to cover the 
+      simplest cases.
+    </p>
+    <p>
+      Simple examples should show-case how easy it is to use this mapper. 
+      Let's start by mapping JSON to Java objects:
+    </p>
+    <pre>  JsonFactory jf = new JsonFactory();
+  Object result = new JavaTypeMapper().read(jf.createJsonParser(new StringReader(&quot;[ 1, 15, true ]&quot;)));</pre>
+    <p>
+      So what would 'result' look like? It would be equivalent to:
+    </p>
+    <pre>  List result = new ArrayList();
+  result.add(Integer.valueOf(1));
+  result.add(Integer.valueOf(15));
+  result.add(Boolean.TRUE);</pre>
+    <p>
+      And the other direction (outputting JSON given basic Java wrapper or 
+      collection instances is about as simple:
+    </p>
+    <pre>  JsonFactory jf = new JsonFactory();
+  StringWriter sw = new StringWriter();
+  JsonGenerator gen = new JsonFactory().createJsonGenerator(sw);
+  Map m = new LinkedHashMap();
+  m.put(&quot;key&quot;, Integer.valueOf(29));
+  m.put(&quot;value&quot;, &quot;something&quot;);
+  m.put(&quot;enabled&quot;, Boolean.TRUE);
+  new JavaTypeMapper().writeAny(gen, m);</pre>
+    <p>
+      And the output would look something like:
+    </p>
+    <pre>{&quot;key&quot;:29, &quot;value&quot;:&quot;something&quot;, &quot;enabled&quot;:true}</pre>
+    <p>
+      Rather simple? I think so. No extra metadata needed, no messing with 
+      annotations or (heaven forbid!) xml configuration files. Nor new java 
+      classes, only purpose of which is to act as C struct equivalents. Simple 
+      tool for simple (but common!) use cases.
+    </p>
+    <p>
+      So what's next? Jackson 0.8, obviously, but what will that contain? 
+      There is another kind of straightforward mapper that will probably 
+      added: one that uses basic node structure, somewhat similar to XML tree 
+      model (XOM, JDOM, DOM, DOM4J) nodes: ones that can be both conveniently 
+      traveled, and accessed in dynamic type-safe manner (a la &quot;duck typing&quot;). 
+      Stay tuned!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, September 17, 2007 9:58 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_46.html">Permalink</a>
+
+
+<a href="javascript:HaloScan('46');" target="_self"><script
+type="text/javascript">postCount('46'); </script></a> | <a href="javascript:HaloScanTB('46');" target="_self"><script type="text/javascript">postCountTB('46');
+</script></a>
+
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_46.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+
+
+   
+   
+
+	<h2 class="date-header">Thursday, August 30, 2007 </h2>
+
+<div class="entry" id="post-45">
+			<h3 class="entry-header">New Fast JSON-processor: Jackson!</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+  Developers, meet mr. <a href="http://www.cowtowncoder.com/hatchery/jackson/index.html">Jackson</a>: possibly the world's fastest JSON parser!
+  (and at very least, fastest one written in Java).
+</p>
+<p>
+  You heard it here first folks: a new streaming light-weight, and VERY fast 
+  JSON-processor (parser+generator) package written from scratch, in Java, 
+  is now officially out in the wild. Check out <a href="http://www.cowtowncoder.com/hatchery/jackson/index.html">Jackson 
+  Hatchery Page</a> for details.
+</p>
+<p>
+  So what's in it for me? This new release will eventually develop to be a 
+  similar high-quality, easy-to-use and widely used building block as 
+  Woodstox is. And that will happen fastest when there are fearless Early 
+  Adopters who check out new things.
+</p>
+<p>
+  Stay tuned: I will try to cover more ground with my next entry. For now, 
+  I just wanted to get the word out.
+</p>
+<p>
+   Oh, and please do send me feedback if you end up using it. While basic fundamental unit test coverage exists, there are bound to be some rough
+   edges.
+</p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, August 30, 2007 10:53 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/08/entry_45.html">Permalink</a>
+
+
+<a href="javascript:HaloScan('45');" target="_self"><script
+type="text/javascript">postCount('45'); </script></a> | <a href="javascript:HaloScanTB('45');" target="_self"><script type="text/javascript">postCountTB('45');
+</script></a>
+
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/08/entry_45.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+
+
+   
+   
+
+	<h2 class="date-header">Monday, August 20, 2007 </h2>
+
+<div class="entry" id="post-44">
+			<h3 class="entry-header">More fun integration: Antlr with Stax!</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Here's another interesting-looking <a href="http://www.antlr.org/wiki/display/ANTLR3/Interfacing+StAX+to+ANTLR">article</a>, 
+      toying with the idea of generating a parser that takes xml tokens 
+      (elements, attributes) as its lexical tokens, to parse higher-level 
+      constructs. ANTLR is a fine parser generator in its own right, so this 
+      could be something akin to peanut butter and jelly meeting to make a 
+      great sandwich (even if analogue here may be rather cheesy and naive). 
+      :-)
+    </p>
+    <p>
+      Anyway, in addition to coolness of the almost-recursive use case of 
+      &quot;Using parser generator with a parser&quot;, this actually seems potentially 
+      useful: to me, state machine based systems seem like an obvious way to 
+      generate higher level abstractions on top of xml structure. So hopefully 
+      someone has time to explore this approach in more detail (I'll have to 
+      keep this mind as a potential mini-project myself).
+    </p>
+    <p>
+       
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, August 20, 2007 9:56 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/08/entry_44.html">Permalink</a>
+
+
+<a href="javascript:HaloScan('44');" target="_self"><script
+type="text/javascript">postCount('44'); </script></a> | <a href="javascript:HaloScanTB('44');" target="_self"><script type="text/javascript">postCountTB('44');
+</script></a>
+
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/08/entry_44.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+
+
+   
+   
+
+	<h2 class="date-header">Tuesday, August 14, 2007 </h2>
+
+<div class="entry" id="post-43">
+			<h3 class="entry-header">Efficient XML processing with ColdFusion, Woodstox, XOM</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Here's yet another interesting article regarding applications of 
+      Woodstox: <a href="http://orangepips.instantspot.com/blog/index.cfm/2007/3/28/XML-StAX-Processing-with-Coldfusion">XML 
+      StAX Processing with ColdFusion</a>. It's not exactly new, but I just 
+      now found it. I remember original work by Jim Collins, when he was 
+      integrating Stax implementation with Cold Fusion. It sounded like it 
+      could be useful for situations where resource usage matters, such as 
+      when dealing with sizable (multiple megabyte) xml documents. Alas, it 
+      sounds like this wasn't fully finished, or at least not fully published.
+    </p>
+    <p>
+      Using <a href="http://www.xom.nu/">XOM</a> (and <a href="http://dsd.lbl.gov/nux/">Nux</a> 
+      library as the glue in-between) may also make sense, although it may 
+      remove many benefits of streaming processing. However, given the 
+      high-quality xml processing API XOM offers, as well as its 
+      customizability -- for example, it is quite easy to make it only build 
+      sub-trees of the source document, not the whole document -- this should 
+      be a nice addition to a CF developer's toolbox.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, August 14, 2007 9:46 AM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/08/entry_43.html">Permalink</a>
+
+
+<a href="javascript:HaloScan('43');" target="_self"><script
+type="text/javascript">postCount('43'); </script></a> | <a href="javascript:HaloScanTB('43');" target="_self"><script type="text/javascript">postCountTB('43');
+</script></a>
+
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/08/entry_43.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+
+
+   
+   
+
+	<h2 class="date-header">Wednesday, July 25, 2007 </h2>
+
+<div class="entry" id="post-42">
+			<h3 class="entry-header"> 2-way race for  "The Binary Xml Standard"</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Although there have been multiple viable contestants for the nomination 
+      of &quot;the binary xml standard&quot; (such as <a href="http://www.extreme.indiana.edu/xbs/">XBS</a> 
+      and my personal favorite <a href="http://dsd.lbl.gov/nux/">BNux</a>), 
+      the leading candidate for the title so far has been the <a href="https://fi.dev.java.net/">Fast 
+      Infoset</a>. But now a new kid on the block, <a href="http://www.w3.org/XML/EXI/">Efficient 
+      Xml Interchange</a> (EXI), seems to be gaining momentum. Reading through 
+      the <a href="http://www.w3.org/TR/exi/">draft proposal</a> as well as 
+      rationale for design decisions seems quite promising. Especially the 
+      fact that use of schema is optional while keeping alternatives 
+      orthogonal (same algorithm independent of whether extra schema 
+      information is used for not) looks good. There are obviously some areas 
+      for improvement (why the heck are unsigned ints included in addition to 
+      signed ones? 70s called, they want their C-types back!) but generally 
+      seems to be of &quot;this might work&quot; quality.
+    </p>
+    <p>
+      Additionally I am a big believer in competition: having 2 potentially 
+      viable standards in domain where there are so many design trade-offs to 
+      makes, and where no standard can quickly address all the concerns should 
+      be a Very Good thing. Time will tell which of the two (if either) will 
+      become more popular. But until then, I seriously hope both get enough 
+      TLC so that there are decent implementations (for FI there is 
+      fortunately already at least one good implementation).
+    </p>
+    <p>
+      But beyond the immediate question of binary serialization of the XML 
+      Information Set there is another important thing here: given that many 
+      binary serializations have heavy emphasis on typed data presentations, 
+      this should also help on-going efforts to provide Typed Access to the 
+      Infoset (being able to read and write underlying values as native 
+      datatypes such as ints, instead of having to always deal with textual 
+      representations). More users there would be for such APIs (like Stax 
+      extensions that are being <a href="http://weblogs.java.net/blog/spericas/archive/2007/06/adding_typed_su_1.html">worked 
+      on</a>), more likely it is that there will be enough open source 
+      developers to develop high-quality implementations, and more users there 
+      will be evaluate best of the best.
+    </p>
+    <p>
+      At any rate, it will be interesting to see how the EXI project will 
+      proceed, and whether the format specification will both gain momentum 
+      and more importantly, whether there will be high-quality 
+      implementation(s) to make use of the specification.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, July 25, 2007 9:56 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/07/entry_42.html">Permalink</a>
+
+
+<a href="javascript:HaloScan('42');" target="_self"><script
+type="text/javascript">postCount('42'); </script></a> | <a href="javascript:HaloScanTB('42');" target="_self"><script type="text/javascript">postCountTB('42');
+</script></a>
+
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/07/entry_42.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+
+
+   
+   
+
+	<h2 class="date-header"> </h2>
+
+<div class="entry" id="post-39">
+			<h3 class="entry-header">Woodstox usage within Geronimo</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      From the latest news: it looks like <a href="http://geronimo.apache.org/">Geronimo</a> 
+      (open source Application Server) project is officially using Woodstox as 
+      its default Stax implementation: see <a href="http://www.ibm.com/developerworks/java/library/os-ag-renegade15/index.html">this 
+      article</a>. Nice! &quot;First we take Manhattan... then we take Berlin!&quot; (as 
+      reported earlier, <a href="http://www.ibm.com/developerworks/java/library/os-ag-renegade15/index.html">Glassfish</a> 
+      is switching to Woodstox also, and if I am not mistaken, JBoss is 
+      already using Woodstox). Maybe this is how interoperability of Stax 
+      implementations will converge to 100%... :-)
+    </p>
+    <p>
+      It is of course also nice to see more tutorials on Stax usage, 
+      especially when the cursor API is present along with the Event API, 
+      explaining the performance difference. But here's hoping that soon there 
+      will be more articles about intermediate or expert-level usage of Stax: 
+      by now there a few tutorials (check out reference list at the end of the 
+      aforementioned article!).
+    </p>
+    <p>
+      Also coming soon: I will try to find time to write something about the 
+      &quot;Typed Stax API extensions&quot; (see <a href="http://weblogs.java.net/blog/spericas/archive/2007/06/adding_typed_su_1.html">Santiago's 
+      blog</a> for some discussion), since it will probably be the most 
+      significant new feature for Woodstox 4.0.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, July 25, 2007 9:36 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/07/entry_39.html">Permalink</a>
+
+
+<a href="javascript:HaloScan('39');" target="_self"><script
+type="text/javascript">postCount('39'); </script></a> | <a href="javascript:HaloScanTB('39');" target="_self"><script type="text/javascript">postCountTB('39');
+</script></a>
+
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/07/entry_39.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+
+
+   
+   
+
+	<h2 class="date-header">Tuesday, June 12, 2007 </h2>
+
+<div class="entry" id="post-38">
+			<h3 class="entry-header">Tracking Open Source Projects</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+  I just found out about one interesting project that tracks tons of Open 
+  Source projects, including Woodstox: <a href="http://www.ohloh.net/">Ohloh</a>. 
+  Although it is not exactly brand new (seems to have been announced at 
+  Slashdot almost a year ago), it is new to me. It also looks quite 
+  interesting in itself, with thorough tracking of the project based on historical source
+  level activity (which is one of few fundamentally important things one can automatically track).
+  Another related to service is <a href="http://www.sourcekibitzer.org/">SourceKibitzer</a>, 
+  of which existence I have been vaguely aware of, having seen references 
+  to it in Google results. However, I hadn't really checked it out before. 
+  <a href="http://woodstox.codehaus.org">Woodstox</a> is listed there as well, and even
+  <a href="http://staxmate.codehaus.org">StaxMate</a>. Perhaps they are 
+  automatically spidering the full <a href="http://www.codehaus.org">Codehaus</a>? (although list does not 
+  contain all projects, it may be just due to filtering of &quot;dead&quot; projects 
+  from Codehaus). Both sites provide automatically generated statistics, 
+  which are interesting to some degree. On positive side, it is possible 
+  to keep those up-to-date automatically, and allow things to scale 
+  nicely. But on the other hand, mechanical non-subjective metrics only go 
+  that far. That may be alleviated by building a community to provide 
+  actual human-originated feedback. That may well be the source of biggest 
+  future improvements.
+</p>
+<p>
+  All in all it is interesting to note the increasing &quot;meta-activity&quot; 
+  regarding Open Source projects. That is, projects that are not first 
+  order open source projects, but that track others in some way. I guess 
+  this is second (or third?) wave of &quot;Open Source Portals&quot;: I remember 
+  <a href="http://www.jars.com">Jars.com</a> that started about ten years ago
+  (and seemed to collapse not very long from its launch... not sure if my Fractalizer fun tool was ever
+  really even reviewed). But the latest additions actually add bit more meat around the bones.
+</p>
+<p>
+  On a related note, it is also interesting to see even more 
+  commercially-minded Open Source Watchdogs. For example,
+  <a href="http://www.openlogic.com">OpenLogic</a> 
+  provides &quot;certified Open Source&quot; support, including consulting and even 
+  indemnification. As the writer of underlying software, it would nice to 
+  be kept bit more in the loop; but at least it is very interesting to see 
+  how Open Source Eco(no)system is evolving.
+</p>
+<p>
+  So I guess we live in exciting times. As always!
+</p>
+<p>
+ps. Now I also now what is one possible <a href="http://www.ohloh.net/projects/5069">cost-based price</a>
+(cost for implementing similar package from the scratch, based on source code size)
+for Woodstox. How much? $657,331, it seems. Sounds reasonable: anyone interested in bidding for full rights
+for the source code? :-)
+</p>
+</p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, June 12, 2007 10:11 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/06/entry_38.html">Permalink</a>
+
+
+<a href="javascript:HaloScan('38');" target="_self"><script
+type="text/javascript">postCount('38'); </script></a> | <a href="javascript:HaloScanTB('38');" target="_self"><script type="text/javascript">postCountTB('38');
+</script></a>
+
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/06/entry_38.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+
+
+   
+   
+
+	<h2 class="date-header">Thursday, May 24, 2007 </h2>
+
+<div class="entry" id="post-37">
+			<h3 class="entry-header">New xml performance comparison: Woodstox fastest java xml parser</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      I bumped into another interesting new article, at <a href="http://www.xml.com">xml.com</a>, 
+      this one regarding xml parser performance: <a href="http://www.xml.com/pub/a/2007/05/09/xml-parser-benchmarks-part-1.html">XML 
+      Parser Benchmarks: Part 1</a>. One particular interesting feature is 
+      that this time comparison included both native and Java xml parsers, 
+      using what seemed to be fair comparison (although it'd be nice o 
+      independently verify the results, which doesn't seem possible).
+    </p>
+    <p>
+      Amongst the findings were:
+    </p>
+    <ul>
+      <li>
+        Woodstox was the fastest xml conformant Java parser of the ones they 
+        measured
+      </li>
+      <li>
+        Although libxml2 (written in C) was faster than the fastest Java 
+        parser, difference was not particularly high (in my opinion)
+      </li>
+      <li>
+        Throughput for all parsers was rather high: for Woodstox sustained 
+        throughput looked something like 25 MBps, which is in line with my own 
+        measurements. So for one's typical short (in xml terms at least...) 
+        soap messages, it's possible to parse (and write) thousands of 
+        messages per second. Parsing and writing really should not be the most 
+        expensive step any more.
+      </li>
+    </ul>
+    <p>
+      According to their measurement, one would pay something like 30% extra 
+      overhead for Java. To me that seems like a bargain. And on the other 
+      hand, that there is some difference also suggests it is probably a fair 
+      comparison (as opposed some of more suspicious &quot;my language is faster 
+      than your language&quot; comparisons): here are parts of xml processing where 
+      native code still has advantage (low level byte manipulation for 
+      character decoding, for example, memory mapping of content), so it seems 
+      reasonable there is some speed benefit. It may also be a win-win 
+      situation: those who favour using low-level languages to squeeze out 
+      last cpu cycle will find comfort in that all that tweaking with memory 
+      management and buffer handling will have some dividends. And others can 
+      feel ok with the comfort of a managed runtime environment, with modest 
+      overhead.
+    </p>
+    <p>
+       
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, May 24, 2007 11:13 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/05/entry_37.html">Permalink</a>
+
+
+<a href="javascript:HaloScan('37');" target="_self"><script
+type="text/javascript">postCount('37'); </script></a> | <a href="javascript:HaloScanTB('37');" target="_self"><script type="text/javascript">postCountTB('37');
+</script></a>
+
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/05/entry_37.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+
+
+   
+   
+
+	<h2 class="date-header">Tuesday, May 22, 2007 </h2>
+
+<div class="entry" id="post-36">
+			<h3 class="entry-header">Nice new Stax 2 tutorial: "StAX the odds with Woodstox"</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      I was delighted to find a brand new tutorial for <a href="http://woodstox.codehaus.org/Stax2">Stax 
+      2</a> API at <a href="http://www.vsj.co.uk/">VSJ</a>: <a href="http://www.vsj.co.uk/articles/display.asp?id=643">StAX 
+      the odds with Woodstox</a>, written by <a href="http://www.amazon.com/exec/obidos/search-handle-url/103-6358374-2671030?%5Fencoding=UTF8&search-type=ss&index=books&field-author=Sing%20Li">Sing 
+      Li</a>. Given limited amount of documentation I have been able to 
+      produce, I think it's great to have others cover different areas, 
+      including introductionary texts. Here's hoping that more developers find 
+      features of Woodstox that extend beyond basic vanilla Stax 1.0 interface.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, May 22, 2007 10:22 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/05/entry_36.html">Permalink</a>
+
+
+<a href="javascript:HaloScan('36');" target="_self"><script
+type="text/javascript">postCount('36'); </script></a> | <a href="javascript:HaloScanTB('36');" target="_self"><script type="text/javascript">postCountTB('36');
+</script></a>
+
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/05/entry_36.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+
+
+   
+            </div>
+        </div>
+				            <div id="beta">
+	            	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+<!-- ##############  REMOVE THIS LINE (1/2) TO SHOW THE PROFILE  ################
+	
+    <div class="module-photo module">
+		<div class="module-content"><img src="http://yoursite.com/your_pic.jpg"></div>
+
+	</div>
+
+<div class="module-about module">
+	<h2 class="module-header">About me</h2>
+		<div class="module-content">
+			<ul class="module-list">
+
+									<li class="module-list-item">I'm <strong><$BlogOwnerNickname$></strong></li>
+									<li class="module-list-item">From <strong>Your Location</strong></li>
+
+									<li class="module-list-item">Things about you</li>
+
+			</ul>
+			<a href="http://whatever.com">My profile</a>		
+		</div>
+
+</div>
+
+##############  REMOVE THIS LINE (2/2) TO SHOW THE PROFILE  ################# -->
+
+
+
+<!-- AdSense puff: -->
+<script type="text/javascript"><!--
+google_ad_client = "pub-1467773697956887";
+google_ad_width = 110; google_ad_height = 32;
+google_ad_format = "110x32_as_rimg";
+google_cpa_choice = "CAAQ1fSy0gEaCIm_3nvOmx86KPmNxXQ";
+google_ad_channel = "1857346486";
+//--></script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<hr />
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+<form method="get" action="http://www.google.com/custom" target="_top">
+<table border="0" bgcolor="#ffffff">
+<tr><td nowrap="nowrap" valign="top" align="left" height="32">
+<a href="http://www.google.com/">
+<img src="http://www.google.com/logos/Logo_25wht.gif" border="0" alt="Google" align="middle"></img></a>
+</td>
+<td nowrap="nowrap">
+<input type="hidden" name="domains" value="www.cowtowncoder.com"></input>
+<input type="text" name="q" size="16" maxlength="255" value=""></input>
+</td></tr>
+<tr>
+<td>&nbsp;</td>
+<td nowrap="nowrap">
+<table>
+<tr>
+<td>
+<input type="radio" name="sitesearch" value="" checked="checked"></input>
+<font size="-1" color="#000000">Web</font>
+</td>
+<td>
+<input type="radio" name="sitesearch" value="www.cowtowncoder.com"></input>
+<font size="-1" color="#000000">this site</font>
+</td>
+</tr>
+</table>
+<input type="submit" name="sa" value="Search"></input>
+<input type="hidden" name="client" value="pub-1467773697956887"></input>
+<input type="hidden" name="forid" value="1"></input>
+<input type="hidden" name="ie" value="UTF-8"></input>
+<input type="hidden" name="oe" value="UTF-8"></input>
+<input type="hidden" name="flav" value="0000"></input>
+<input type="hidden" name="sig" value="HOmqY9T4IAwVLvSH"></input>
+<input type="hidden" name="cof" value="GALT:#008000;GL:1;DIV:#336699;VLC:663399;AH:center;BGC:FFFFFF;LBGC:336699;ALC:0000FF;LC:0000FF;T:000000;GFNT:0000FF;GIMP:0000FF;LH:50;LW:386;L:http://photos1.blogger.com/blogger/5442/340/1600/banner-bg.3.gif;S:http://www.google.com/adsense;FORID:1;"></input>
+<input type="hidden" name="hl" value="en"></input>
+</td></tr></table>
+</form>
+<!-- SiteSearch Google -->
+<hr />
+                     </div>
+
+	<div class="module-archives module">
+
+   
+		<h2 class="module-header">Last posts</h2>
+		<div class="module-content">
+			<ul class="module-list">
+
+									<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_47.html">Jackson is Fast... but how fast?</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_46.html">Jackson JSON-processor, v0.7</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2007/08/entry_45.html">New Fast JSON-processor: Jackson!</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2007/08/entry_44.html">More fun integration: Antlr with Stax!</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2007/08/entry_43.html">Efficient XML processing with ColdFusion, Woodstox, XOM</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2007/07/entry_42.html"> 2-way race for  "The Binary Xml Standard"</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2007/07/entry_39.html">Woodstox usage within Geronimo</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2007/06/entry_38.html">Tracking Open Source Projects</a></li>
+
+			</ul>
+		</div>
+
+   
+
+   
+	</div>
+	
+	<div class="module-archives module">
+		<h2 class="module-header">Archives</h2>
+		<div class="module-content">
+			<ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+			</ul>
+		</div>
+	</div>
+	<div class="module-categories module">
+		<h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-about module">
+
+	<h2 class="module-header">Sponsored By</h2>
+		<div class="module-content">
+
+<!-- Google Adsense -->
+<script type="text/javascript"><!--
+google_ad_client = "pub-1467773697956887";
+google_ad_width = 160;
+google_ad_height = 600;
+google_ad_format = "160x600_as";
+google_ad_type = "text_image";
+google_ad_channel ="";
+google_color_border = "336699";
+google_color_bg = "FFFFFF";
+google_color_link = "0000FF";
+google_color_text = "000000";
+google_color_url = "008000";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google Adsense -->
+
+	<h2 class="module-header">Related Blogs</h2>
+		<div class="module-content">
+(by Author (topics))
+			<ul class="module-list">
+<li class="module-list-item"><a href="http://http://netzooid.com/blog/">Dan D</a>
+<br />(XFire)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Scott P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+<li class="module-list-item"><a href="http://shudson310.blogspot.com/">Scott H</a>
+<br />(DocBook, XML)
+</li>
+			</ul>
+		</div>
+<!--
+-->
+
+</div>
+
+<div class="module-referrals module">
+	<h2 class="module-header">Recommended Tools</h2>
+	<div class="module-content">
+<script type="text/javascript"><!--
+google_ad_client = "pub-1467773697956887";
+google_ad_width = 120;
+google_ad_height = 240;
+google_ad_format = "120x240_as_rimg";
+google_cpa_choice = "CAAQufGXhAIaCNsLc8WT4y4qKPG193M";
+//--></script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+	</div>
+</div>
+
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>,
+and
+<br />
+<a href="http://www.haloscan.com/"><img width="88" height="31" src="http://www.haloscan.com/halolink.gif" border="0"
+alt="Weblog Commenting and Trackback by HaloScan.com" /></a>
+</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

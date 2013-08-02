@@ -28,24 +28,24 @@ body{
 background: url(blue-bg.gif) repeat-x;
 }
 .layout-two-column-left #alpha{
-width:30%;
+width:34%;
 }
 .layout-two-column-left #beta-inner.pkg{
 border-left:1px solid black;
 }
 .layout-two-column-left #beta{
-width:70%;
+width:66%;
 }
 
 
 .layout-two-column-right #alpha{
-width:70%;
+width:66%;
 }
 .layout-two-column-right #alpha-inner.pkg{
 border-right:1px solid black;
 }
 .layout-two-column-right #beta{
-width:30%;
+width:34%;
 }
 
 
@@ -98,7 +98,7 @@ letter-spacing:1px;
 
 #pagebody{
 padding-top:40px;
-width:800px !important;
+width:750px !important;
 margin:0 auto;
 }
 #pagebody-inner .pkg{
