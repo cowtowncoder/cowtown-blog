@@ -1,0 +1,1742 @@
+<html lang="en">
+<head>
+<title>February 2011</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Monday, February 28, 2011 </h2>
+
+<div class="entry" id="post-446">
+			<h3 class="entry-header">Jackson: not just for JSON, Smile or BSON any more -- Now With XML, too!</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      (NOTE: see the newer article on &quot;<a href="/blog/archives/2012/03/entry_467.html">Jackson 
+      2.0 with XML</a>&quot;)
+    </p>
+    <p>
+      One of first significant new Jackson extension projects (result of <a href="/blog/archives/2011/02/entry_441.html">Jackson 
+      1.7</a> release which made it much easier to provide <a href="/blog/archives/2011/02/entry_442.html">modular 
+      extensions</a>) is <a href="https://github.com/FasterXML/jackson-xml-databind">jackson-xml-databind</a>, 
+      hosted at GitHub. Although this extension is still in its pre-1.0 
+      development phase, the latest released version is fully usable as is and 
+      is even in some limited production use by some brave developers (running 
+      on Google AppEngine, of all things!).
+    </p>
+    <p>
+      So it is probably a good idea to now give a brief overview of what this 
+      project is all about.
+    </p>
+    <p>
+      <b>1. What is jackson-xml-databind?</b>
+    </p>
+    <p>
+      <i>Jackson-xml-databind</i> comes in a small package (jar is only about 
+      55 kB) , and is used with Jackson data binding functionality 
+      (jackson-mapper jar). It provides basic replacement for <i>JsonFactory</i>, 
+      <i>JsonParser</i> and <i>JsonGenerator</i> components of Jackson 
+      Streaming API, and allows reading and writing of XML instead of JSON, in 
+      context of generic Jackson data binding functionality. In addition, core 
+      ObjectMapper is also sub-classed to provide customized versions of 
+      couple of other provider types, so typically all usage is done by 
+      creating com.fasterxml.jackson.xml.XmlMapper instead of ObjectMapper, 
+      and using it for data binding.
+    </p>
+    <p>
+      <b>2. What is it used for?</b>
+    </p>
+    <p>
+      This package is used to read XML and convert it to POJOs, as well as to 
+      write POJOs as XML. In this respect it is very similar to JAXB (<i>javax.xml.bind</i>) 
+      package; and an alternative for many other Java XML data binding 
+      packages such as XStream and JibX. Given Jackson support for JAXB 
+      annotations, it can be especially conveniently used as a JAXB 
+      replacement in many cases.
+    </p>
+    <p>
+      Functionality supported is in some ways a subset of JAXB, and in other 
+      ways a superset: XML-specific functionality is more limited (no explicit 
+      support for XML Schema), but general data binding functionality is 
+      arguably more powerful (since it is full set of Jackson functionality).
+    </p>
+    <p>
+      Two obvious benefits of this package compared to JAXB or other existing 
+      XML data binding solutions (like XStream) are superior performance -- 
+      with fast Stax XML parser, this is likely the fastest data binding 
+      solution on Java platform (see <a href="https://github.com/eishay/jvm-serializers/wiki">jvm-serializers</a> 
+      for results) -- and extensive and customizable data POJO conversion 
+      functionality, using all existing Jackson annotations and configuration 
+      options. The main downside currently is potential immaturity of the 
+      package; however, this only applies to interaction between mature XML 
+      packages (stax implementation) and Jackson data binder (which is also 
+      fairly mature at this point).
+    </p>
+    <p>
+      <b>3. So how do I use it?</b>
+    </p>
+    <p>
+      If you know how to use Jackson with JSON, you know almost everything you 
+      need to use this package. The only other thing you need to know is that 
+      there has to be a Stax XML parser/generator implementation available. 
+      While JDK 1.6 provides one implementation, your best best is using 
+      something bit more efficient, such as <a href="http://woodstox.codehaus.org">Woodstox</a> 
+      or <a href="http://wiki.fasterxml.com/AaltoHome">Aalto</a>. Both should 
+      work fine; Aalto is faster of two, but Woodstox is a more mature choice. 
+      So you will probably want to include one of these Stax implementations 
+      when using jackson-xml-databind.
+    </p>
+    <p>
+      Other than this, all you need to do is to construct XmlMapper:
+    </p>
+    <pre>  XmlMapper mapper = new XmlMapper(); // can also specify XmlFactory to 
+  use, to override Stax factories used</pre>
+    <p>
+      and use it like you would any other ObjectMapper, like so:
+    </p>
+    <pre>  User user = new User(); // from Jackson-in-five-minutes sample<br>  String xml = mapper.writeValueAsString(user);</pre>
+    <p>
+      and what you would get is something like:
+    </p>
+    <pre>&lt;User&gt;
+  &lt;name&gt;
+    &lt;first&gt;Joe&lt;/first&gt;
+    &lt;last&gt;Sixpack&lt;/last&gt;
+  &lt;/name&gt;
+  &lt;verified&gt;true&lt;/verified&gt;
+  &lt;gender&gt;MALE&lt;/gender&gt;
+  &lt;userImage&gt;AQIDBAU=&lt;/userImage&gt;
+&lt;/User&gt;</pre>
+    <p>
+      which is equivalent of JSON serialization that would look like:
+    </p>
+    <pre>{
+  &quot;name&quot;:{
+    &quot;first&quot;:&quot;Joe&quot;,
+    &quot;last&quot;:&quot;Sixpack&quot;
+  },
+  &quot;verified&quot;:true,
+  &quot;gender&quot;:&quot;MALE&quot;,
+  &quot;userImage&quot;:&quot;AQIDBAU=&quot;
+}</pre>
+    <p>
+      Pretty neat eh?
+    </p>
+    <p>
+      Oh, and reverse direction obviously works similarly:
+    </p>
+    <pre>  User user = mapper.readValue(xml, User.class);</pre>
+    <p>
+      There is really nothing extra-ordinary in it usage; just another way to 
+      use Jackson for slicing and dicing your POJOs.
+    </p>
+    <p>
+      <b>4. Limitations</b>
+    </p>
+    <p>
+      While existing version works pretty well in general, there are some 
+      limitations. These mostly stem from the basic difference between XML and 
+      JSON logical models; and specifically affect handling of Lists/arrays. 
+      XmlMapper for example only allows so-called &quot;wrapped&quot; lists (for now); 
+      meaning that there is one wrapper XML element for each List or array 
+      property, and separate element for each List item.
+    </p>
+    <p>
+      Compared to JAXB (and related to JAXB annotation support), no DOM 
+      support is included; meaning, it is not possible to use converters that 
+      take or produce DOM Elements.
+    </p>
+    <p>
+      With respect to Jackson functionality, while polymorphic type 
+      information does work, some combinations of settings may not work as 
+      expected.
+    </p>
+    <p>
+      And given project's pre-1.0 status, testing is not yet as complete as it 
+      needs to be, so other rough edges may also be found. But with help of 
+      user community I am sure we can polish these up pretty quickly.
+    </p>
+    <p>
+      <b>5. Feedback time!</b>
+    </p>
+    <p>
+      So what is needed most at this point? Users, usage, and resulting bug 
+      (or, possibly, success) reports! Seriously, more usage there is, faster 
+      we can get the project up to 1.0 release.
+    </p>
+    <p>
+      Happy hacking!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, February 28, 2011 9:28 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_446.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_446.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_446.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Tuesday, February 15, 2011 </h2>
+
+<div class="entry" id="post-445">
+			<h3 class="entry-header">Basic flaw with most binary formats: missing identifiable prefix (protobuf, Thrift, BSON, Avro, MsgPack)</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Ok: I admit that I have many reservations regarding many existing binary 
+      data formats; and this is major reason why I worked on <a href="http://wiki.fasterxml.com/SmileFormat">Smile 
+      format</a> specification -- to develop a format that tries to address 
+      various deficiencies I have observed.
+    </p>
+    <p>
+      But while the full list of grievances would be long, I realized today 
+      that there is one basic design problem that is common to pretty much all 
+      formats -- at least Thrift, protobuf, BSON and MsgPack -- that is: lack 
+      of any kind of reliable, identifiable prefix. Commonly used techniques 
+      like &quot;magic number&quot;, which is used to allow reliable type detection for 
+      things like image formats appears unknown to binary data format 
+      designers. This is a shame.
+    </p>
+    <p>
+      <b>1. The Problem</b>
+    </p>
+    <p>
+      Given a piece of data (file, web resource), one important piece of 
+      metadata is its structure. While this is often available explicitly from 
+      the context, this is not always the case; and even if it could be added 
+      there are benefits to being able to automatically detect type: this can 
+      significantly simplify systems, or to extend functionality by accepting 
+      multiple kinds of formats. Various graphics programs, for example, can 
+      operate on different image storage formats, without necessarily having 
+      any metadata available beyond just actual data.
+    </p>
+    <p>
+      So why does this matter? It helps in verifying basic correctness of 
+      interacton in many cases: if you can detect what is and what is not 
+      valid piece of data in a format, life is much easier: you have a chance 
+      to know immediately when piece of data is completely corrupt, or you are 
+      being fed data in some format than the one you expect. Or, if you 
+      support multiple formats, you can add automatic handling of differences.
+    </p>
+    <p>
+      <b>2. Textual formats do it well</b>
+    </p>
+    <p>
+      But let's go back to commonly used textual data formats: XML and JSON. 
+      Of these, XML specifies &quot;xml declaration&quot; which can be used to not only 
+      determine text encoding (UTF-8 etc) used but also the fact that data is 
+      XML. It is cleanly designed and is simple to implement. As if it was 
+      designed by people who knew what they were doing.
+    </p>
+    <p>
+      JSON does not define such a prefix, but specification does specify exact 
+      rules for detecting valid JSON, as well as encodings that can be used; 
+      so in practice JSON auto-detection is as easy to implement as that for 
+      XML.
+    </p>
+    <p>
+      <b>3. But most new binary formats don't</b>
+    </p>
+    <p>
+      Now; the task of defining unique (enough) header for binary formats 
+      would be even easier than that for textual formats, because structurally 
+      there is less variance: no need to allow variable text encoding, 
+      arbitrary white spaces, or other lexical sugar. It took me very little 
+      time to figure out the simple schema used by Smile to indicate its type 
+      (which in itself was inspired by design of PNG image format, an example 
+      of very good data format design).
+    </p>
+    <p>
+      So you might think that binary formats would excel in this area. 
+      Unfortunately, you would be wrong.
+    </p>
+    <p>
+      As far as I can see, following binary data formats have little or no 
+      support for type detection:
+    </p>
+    <ul>
+      <li>
+        <b>Thrift</b> does not seem to have type identifier at its format 
+        layer. There is actually small amount of metadata at RPC level (there 
+        is a message-start structure of some kind), but this only helps if you 
+        want/need to use Thrift's RPC layer. Another odd things is that 
+        internal API actually exposes hooks that would be used to handle any 
+        type idenfitiers; it is as if designers were at least aware of 
+        possibility of using some markers to enclose main-level data entities.
+      </li>
+      <li>
+        <b>protobuf</b> does not seem to have anything to allow type detection 
+        of a given blob of protobuf data. I guess protobuf never claimed to be 
+        useful for anything beyond tightly coupled low-level system 
+        integration (although some clueless companies are apparently using it 
+        for data storage... which just plain old Bad Idea), so maybe I could 
+        buy argument that this is just not needed, that there is never any 
+        &quot;arbitrary protobuf data&quot; around. Still... adding a tiny bit of 
+        redundancy would make sense for diagnostics purposes; and given that 
+        protobuf already has some redundancy (field ids, instead of using 
+        ordering) it would seem acceptable to use first 2 or 4 bytes for this.
+      </li>
+      <li>
+        <b>MsgPack</b> and <b>BSON</b> both just define &quot;raw&quot; encoding, 
+        without any format identifier that I can see. This is especially 
+        puzzling since unlike protobuf and Thrift, they do not require a 
+        schema to be used; that is, they have plenty of other metadata (types, 
+        names of struct members; even length prefixes). So make these data 
+        formats completely  unidentifiable?
+      </li>
+    </ul>
+    <p>
+      <b>4. But what about Avro?</b>
+    </p>
+    <p>
+      There is one exception aside from Smile, however. Avro seems to do the 
+      right thing (as far as I can read <a href="http://avro.apache.org/docs/1.4.1/spec.html">the 
+      specification</a>) -- at least when explicitly storing Avro data in a 
+      file (I assume including map/reduce use cases, stored in HDFS): there is 
+      a simple prefix to use, as well as requirement to store the schema used. 
+      This makes sense, since my biggest concern with formats like protobuf 
+      and Thrift is that being &quot;schema-ridden&quot;, data without schema is all but 
+      useless. Requiring that two are bundled -- when stored -- makes sense; 
+      optimizations can be used for transfer.
+    </p>
+    <p>
+      So Avro definitely seems better design than 4 other binary data formats 
+      listed above in this respect.
+    </p>
+    <p>
+      <b>5. Why do I care?</b>
+    </p>
+    <p>
+      As part of my on-going expansion of Jackson (&quot;the universal data 
+      processor&quot;), I am thinking of adding many more backends (to support 
+      reading and writing data in alternate data formats), to allow clean and 
+      efficient data binding to/from most any commonly used data formats. 
+      Ideally this would include binary data formats. Current plans are to 
+      include format detection functionality in such a way that new codecs can 
+      detect data they are capable of reading and writing; and this will work 
+      just fine for most existing formats that Jackson can handle (JSON, 
+      Smile, XML). I also assumed that since it would be very easy to design 
+      data formats that can be reliably detected, existing formats should be a 
+      piece of cake to detect. It is only when I started digging into details 
+      of binary data formats that the sad reality sunk in...
+    </p>
+    <p>
+      On plus side, this makes it easier to focus on adding first rate support 
+      for data formats that are easy to detect. So I will probably prioritize 
+      Avro compatibility significantly higher than others; and I will 
+      unfortunately have to downgrade my work on adding Thrift support which 
+      would otherwise be the most important &quot;alien&quot; format to support (due to 
+      existing use by infrastructure I am working on).
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, February 15, 2011 9:11 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_445.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_445.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_445.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Sunday, February 06, 2011 </h2>
+
+<div class="entry" id="post-444">
+			<h3 class="entry-header">On prioritizing my Open Source projects, retrospect #2</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      (note: related to original &quot;<a href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_400.html">on 
+      prioritizing OS project</a>&quot;, as well as <a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_424.html">first 
+      retrospect</a> entry)
+    </p>
+    <p>
+      <b>1. What was the plan again?</b>
+    </p>
+    <p>
+      Ok, it has been almost 4 months since my last medium-term high-level 
+      priorization overview. Planned list back then had these entries:
+    </p>
+    <ol>
+      <li>
+        Woodstox 4.1
+      </li>
+      <li>
+        Aalto 1.0 (complete async API, impl)
+      </li>
+      <li>
+        Jackson 1.7: focus on extensibility
+      </li>
+      <li>
+        ClassMate 1.0
+      </li>
+      <li>
+        Externalized Mr Bean (not dependant on Jackson)
+      </li>
+      <li>
+        StaxMate 2.1
+      </li>
+      <li>
+        Tr13 1.0
+      </li>
+    </ol>
+    <p>
+      <b>2. And how have we done?</b>
+    </p>
+    <p>
+      Looks like we got about half of it done. Point by point:
+    </p>
+    <ol>
+      <li>
+        DONE: Woodstox 4.1 (with 4.1.1 patch release)
+      </li>
+      <li>
+        Almost: Aalto 1.0 -- half-done; but significant progress, API is 
+        defined, about half of implementation work done
+      </li>
+      <li>
+        DONE: Jackson 1.7 (with 1.7.1 and 1.7.2 patch releases)
+      </li>
+      <li>
+        Almost: ClassMate 1.0 not completed; version 0.5.2 released, javadocs 
+        publisher, minor work remains
+      </li>
+      <li>
+        Deferred: Externalized Mr Bean -- no work done (only some preliminary 
+        scoping)
+      </li>
+      <li>
+        DONE? StaxMate 2.1 -- released 2.0.1 patch instead that contains fixes 
+        to found issues, but no new features, which would defined 2.1.
+      </li>
+      <li>
+        Some work done: Tr13: incremental work, but no definite 1.0 release 
+        (did release 0.2.5 patch version with cleanup)
+      </li>
+    </ol>
+    <p>
+      I guess it is less than half since only 2 things were fully completed 
+      (or 3 if StaxMate 2.0.1 counts). But then again, of remaining tasks only 
+      one did not progress at all; and many are close to being completed (in 
+      fact, I was hoping to wrap up Aalto before doing update). And ones 
+      referred were lower entries on the list.
+    </p>
+    <p>
+      On the other hand, I did work on a few things that were not on the list. 
+      For example:
+    </p>
+    <ul>
+      <li>
+        Started &quot;jackson-xml-databinding&quot; project (after Jackson 1.7.0), got 
+        first working version (0.5.0)
+      </li>
+      <li>
+        Started multiple other Jackson extension projects 
+        (jackson-module-hibernate, jackson-module-scala), with working builds 
+        and somewhat usable code; these based on code contributed by other 
+        Jackson developers
+      </li>
+      <li>
+        Started &quot;java-cachemate&quot; project, designed concept and implemented 
+        in-memory size-limited-LRU-cache (used already in a production system)
+      </li>
+    </ul>
+    <p>
+      This just underlines how non-linear open source development can be; it 
+      is often opportunistic -- but necessarily in negative way -- and heavily 
+      influenced by feedback, as well as newly discovered inter-dependencies, 
+      and -opportunities.
+    </p>
+    <p>
+      <b>3. Updated list</b>
+    </p>
+    <p>
+      Let's try guestimating what to do going forward, then, shall we. 
+      Starting with leftovers, we could get something like:
+    </p>
+    <ul>
+      <li>
+        Aalto 1.0: complete async implementation; do some marketing
+      </li>
+      <li>
+        ClassMate 1.0: relatively small amount of work (expose class 
+        annotations)
+      </li>
+      <li>
+        Java CacheMate: complete functionality, ideally release 1.0 version
+      </li>
+      <li>
+        Tr13: either complete 1.0, or augment with persistence options from 
+        cachemate (above)
+      </li>
+      <li>
+        Externalized Mr Bean? This is heavily dependant on external interest
+      </li>
+      <li>
+        Jackson 1.8: target most-wanted features (maybe external type id, 
+        multi-arg setters)
+      </li>
+      <li>
+        Jackson-xml-databinding 1.0: more testing, fix couple known issues
+      </li>
+      <li>
+        Work on Smile format; try to help with libsmile (C impl), maybe more 
+        formal specification; performance measurements, other advocacy; maybe 
+        even write a javascript codec
+      </li>
+    </ul>
+    <p>
+      Other potential work could include:
+    </p>
+    <ul>
+      <li>
+        StaxMate 2.1 with some new functionality
+      </li>
+      <li>
+        Woodstox 5.0, if there is interest (raise JDK minimum to 1.5, maybe 
+        convert to Maven build)
+      </li>
+      <li>
+        Jackson-module-scala: help drive 1.0 version, due to amount of 
+        interest in full Scala support
+      </li>
+      <li>
+        Jackson-module-csv: support data-binding to/from CSV -- perhaps 
+        surprisingly, much of &quot;big data&quot; exists as plain old CSV files...
+      </li>
+    </ul>
+    <p>
+      But chances are that above lists are also incomplete... let's check back 
+      in May, on our first &quot;anniversary&quot; retrospect.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Sunday, February 06, 2011 5:19 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_444.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_444.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_444.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Saturday, February 05, 2011 </h2>
+
+<div class="entry" id="post-443">
+			<h3 class="entry-header">Every day Jackson usage, part 3: Filtering properties</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      (part of continuing series on covering common usage patterns with <a href="http://wiki.fasterxml.com/JacksonHome">Jackson 
+      JSON processor</a>; previous entry covered <a href="/blog/archives/2010/09/entry_414.html">handling 
+      open (extensible) content</a>)
+    </p>
+    <p>
+      One of first things users eventually want to configure when using 
+      Jackson is (re)defining which Java object properties to serialize 
+      (written out) and which not.
+    </p>
+    <p>
+      <b>1. What gets serialized by default?</b>
+    </p>
+    <p>
+      Properties of an object are initially determined by process called 
+      auto-detection: all member methods and fields are checked to find:
+    </p>
+    <ol>
+      <li>
+        &quot;Getter&quot; methods: all no-argument public member methods which return a 
+        value, and conform to naming convention of &quot;getXxx&quot; (or &quot;isXxx&quot;, iff 
+        return type is boolean; called &quot;is-getter&quot;) are considered to infer 
+        existence of property with name &quot;xxx&quot; (where property name is inferred 
+        using bean convention, i.e. the leading capitali letter(s) is changed 
+        to lower case
+      </li>
+      <li>
+        field properties: all public member fields are considered to represent 
+        properties, using field name as is.
+      </li>
+    </ol>
+    <p>
+      In case both a getter and a field is found for same logical property, 
+      getter method has precedence and is used (field is ignored).
+    </p>
+    <p>
+      Set of properties introspected using this process are considered to be 
+      the base set of properties. But the auto-detection process itself can be 
+      configured differently, and there are multiple annotations and 
+      configuration settings that can further change actual effective set of 
+      properties to serialize.
+    </p>
+    <p>
+      <b>2. Changing auto-detection defaults: @JsonAutoDetect</b>
+    </p>
+    <p>
+      If the default auto-detection visibility limits (fields and member 
+      methods needing to be public) are not to your liking, it is easy to 
+      change them by using one of following method:
+    </p>
+    <ul>
+      <li>
+        @JsonAutoDetect annotation can be defined for classes; properties 
+        &quot;fieldVisibility&quot;, &quot;getterVisibility&quot; and &quot;isGetterVisibility&quot; define 
+        minimum visibility needed to include property (for fields, getters and 
+        is-getters, respectively). It is possible to, for example, include all 
+        field properties regardess of visibility 
+        (@JsonAutoDetect(fieldVisibility=Visibility.ANY)); or to disable 
+        getter-method auto-detection 
+        (@JsonAutoDetect(getterVisibility=Visibility.NONE)), and combinations 
+        there-of. Note that this annotation (just like any other Jackson 
+        annotation) can be applied as a <a href="http://wiki.fasterxml.com/JacksonMixInAnnotations">mix-in 
+        annotation</a>, without having to modify type directly; and can be 
+        added to a base type to apply to all subtypes.
+      </li>
+      <li>
+        ObjectMapper.setVisibilityChecker() can be used to define customized 
+        minimum visibility detection
+      </li>
+    </ul>
+    <p>
+      Changing minimum auto-detection visibility limits is an easy to way to 
+      increase number of properties discovered (for example by exposing all 
+      member fields; similar to how libraries like XStream and Gson work by 
+      default), or to prevent any and all auto-detection (i.e. to force 
+      explicit annotations using @JsonProperty or @JsonGetter annotation).
+    </p>
+    <p>
+      As an example, to serialize all fields (and use no getter methods), you 
+      could do:
+    </p>
+    <pre>  @JsonAutoDetect(fieldVisibility=Visibility.ANY,
+                  getterVisibility=Visibility.NONE, isGetterVisibility=Visibility.NONE)
+  public class FieldsOnlyBean {
+    private String name; // will now be used instead of getName()
+    public String getName() { throw new Error(); } // never used!
+  }</pre>
+    <p>
+      <b>3. Explicitly ignoring properties: @JsonIgnore, @JsonIgnoreProperties</b>
+    </p>
+    <p>
+      Given set of auto-detect potential properties is the starting point; and 
+      it can further be modified by per-property annotations:
+    </p>
+    <ul>
+      <li>
+        @JsonProperty (and @JsonGetter, @JsonAnyGetter) can be used to 
+        indicate that a field or method is to be consider a property field or 
+        getter method, even if it isn't auto-detected.
+      </li>
+      <li>
+        <b>@JsonIgnore</b> can be used to forcibly prevent inclusion, 
+        regardless of auto-detection (or other annotations)
+      </li>
+    </ul>
+    <p>
+      In addition, there is per-class annotation <b>@JsonIgnoreProperties</b> 
+      that can be used alternatively to list names of logical properties NOT 
+      to include for serialization; it may be easier to use via mix-in 
+      annotations than per-property annotations (although both can be used via 
+      mix-in annotations).
+    </p>
+    <p>
+      So you could do:
+    </p>
+    <pre>  @JsonIgnoreProperties({ &quot;internal&quot; })
+  public class Bean {
+    public Settings getInternal() { ... } // ignored
+    @JsonIgnore public Settinger getBogus(); // likewise ignored
+    public String getName(); // but this would be serialized
+}</pre>
+    <p>
+      <b>4. Defining profiles for dynamic ignoral: JSON Views (@JsonView)</b>
+    </p>
+    <p>
+      So far configuration methods have been applied statically; meaning that 
+      a property will either always be included (except for special case of 
+      possibly suppressing null-values), or never included.
+    </p>
+    <p>
+      JSON views are a way to define more dynamic inclusion/exclusion 
+      strategy. The idea is to define inclusion rules for properties, by 
+      associating logical views (classes used as identifiers; this allows use 
+      of hierarchic views) with properties, using <b>@JsonView</b> 
+      annotations; and then specifying which view is to be used for 
+      serialization. This is often used to define smaller &quot;public&quot; set of 
+      properties, and larger &quot;private&quot; or &quot;confidential&quot; set of properties. 
+      See <a href="http://wiki.fasterxml.com/JacksonJsonViews">@JsonView wiki 
+      page</a> for usage example.
+    </p>
+    <p>
+      <b>5. Ignoring all properties with specified type: @JsonIgnoreType</b>
+    </p>
+    <p>
+      In addition to defining rules on per-property basis, there are times 
+      when it makes sense to just prevent serialization of any auto-detected 
+      properties for given type(s). For example, many frameworks add specific 
+      accessors for types they generate, which return objects that should not 
+      be serialized.
+    </p>
+    <p>
+      For example, let's say that an Object-Relational Mapper always adds 
+      &quot;public Schema getSchema()&quot; accessors for all value classes. And if this 
+      is metadata that is not part of serializable state, we can prevent its 
+      inclusion in serialization by adding <b>@JsonIgnoreType</b> annotation 
+      on Schema type (or its supertype). This is often easiest done using 
+      mix-in annotations.
+    </p>
+    <p>
+      <b>6. Fully dynamic filtering: @JsonFilter</b>
+    </p>
+    <p>
+      Although JSON views allow somewhat dynamic filtering, definitions of 
+      filters are still static. This means that it is only possible to 
+      dynamically choose from a static set of views.
+    </p>
+    <p>
+      JSON Filters are a way to implement fully dynamic filtering. The way 
+      this is done is by defining logical filter a property uses, with 
+      @JsonFilter(&quot;id&quot;) annotation, but specifying actual filter (and its 
+      configuration) using ObjectWriter. Filters themselves are obtained via 
+      FilterProviders which can be fully custom, or based on simple 
+      implementations. Check out <a href="http://wiki.fasterxml.com/JacksonFeatureJsonFilter">JSON 
+      Filter</a> wiki page for details.
+    </p>
+    <p>
+      <b>7 . Most extreme way to filter out properties: BeanSerializerModifier</b>
+    </p>
+    <p>
+      And if ability to define custom filters is not enough, the ultimate in 
+      configurability is ability to modify configuration and configuration of <b>BeanSerializer</b> 
+      instances. This makes it possible to do all kinds of modifications 
+      (changing order in which properties are serialized; adding, removing or 
+      renaming properties; replacing serializer altogether with a custom 
+      instance and so on): you can completely re-wire or replace serialization 
+      of regular POJO (&quot;bean&quot;) types.
+    </p>
+    <p>
+      This is achieved by adding a BeanSerializerModifier: the simplest way to 
+      do this is by using <a href="http://wiki.fasterxml.com/JacksonFeatureModules">Module 
+      interface</a>. Details of using BeanSerializerModifier are more advanced 
+      topic; I hope to cover it separately in future. The basic idea is that 
+      BeanSerializerModifier instance defines callbacks that Jackson 
+      BeanSerializerFactory calls during construction of a serializer.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Saturday, February 05, 2011 8:23 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_443.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_443.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_443.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, February 03, 2011 </h2>
+
+<div class="entry" id="post-442">
+			<h3 class="entry-header">Why do modularity, extensibility, matter?</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      After writing about <a href="/blog/archives/2011/02/entry_441.html">Jackson 
+      1.7 release</a>, I realized that while I described what and how was done 
+      to significantly improve modularity and extensibility of Jackson, I did 
+      not talk much about why I felt both were desperately needed. So let's 
+      augment that entry with bit more background, fill in the blanks.
+    </p>
+    <p>
+      Two things actually go together such that while modularity in itself is 
+      somewhat useful, it is extremely important when it is coupled with 
+      extensibility (and conversely it is hard to be extensible without being 
+      modular). So I will consider them together, as &quot;modular extensibility&quot;, 
+      in what follows.
+    </p>
+    <p>
+      <b>1. Distributed development</b>
+    </p>
+    <p>
+      The most obvious short-term benefit of better modularization, 
+      extensibility, is that it actually allows simple form of distributed 
+      development, as additional extension modules (and projects under which 
+      they are created) can be built independent from the core project. There 
+      are dependencies, of course -- modules may need certain features of the 
+      core library -- but this much looser coupling than having to actually 
+      work within same codebase, coordinating changes. This alone would be 
+      worth the effort.
+    </p>
+    <p>
+      But the need for distribution stems from the obvious challenge with 
+      Jackson's (or any smilar project's) status quo: that the core project, 
+      and its author (me) can easily become a bottleneck. This is due to 
+      coordination needed, such as code reviews, patch integration; much of 
+      which is most efficiently done with simple stop-and-wait'ish approach. 
+      While it is possible to increase concurrency within one project and 
+      codebase (with lots of additional coordination, communication, both of 
+      which are hard if activity levels of participants fluctuate), it is much 
+      easier and more efficient to do this by separate projects.
+    </p>
+    <p>
+      Not all projects can take the route we are taking, since one reason such 
+      modularity is possible is due to expansion of the project scope: 
+      extensions for new datatypes are &quot;naturally modular&quot; (conceptually at 
+      least; implementation-wise this is only now becoming true), and 
+      similarly support for non-Java JVM languages (Scala, Clojure, JRuby) and 
+      non-JSON data formats (BSON, xml, Smle). But there are many projects 
+      that could benefit from more focus on modular extensibility.
+    </p>
+    <p>
+      <b>2. Reduced coupling leads to more efficient develo[ment</b>
+    </p>
+    <p>
+      Reduced coupling between pieces of functionality in turn allows for much 
+      more efficient development. This is due to multiple factors: less need 
+      for coordination; efficiency in working on smaller pieces (bigger 
+      projects, as companies, have much more inherent overhead, lower 
+      productivity); shorter release cycles. Or, instead of canonically 
+      shorter development and release cycles, it is more accurate to talk 
+      about more optimal cycles: new, active projects can have shorter cycles, 
+      release more often, and more mature, slower moving (or ones with more 
+      established user base and hence bigger risks from regression) can choose 
+      slower pace. The key point is that each project can choose most optimal 
+      rate of releases, and only synchronize when some fundamental &quot;platform&quot; 
+      functionality is needed.
+    </p>
+    <p>
+      As an example, core Jackson project has released a significant new 
+      version every 3 - 6 months. While this is pretty respectable rate in 
+      itself, it is glacial pace compared to releases for, say, 
+      &quot;jackson-xml-databinding&quot; module, which might release new versions on 
+      weekly basis before reaching its 1.0 version.
+    </p>
+    <p>
+      <b>3. Extending and expanding community</b>
+    </p>
+    <p>
+      This improved efficiency is good just in itself, but I think it will 
+      actually make it easire to extend and expand community. Why? Because 
+      starting new projects and getting releases out faster should make it 
+      easier to join, get started and productive, and thereby lower threshold 
+      for participation. In fact I think that we are going to quickly double 
+      and quadruple number of active contributors quite soon, when everyone 
+      realizes potential for change; how easy it is to get to expand 
+      functionality in a way that everyone can share the fruits of labor. 
+      Previously best methods have been to write a blog entry about using a 
+      feature, or maybe report a bug; but now it will be trivially easy to 
+      start playing with new kinds of reusable extension functionality.
+    </p>
+    <p>
+      <b>4. Modules are the new core</b>
+    </p>
+    <p>
+      Given all the benefits of the increased modularity I am even thinking of 
+      further splitting much of existing &quot;core&quot; (meaning all components under 
+      main Jackson project; core, mapper, xc, jax-rs, mrbean, smile) as 
+      modules. All jars except for core and mapper would themselves work as 
+      modules (or similar extensions); and many features of mapper jar could 
+      be extracted out. The main reason for doing this would actually be to 
+      allow different release cycles: jax-rs component, for example, has 
+      changed relatively little since 1.0: there is no real need to release 
+      new version of it every time there is a new mapper version. In fact, of 
+      6 jars, mapper is the only one that is constantly changing; others have 
+      evolved at much slower pace.
+    </p>
+    <p>
+      But even if core components were to stay within core Jackson project, 
+      most new extension functionality to be written will be done as new 
+      modules.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, February 03, 2011 9:37 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_442.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_442.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_442.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Wednesday, February 02, 2011 </h2>
+
+<div class="entry" id="post-441">
+			<h3 class="entry-header">Jackson 1.7; quest for Maximum Extensibility</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      At this point Jackson 1.7 has been out for almost a month (and in fact, 
+      1.7.2 is by now the latest patch release), so it's high time to write 
+      something about this release.<br>1.7 turns out to be third &quot;anything but 
+      minor&quot; minor release in a row, which is part of the reason why I have 
+      procrastinated a bit: it is not a simple matter of just listing set of 
+      simple features, or linking the release notes page (which can be found <a href="http://wiki.fasterxml.com/JacksonRelease17">here</a>, 
+      for anyone interested). Rather, it makes sense to talk a bit about 1.7 
+      development cycle.
+    </p>
+    <p>
+      But it is actually good that I have had some time to think about what to 
+      write, instead of rushing to document release that just happened: 
+      especially since there is now some progress that was directly germinated 
+      by this release. But more on this bit later.
+    </p>
+    <p>
+      <b>1. Background</b>
+    </p>
+    <p>
+      After 1.6, a whopper of a release that boasted 4 major new featurers and 
+      a boatload of smaller ones, the initial plan for 1.7 was to make a 
+      somewhat smaller incremental release. Beyond tackling some fixes that 
+      required API changes (and thus couldn't go in one of 1.6.x patch 
+      releases), the focus was on the most important concern at the time: 
+      difficult in cleanly extending Jackson with modular extensions. So it 
+      seemed like this might be a modest incremental upgrade.
+    </p>
+    <p>
+      It was quickly found out that needed changes to allow modular 
+      extensibility were quite wide-spread, since information needed was not 
+      propagated through all the pieces. But the focus on a single 
+      cross-cutting concern turned out to be a good thing, so that major 
+      changes to interfaces could be done in one fell swoop and hopefully 
+      abstractions added (and changes to existing ones) will form a solid 
+      foundation for further development.
+    </p>
+    <p>
+      <b>2. Aspects of extensibility</b>
+    </p>
+    <p>
+      While the main goal was to improve extensibility, there are multiple 
+      kinds changes that are needed to support proper modular extensibility. 
+      For example:
+    </p>
+    <ul>
+      <li>
+        Changes to allow registration of bundles of new functionality in a way 
+        that it is possible to add multiple extensions that ideally do not 
+        conflict, and that need not even be aware of other extensions that may 
+        be used.
+      </li>
+      <li>
+        Retrofitting existing components and interfaces to allow clean 
+        extension (i.e. avoiding having to sub-class things)
+      </li>
+      <li>
+        Adding new extension points to replace older extension methods
+      </li>
+      <li>
+        Making existing extension points more powerful, to further reduce need 
+        for more invasive techniques (overrides with sub-classing)
+      </li>
+    </ul>
+    <p>
+      Another way to consider this is to think of Jackson becoming a platform; 
+      the way a web browser can be seen a platform to build on (via addition 
+      of plug-ins and add-ons). In fact, given new projects that support many 
+      non-JSON data formats (see below), it is not a strecth to claim that 
+      Jackson is becoming a &quot;Java data format conversion platform&quot; at this 
+      point.
+    </p>
+    <p>
+      <b>3. New mechanism for registering extensions: Module API</b>
+    </p>
+    <p>
+      The most visible new construct is Module API. It is also amongst 
+      simplest, since there are basically just two things a Jackson Module 
+      developer needs to learn:
+    </p>
+    <ol>
+      <li>
+        org.codehaus.jackson.map.<b>Module</b> interface, which must be 
+        implemented by one class of the module; and specifically its 
+        &quot;setupModule(SetupContext ctxt)&quot; method (other methods are for 
+        exposing metadata such as module version)
+      </li>
+      <li>
+        <b>Module.SetupContext</b> (passed to &quot;setupModule&quot; method) that 
+        exposes set of extension points (methods) that module can use to 
+        register handlers it wants to add.
+      </li>
+    </ol>
+    <p>
+      And from user end point, it is even simple; there is but one thing to 
+      know. To use, say, new Jackson-guava-module (available from <a href="https://github.com/FasterXML/jackson-module-guava">FasterXML 
+      GitHub repository</a>; provides support for reading/writing Guava data 
+      types), you will do:
+    </p>
+    <pre>  ObjectMapper mapper = new ObjectMapper();
+  mapper.registerModule(new GuavaModule());</pre>
+    <p>
+      that is, add a one-line call to let module register whatever it wants to 
+      offer, via interfaces that ObjectMapper provides it.
+    </p>
+    <p>
+      From above description, definition of a Jackson module is quite simple: 
+      it is piece of code that defines one class that implements 
+      org.codehaus.jackson.map.Module, and which registers all functionality 
+      offered by the module.
+    </p>
+    <p>
+      <b>3.1. Module interface: not just for extensions -- use for your own 
+      app too!</b>
+    </p>
+    <p>
+      One thing worth noting is that while Module interface is really designed 
+      to allow writing of reusable third-party extensions, it actually works 
+      pretty well just for encapsulating ObjectMapper configuration and 
+      extensions that are only used by a single application, or company-wide 
+      (but not published externally). So it is a good idea to use modules, for 
+      example, when registering custom serializers and deserializers; there is 
+      no overhead and this helps in encapsulating configurability and 
+      customization in one place.
+    </p>
+    <p>
+      <b>4. Modular extension points: Serializers, Deserializers</b>
+    </p>
+    <p>
+      Beyond having a simple registration mechanism for extensions (which I 
+      will from here on simply refer as &quot;modules&quot;), the obvious problem with 
+      extensibility has been that it has been limited to application developer 
+      being able to override custom behavior, either by setting an explicit 
+      handler, or by sub-classing and replacing existing components (like 
+      SerializerFactory). True extensibility requires that it must be possible 
+      for multiple modules to add handlers without overriding each other's 
+      changes (unless they happen to truly conflict like trying to define 
+      handler for same data type); ability for modules to peacefully co-exist, 
+      co-operate without explicitly having to plan for it.
+    </p>
+    <p>
+      The first obvious thing was to add mechanisms for adding custom 
+      serializers and deserializers without having to replace default 
+      SerializerFactory and DeserializerFactory instances. This was done by 
+      adding new interfaces <i>org.codehaus.jackson.map.<b>Serializers</b> </i>and<i> 
+      org.codehaus.jackson.map.<b>Deserializers</b> </i>(and matching basic 
+      implementations), which just define a way for a module to provide 
+      serializers and deserializers for specific data types. These can then be 
+      registered with <i>SerializerFactory.withAdditionalSerializers(Serializers) 
+      </i>and <i>DeserializerFactory.withAdditionalDeserializers(Deserializers)</i>; 
+      which is exactly what ObjectMapper exposes via 
+      SetupContext.setupModule() method.
+    </p>
+    <p>
+      These simple extension points alone cover much of what most module need 
+      to do: to provide specific handlers for third party libraries. And when 
+      using <b>org.codehaus.jackson.map.module.SimpleModule</b> (default 
+      implementation of Module), addition of these handlers is a one-line 
+      operation.
+    </p>
+    <p>
+      <b>5. Modular extension points: BeanSerializerModifier, 
+      BeanDeserializerModifier </b>
+    </p>
+    <p>
+      But beyond ability to conveniently register deserializers and 
+      serializers, it was understood that ability to modify functioning of 
+      standard BeanSerializer and BeanDeserializer instances (things that take 
+      your POJOs, find out properties, handle annotations and pretty much do 
+      most of the magic Jackson provides) is a definite must. This because in 
+      most cases much of existing functionality is fine, but there is need to 
+      tweak specific aspects of serialization or deserialization: for example, 
+      one may want to override handling of just one specific property, for 
+      specific class of POJOs. And while annotations can configure many things 
+      well, there are limitations.
+    </p>
+    <p>
+      To support this, two new interfaces (and matching registration methods, 
+      added in Module.SetupContext) were added: BeanSerializerModifier and 
+      BeanDeserializerModifier.
+    </p>
+    <p>
+      Methods defined in these interfaces are called during (and right after) 
+      building BeanSerializer and BeanDeserializer instances; and can be used 
+      for example to:
+    </p>
+    <ol>
+      <li>
+        Add or remove properties to be serialized, deserialized
+      </li>
+      <li>
+        Change the order in which properties are serialized
+      </li>
+      <li>
+        Completely replace BeanSerializer/-Deserializer that has been built, 
+        with specified JsonSerializer/JsonDeserializer (this is often done by 
+        constructing a new BeanSerializer / BeanDeserializer, using some 
+        properties from initial serializer/deserializer)
+      </li>
+    </ol>
+    <p>
+      Which pretty much means that the whole serializer and deserializer 
+      configuration and construction process can be modified; but without 
+      having to replace everything. Possibilities are unlimited.
+    </p>
+    <p>
+      <b>6. Contextual configuration of serializers, deserializers</b>
+    </p>
+    <p>
+      While ability to change the way bean serializers, deserializers are 
+      configured and constructed is powerful, there was one other aspect of 
+      construction process that needed revamping. Up until version 1.6, once a 
+      serializer (deserializer) was constructed for a given type, same 
+      instance was used for properties of that type. This meant that any 
+      context-specific behavior (serialization of a field of specific type 
+      being handled differently, depending on which exact property is being 
+      serialized) was hard to do; and basically could not be done from within 
+      serializer or deserializer implementation.
+    </p>
+    <p>
+      Consider something that would seem like a simple extension: ability to 
+      define which DateFormat to use for serializing specific properties. For 
+      example, we might want something like:
+    </p>
+    <pre>  public class Bean {
+    @JsonDateFormat(&quot;YYYY-MM-DD&quot;)<br>    public Date createDate;
+  }</pre>
+    <p>
+      in which 'createdDate' property would be serialized using specified 
+      DateFormat, instead of the default DateFormat mapper uses.
+    </p>
+    <p>
+      Problem is two-fold: first of all, JsonSerializer/JsonDeserializer does 
+      not get enough contextual information to do much configuration. But 
+      worse, even if it did, there would be just one instance that is used 
+      regardless of location of property. So the only way (pre-1.7) to 
+      implement such feature would be to explicitly add support within core 
+      Jackson data binder; BeanSerializerFactory and AnnotationIntrospector 
+      would need to be modified at minimum.
+    </p>
+    <p>
+      One obvious way to solve the problem would have been to pass contextual 
+      information during serialization/deserialization. But while this would 
+      be a powerful mechanism, it would add significant amount of overhead, 
+      especially if configuration was to be done using annotations. Instead we 
+      decided to pass this information during construction of 
+      serializer/deserializer instance; from design perspective this is 
+      compatible with the general goal of trying to gather as much information 
+      as possible during non-performance-critical phase of constructing 
+      handlers, and minimize work to be done during performance-critical 
+      serialization phase.
+    </p>
+    <p>
+      Specific mechanism chosen is that of defining two interfaces (<b>ContextualSerializer</b>, 
+      <b>ContextualDeserializer</b>) that serializer and deserializer 
+      instances can implement. And if they do, SerializerProvider / 
+      DeserializerProvider will first construct instance, and then call 
+      methods in new interfaces, to allow <i>creation of contextual instances</i>, 
+      passing information about context in form of <b>BeanProperty</b> 
+      instance which gives property name and access to all related annotations 
+      (as well as currently active configuration).
+    </p>
+    <p>
+      With this information it will be possible to support use cases such as 
+      one explained below: in fact, unit tests used to verify functionality 
+      define trivial serializer types (like StringSerializer that can 
+      conditionally lower-case property values based on existence of a test 
+      annotation).
+    </p>
+    <p>
+      <b>7. From theoretical to practical extensibility</b>
+    </p>
+    <p>
+      While it has been just 4 weeks since the release, extensibility 
+      improvements outlined above have already been made good use of by 
+      multiple projects. I am aware of at least following extension projects 
+      (please let me know of others if you know):
+    </p>
+    <ul>
+      <li>
+        <a href="https://github.com/michel-kraemer/bson4jackson">bson4jackson</a> 
+        (support for BSON format (used by MongoDB))
+      </li>
+      <li>
+        <a href="https://github.com/FasterXML/jackson-module-scala">jackson-module-scala</a> 
+        (support Scala data types) (there is also another noteworthy 
+        Scala-with-Jackson project, <a href="https://github.com/codahale/jerkson">Jerkson</a>)
+      </li>
+      <li>
+        <a href="https://github.com/FasterXML/jackson-module-hibernate">jackson-module-hibernate</a> 
+        (support lazy-loaded Hibernate types):
+      </li>
+      <li>
+        <a href="https://github.com/FasterXML/jackson-module-guava">jackson-module-guava</a> 
+        (support google Guava collection types)
+      </li>
+      <li>
+        <a href="https://github.com/FasterXML/jackson-xml-databind">jackson-xml-databind</a> 
+        (support reading/writing XML instead of JSON, &quot;mini-JAXB&quot;) -- I will 
+        definitely need to write bit more about this in near future (can't use 
+        XStream or JAXB at GAE? jackson-xml-databind actually can be -- and it 
+        is much faster than either on J2SE platform as well)
+      </li>
+    </ul>
+    <p>
+      and new ones are bound to come up (there have been talks for adding 
+      Joda-module, CSV-module for example)
+    </p>
+    <p>
+      <b>8. Beyond extensibility: other new features, improvements:</b>
+    </p>
+    <p>
+      As imporant as extensibility (and benefits it brings, such as new 
+      modules!), 1.7 actually contains a few important other improvements and 
+      new features that are not directly related to extensibility. Here's a 
+      quick list of most noteworthy ones:
+    </p>
+    <ul>
+      <li>
+        @JsonTypeInfo can now be used for properties (fields, getter/setter 
+        methods), not just types (classes) -- useful for &quot;untyped&quot; fields 
+        (like ones using java.lang.Object as value), so one need not enable 
+        default type information
+      </li>
+      <li>
+        Dynamic Filtering: powerful new filtering mechanism using @JsonFilter 
+        to specify filter id, ObjectMapper.filteredWriter(FilterProvider) to 
+        specify which id maps to which filter -- this is a major new feature, 
+        and I hope to write more about it too (
+      </li>
+      <li>
+        Support for wrapping output within &quot;root name&quot; (similar to JAXB), for 
+        interoperability with other JSON tools, frameworks
+      </li>
+      <li>
+        @JsonRawValue for injecting &quot;raw text&quot; (such as pre-encoded JSON 
+        without re-parsing) during serialization
+      </li>
+      <li>
+        SerializedString for high-efficiency serialization of pre-encoded 
+        (quoted, utf-8 encoded) String values, property names
+      </li>
+      <li>
+        Feature to enable/disable wrapping of runtime exceptions (separately 
+        for serialization, deserialization)
+      </li>
+    </ul></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, February 02, 2011 8:39 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_441.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_441.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_441.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Tuesday, February 01, 2011 </h2>
+
+<div class="entry" id="post-440">
+			<h3 class="entry-header">Jackson Tips: extracting Bean properties; encoding/decoding Base64</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Due to extensive functionality <a href="http://jackson.codehaus.org">Jackson</a> 
+      offers for data binding in general (and JSON in particular), it is easy 
+      to get lost on everything that is available. It is also easy to miss 
+      possibilities to creatively use Jackson for non-JSON use cases; uses 
+      cases where no JSON is read or written.
+    </p>
+    <p>
+      I have written a bit about general data conversions with Jackson (&quot;<a href="/blog/archives/2009/12/entry_336.html">Not 
+      your type? Jackson as the match-maker</a>&quot;), but thought it might make 
+      sense to have another look. Not so much to extend what can be done, but 
+      to rather focus on just two things that I have found commonly useful.
+    </p>
+    <p>
+      <b>1. Extracting (or injecting!) Bean Properties</b>
+    </p>
+    <p>
+      One relatively common task -- or thing that would be useful to do, if it 
+      was easy -- is to take all logical properties of a bean, and expose them 
+      as a Map: this is needed to build all kinds of things, from templating 
+      (like JSTL bean accessors) to data conversions or diagnostic output. 
+      There are packages to do this, of course (like Commons bean-utils), but 
+      it is good to know that Jackson can do this rather well too:
+    </p>
+    <pre>  // mad props to my map!
+  Map&lt;String,Object&gt; properties = new ObjectMapper().convertValue(pojo, Map.class);</pre>
+    <p>
+      And there you have it: a Map with property name as key, and value 
+      &quot;native&quot; representation of property; a Map, List, Boolean, Integer/Long, 
+      Float/Double or null (referenced POJOs being recursively &quot;serialized&quot; as 
+      one of these types, as necessary). And then you can do whatever is 
+      necessary: access by name to use as replacement, add/remove properties, 
+      iterate over properties.
+    </p>
+    <p>
+      But it gets more interesting: given that Jackson 1.6 introduced new 
+      functionality to do &quot;partial&quot; deserialization -- that is, ability to 
+      change properties of an existing POJO -- we can do just that. In fact, 
+      we could use property Map from the first example: assuming we modified 
+      entries (maybe lower-cased all String values? Doubled numeric values, 
+      whatever), we can now modify the original POJO (or any other Java object 
+      that has set of properties we want to change). We could do it by:
+    </p>
+    <pre>  // want to inject properties in a POJO? Use updatingReader! First create JsonNode (tree) from properties map
+  ObjectMapper mapper = new ObjectMapper();
+  JsonNode propTree = mapper.convertValue(properties, JsonNode.class);
+  // and then read in, to update pojo we gave!
+  mapper.updatingReader(pojo).readValue(propTree);</pre>
+    <p>
+      Of course if we just wanted to instantiate a new POJO, it would be 
+      simple matter of:
+    </p>
+    <pre>  BeanType bean = mapper.convertValue(properties, BeanType.class);</pre>
+    <p>
+      <b>2. Encoding binary data as Base64 text, decoding</b>
+    </p>
+    <p>
+      Now on to something totally different. Base64 encoding is commonly 
+      needed to provide things like, say, OAuth digest values, or security 
+      digests. There are specific external libraries available (as well as 
+      unofficial components from JDK that one may be tempted to use); but here 
+      too Jackson is actually a pretty good alternative: it already natively 
+      supports encoding and decoding of byte arrays as Base64 encoded JSON 
+      Strings. About the only caveat is that all JSON Strings are contained in 
+      double-quotes, which may need to strip out from results, or add around 
+      input String. More on this below.
+    </p>
+    <p>
+      So to encode binary data as Base64 String, we will do:
+    </p>
+    <pre>  // First: encode single-byte array 
+  ObjectMapper mapper = new ObjectMapper();
+  byte[] binary = new byte[5]; // five zero bytes
+  // two ways to do it, actually; with one important difference:
+  String quotedEncoded = mapper.writeValueAsString(binary); // WILL include surrounding double-quotes to be valid JSON
+  // or
+  String rawEncoded = mapper.convertValue(binary, String.class); // will only contain encoded String, NO double-quotes!
+  // meaning, you get either &quot;AAAAAAA=&quot;
+  // or AAAAAAA=</pre>
+    <p>
+      most often it probably makes sense to use 'convertValue()'. Similarly, 
+      when decoding base64-encoded Strings back to underlying binary data 
+      (byte array), you can do either:
+    </p>
+    <pre>  byte[] data = mapper.readValue(quotedEncoded, byte[].class); // if data is surrounded by quotes
+  // or, if no quotes:
+  data = mapper.convertValue(encoded, byte[].class);</pre>
+    <p>
+      Pretty simple, convenient?
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, February 01, 2011 9:37 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_440.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_440.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_440.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_446.html">Jackson: not just for JSON, Smile or BSON any more -- Now With XML, too!</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_445.html">Basic flaw with most binary formats: missing identifiable prefix (protobuf, Thrift, BSON, Avro, MsgPack)</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_444.html">On prioritizing my Open Source projects, retrospect #2</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_443.html">Every day Jackson usage, part 3: Filtering properties</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_442.html">Why do modularity, extensibility, matter?</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

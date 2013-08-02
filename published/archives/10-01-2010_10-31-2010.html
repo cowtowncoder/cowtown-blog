@@ -1,0 +1,1216 @@
+<html lang="en">
+<head>
+<title>October 2010</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Friday, October 29, 2010 </h2>
+
+<div class="entry" id="post-432">
+			<h3 class="entry-header">Faster compression on Java platform with LZF</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      One open source project that I have worked on a bit lately is <a href="http://github.com/ning/compress">compress-lzf</a>, 
+      a simple Java library that implements block- and stream-accessible 
+      version of LZF compression algorithm. LZF algorithm itself is very 
+      simple, and mostly (only?) documented <a href="http://oldhome.schmorp.de/marc/liblzf.html">here</a>, 
+      in form of working reference implementation that doubles as 
+      documentation.
+    </p>
+    <p>
+      Our implementation is a simple rewrite of C version, and fully 
+      compatible with the reference implementation including file header and 
+      block signature (this is different from the other existing Java version 
+      that projects like H2 include). While simple implementation, it is not 
+      naive translation; and some effort has been spent on optimizing its 
+      performance.
+    </p>
+    <p>
+      And as should be the case for such low-level libraries, there are no 
+      external dependencies beyond JDK 1.5; meaning it should work on variety 
+      of platforms, including Android (in fact it could probably be compiled 
+      on any 1.x JDK)
+    </p>
+    <p>
+      <b>1. What is LZF?</b>
+    </p>
+    <p>
+      LZF compression algorithm is basic <a href="http://en.wikipedia.org/wiki/Lempel_Ziv">Lempel-Ziv</a>, 
+      with little additional processing; so one way to think of it is that it 
+      is &quot;gzip without Huffman encoding&quot; (gzip uses Deflate, which is 
+      Lempel-Ziv followed by Huffman encoding, with variable bit-length).<br>And 
+      Lempel-Ziv is just method whereby one finds repeating sub-sequences in 
+      output, replacing sequences of three or more &quot;already seen bytes&quot; with a 
+      back-reference; matches are typically stored in a hash table indexed by 
+      hash of first 3 bytes, value being offset of last instance of 
+      potentially matching sequence.
+    </p>
+    <p>
+      It is worth noting that many other similar (and sometimes similarly 
+      named) algoritms likewise use basic LZ; &quot;Fastlz&quot; for example is very 
+      similar.
+    </p>
+    <p>
+      <b>2. Gzip exists, why bother with LZF?</b>
+    </p>
+    <p>
+      But why does this matter? If gzip is this and more, why would you want 
+      to use a &quot;lesser&quot; algorithm?
+    </p>
+    <p>
+      Key benefit is that of speed: LZF can be up to twice as fast to 
+      uncompress; but where it REALLY shines is compression speed -- here it 
+      can be 2x or 3x as fast (writing a stand-alone benchmark is on my todo 
+      list, so hopefully I will get to talk a bit more about this in future). 
+      Performance difference is mostly due to relatively high overhead that 
+      deflate uses for non-byte-aligned output (which is needed for optimal 
+      Huffman-encoding of codewords) -- while it definitely helps compression, 
+      it is expensive in terms of CPU usage.
+    </p>
+    <p>
+      LZF compression rate is lower than with gzip, but compression profile is 
+      similar: things that compress well with gzip also compress well with 
+      LZF; and those that compress less do so with LZF as well. This makes 
+      sense given that most compression often comes from LZ algorithm, which 
+      is implemented similarly.
+    </p>
+    <p>
+      So it all comes down to this: gzip compression is very CPU-intensive 
+      (read: slow); so much so that you typically use 5x as long to compress 
+      things like JSON data than writing content itself. With fast networks 
+      and I/O this often becomes bottleneck.<br>LZF can be a good alternative 
+      since its CPU overhead is much more modest; and it can still compress 
+      &quot;fluffy&quot; content pretty well -- where gzip can compress something by, 
+      say, 90%, LZF usually gets to 75-80% ratio (this obviously varies by 
+      types of content; basically depends on which part of deflate algorithm 
+      is more effective)
+    </p>
+    <p>
+      <b>3. Usage</b>
+    </p>
+    <p>
+      Assuming that above sounds interesting, you can get compress-lzf library 
+      either from GitHub; or via Maven. In latter case, information is:
+    </p>
+    <ul>
+      <li>
+        &lt;groupId&gt;com.ning&lt;/groupId&gt;
+      </li>
+      <li>
+        &lt;artifactId&gt;compress-lzf&lt;/artifactId&gt;
+      </li>
+      <li>
+        current version at time of this writing is &quot;0.6.0&quot;
+      </li>
+    </ul>
+    <p>
+      And from there you can use class from <i>com.ning.compress.lzf</i> 
+      package:
+    </p>
+    <ul>
+      <li>
+        LZF is a simple command-line utility you can use for manual 
+        compression/uncompression (jar defines this class as the Main-Class so 
+        you can just invoke it with &quot;java -jar compress-lzf.jar&quot; to get usage 
+        information)
+      </li>
+      <li>
+        LZFInputStream and LZFOutputStream are compressing input (read LZF 
+        compressed data) and output (write LZF compressed data) streams, 
+        similar to JDK's GZIPInputStream and GZIPOutputStream
+      </li>
+      <li>
+        LZFEncoder and LZFDecoder are block-based codecs that can be used to 
+        encode (compress) and decode (uncompress) chunks (byte[]) of data
+      </li>
+    </ul>
+    <p>
+      Both streaming and block-based interfaces have their uses; for example, 
+      when storing BLOBs in database, block API works better; and when reading 
+      data over network or from filesystem, streams make more sense.
+    </p>
+    <p>
+      <b>3.1 Note: avoid LZFOutputStream.flush() (&quot;just let it float...&quot;)</b>
+    </p>
+    <p>
+      One note on LZFOutputStream: be careful with flush()ing -- just like 
+      other block compressors (including gzip), LZF can only do 
+      back-references within single block; and since LZFOutputStream.flush() 
+      forces closing of an open block, it can dramatically reduce compression 
+      rate. As such it is best to avoid flush()ing if at all possible, unless 
+      you actually want to create a logical boundary at some point.<br>
+    </p>
+    <p>
+      <b>4. Future plans for the library</b>
+    </p>
+    <p>
+      While there are always improvements for any Open Source projects, I 
+      think the natural scope for LZF library is quite small. Similar to <a href="http://wiki.fasterxml.com/JugHome">Java 
+      Uuid Generator</a>, it is quite possible that there won't be need for 
+      major changes to implementation or API; which means that future 
+      improvements are most likely in areas of integration; helping other 
+      projects use LZF.
+    </p>
+    <p>
+      For example, given unique CPU/io/bandwidth trade-off LZF can offer, it 
+      could make a really nice component for large-scale data transfer and 
+      processing, for example:
+    </p>
+    <ul>
+      <li>
+        Data processing with map/reduce (Hadoop)
+      </li>
+      <li>
+        Data storage (with frameworks like jDBI, Hibernate; or with NoSQL 
+        projects like Voldemort, Cassandra)
+      </li>
+      <li>
+        Data aggregation (logging, log processing, Scribe)
+      </li>
+      <li>
+        Caching: use LFZ with memcached?
+      </li>
+      <li>
+        Combination of high-performance data formats (Jackson Smile, binary 
+        JSON serialization) and compression -- can be combined with other use 
+        cases too.
+      </li>
+    </ul>
+    <p>
+      So it will be interesting to see where things go in near future.
+    </p>
+    <p>
+      <b>5. On benefits of working for a company that is comfortable with Open 
+      Source</b>
+    </p>
+    <p>
+      Unlike with many earlier Open Source projects that I have worked on, 
+      much of work that went into this open source library was done on company 
+      time. It also was a team effort (Jon wrote the streaming handling, I 
+      wrote block codec); compared to most other open source projects where I 
+      have been the main author. So I have come a long way, having worked for 
+      a semi-OS-hostile company, then a bit for a neutral (agnostic?) company; 
+      and now working for one hat is actually engaged with community (Ning). 
+      And I must admit that I really like that Ning is openly committed to 
+      working with open source projects, not just using open source artifacts 
+      others make. This is not solely meant as an ad for Ning (although we are 
+      indeed hiring...), I just think it is important to give credit where it 
+      is due.<br>
+    </p>
+    <p>
+      Beyond this, <a href="https://github.com/organizations/ning">Ning section</a> 
+      at Github already has some public projects, and there are literally a 
+      dozen more being cleaned up to be ready for publishing. Within just a 
+      few more months I think Ning will be more recognized for its 
+      contributions in Open Source space; and eventually become a signifant 
+      player. I see this as a major benefit, making it bit less difficult to 
+      hire the best developers; and especially so for a company that is still 
+      relatively small, and thus having less name recognition than the big 
+      boys.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Friday, October 29, 2010 9:53 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_432.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_432.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_432.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Saturday, October 23, 2010 </h2>
+
+<div class="entry" id="post-431">
+			<h3 class="entry-header">Java Pearls: case-insensitive Map?</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Here's one more thing I did not know until very recently: how to get a 
+      Map with String keys that allows case-insensitive access? Or, 
+      case-insensitive membership checks. One typical use case is to handle 
+      case-insensitive entities such as names of HTML tags.
+    </p>
+    <p>
+      One obvious way to do this is to canonicalize keys by lower-casing (or 
+      upper-casing) keys both when inserted and when doing lookups. But this 
+      is actually not the only way to do this: there is a very simple 
+      JDK-provided alternative:
+    </p>
+    <hr>
+    
+
+    <pre>  Map&lt;String,Object&gt; tags = new TreeMap&lt;String,Object&gt;<br>    (String.CASE_INSENSITIVE_ORDER);</pre>
+    <hr>
+    
+
+    <p>
+      and that's it; you can access values with any combination of casing. 
+      Similarly you can also create TreeSets for basic inclusion checks.
+    </p>
+    <p>
+      I hope this is something that most Java developers know and I had just 
+      somehow missed. But if not, here it is in case you happen to need such 
+      access.
+    </p>
+    <p>
+      ps. For what it's worth, the main reason I had missed this being a 
+      possibility was that I always thought comparator given to TreeMap and 
+      TreeSet would only be used for ordering. But thinking about it a bit 
+      more, this makes more sense; since comparisons must be done anyway (to 
+      find location of an entry to find or insert), why not use &quot;equals&quot; 
+      return value of comparator for something.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Saturday, October 23, 2010 8:01 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_431.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_431.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_431.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Saturday, October 16, 2010 </h2>
+
+<div class="entry" id="post-430">
+			<h3 class="entry-header">From Canada, with Better Windmills</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      <a href="http://www.thestarphoenix.com/technology/Canadian+spin+windmill+design+touted+green+energy+breakthrough/3346937/story.html">This 
+      article</a> (&quot;Canadian&#8217;s spin on windmill design touted as green-energy 
+      breakthrough&quot;) fascinated me quite a bit. Although I am not expert in 
+      the field of energy technology in general (or wind-based energy in 
+      particular), this seems credible enough, assuming article itself is 
+      accurate in its description of the progress within field. We'll see what 
+      comes of it in future.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Saturday, October 16, 2010 9:41 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_430.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_430.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_430.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, October 14, 2010 </h2>
+
+<div class="entry" id="post-429">
+			<h3 class="entry-header">More on Java UUID Generator (JUG), a word on performance</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Ok, so Java UUID Generator version 3 is out. Beyond question of what is 
+      new with this version (which I outlined in the <a href="/blog/archives/2010/10/entry_426.html">previous 
+      entry</a>), the next asked was &quot;how is performance?&quot;.<br>My 
+      first thought was that it should be about the same as what version 2.0 
+      has; but after some more thinking I realized that this is not a very 
+      useful answer to give.
+    </p>
+    <p>
+      So I wrote a simple micro-benchmark to find out (it's in 
+      'src/main/java/perf/MeasurePerformance.java') more about performance 
+      aspects. Test uses three main generation methods (random-, time- and 
+      name-based) for JUG, and matching alternatives that <b>java.util.UUID</b> 
+      has (random- and limited named-based variant).
+    </p>
+    <p>
+      <b>1. Performance of UUID generation, general observations</b>
+    </p>
+    <p>
+      High-level summary would be:
+    </p>
+    <ol>
+      <li>
+        Performance between equivalent methods between JDK and JUG have 
+        similar performance (no surprise) -- JDK just does not provide 
+        time-based variant (one most commonly used by non-Java systems); nor 
+        ability to configure Random-based variant
+      </li>
+      <li>
+        Performance between three main generation types varies <b>a lot</b>.
+      </li>
+    </ol>
+    <p>
+      <b>2. Actual numbers</b>
+    </p>
+    <p>
+      So how big are differences? Here is actual snapshot from running the 
+      test on my MacBook: each run generates 250,000 UUIDs, and time taken 
+      (after test ran for about a minute) is reported as milliseconds:
+    </p>
+    <pre>  Test 'JDK, random' -&gt; 974 msecs
+  Test 'JDK, name' -&gt; 230 msecs
+  Test 'Jug, SecureRandom' -&gt; 971 msecs
+  Test 'Jug, java.util.Random' -&gt; 33 msecs
+  Test 'Jug, time-based' -&gt; 39 msecs 
+  Test 'Jug, name-based' -&gt; 256 msecs</pre>
+    <p>
+      Since these values fluctuate a bit, exact values are not as important as 
+      ratios. Random-based variants are slowest for both implementations 
+      (except for case of using 'java.util.Random' -- more on this in a bit); 
+      name-hash (MD5 by default; SHA-1 available with Jug too) methods are bit 
+      faster; and time/location-based variant is rather fast, close to 50% of 
+      maximum theoretical per-node generation rate.
+    </p>
+    <p>
+      So generation rates for this system would be:
+    </p>
+    <ul>
+      <li>
+        Random-based method (using SecureRandom) generates about <b>250k UUIDs 
+        per second</b>
+      </li>
+      <li>
+        Name-based variant (MD5) without namespace is almost 4 times as fast, 
+        generating about <b>1 million UUIDs per second</b>
+      </li>
+      <li>
+        Time-based variant (Ethernet address plus timestamp) is much faster -- 
+        almost <b>20 times as fast</b> as Random-based default variant -- 
+        generating about <b>5 million UUIDs per second.</b> This is also close 
+        to theoretical maximum rate for the method, which is 10 million UUIDs 
+        per second (sustained), because timestamp granularity (100 
+        nanoseconds) prevents higher throughput (to work around this, one can 
+        generate parallel generators using different Ethernet address)
+      </li>
+    </ul>
+    <p>
+      Quite a difference! It is worth noting, too, that speed of name-based 
+      method is related to both existence of namespace (this test did not use 
+      one; adding one slows things down slightly) and length of name used; 
+      latter because hash is calculated on name used. And finally, hash method 
+      used also matters (SHA-1 is slower than MD5).
+    </p>
+    <p>
+      But what is up with the random variant? And didn't I forget one 
+      impressive number from my analysis above?
+    </p>
+    <p>
+      <b>3. Why is Random-based generation so slow?</b>
+    </p>
+    <p>
+      Constructing &quot;secure&quot; pseudo-random numbers is not easy, and this is the 
+      main reason for slowness. Looking at stack traces, it looks like JDK <i>java.security.SecureRandom</i> 
+      actually uses random device provided by the underlying operating system; 
+      and this is part of the slowness (due to use of JNI). But generation 
+      itself is fundamentally slow, even if no system calls were needed. It is 
+      quite possible that faster machines might not even speed up performance 
+      significantly.
+    </p>
+    <p>
+      <b>4. Couldn't we just use 'java.util.Random' to speed things up?</b>
+    </p>
+    <p>
+      But if the &quot;secure&quot; (i.e. &quot;good&quot;, meaning one providing good level of 
+      randomness) variant is slow, couldn't we use a faster one? Like 
+      &quot;java.util.Random&quot;? In fact, didn't numbers above show using it 
+      resulting in version as fast as using time-based variant?
+    </p>
+    <p>
+      Yes, this is possible: and JUG allows you to pass any java.util.Random 
+      instance you want (it just defaults to SecureRandom).<br>But speed is 
+      not everything: the main point of UUIDs is the uniqueness, and this is 
+      why SecureRandom is used as the default by both JUG and JDK. And while 
+      the default pseudo-random number generator that java.util.Random uses is 
+      fine for many uses, I am not sure I would trust its simple algorithm for 
+      generating UUIDs; even if initialized using system clock 
+      (System.currentTimeMillis()). The underlying algorithm just does not 
+      have any actual source of randomness beyond initial seed value and I do 
+      not trust that its random number distribution, then, is good enough to 
+      give strong guarantees of uniqueness (I would love pointers to someone 
+      discussing actual measurements or research on this!).
+    </p>
+    <p>
+      So to me downgrading to using simple text-book pseudo-number algorithms 
+      does not seem tempting, even if it speeds things up by an order of 
+      magnitude.
+    </p>
+    <p>
+      <b>5. So what would make more sense?</b>
+    </p>
+    <p>
+      Well, looking at numbers, how about consider time-based variant? 
+      Name-based variant is not quite as useful; not so much due to 
+      performance aspects, but since it actually requires you to hand source 
+      of uniqueness (name to hash).
+    </p>
+    <p>
+      <b>6. Thoughts on relevance of above </b>
+    </p>
+    <p>
+      I was bit surprised by how big the difference actually is. But whether 
+      it really matters depends on use case -- oftentimes you don't need even 
+      thousands of UUIDs per second (most services can not really serve even 
+      one thousands requests per second), so the rate of a quarter million per 
+      second is just fine. After all, it only takes about four microseconds 
+      (on average) to generate one UUID.
+    </p>
+    <p>
+      But there are use cases where this matters more; especially if UUIDs are 
+      used liberally, for example using UUIDs as identifiers for all business 
+      objects generated during processing.<br>So if your use case truly 
+      depends on (or at least benefits from) fast generation of UUIDs, you 
+      probably want to use time-based generation method from Jug.
+    </p>
+    <p>
+      <b>7. How did I do that again?</b>
+    </p>
+    <p>
+      Ok; since I haven't yet gotten Javadocs set up, here is the way to 
+      generate time-based UUIDs.
+    </p>
+    <pre>  // need to pass Ethernet address; can either use real one (shown here)
+  EthernetAddress nic = EthernetAddress.fromInterface();
+  // or bogus which would be gotten with: EthernetAddress.constructMulticastAddress()
+  TimeBasedGenerator uuidGenerator = Generators.timeBasedGenerator(nic);
+  // also: we don't specify synchronizer, getting an intra-JVM syncer; there is
+  // also external file-locking-based synchronizer if multiple JVMs run JUG
+  UUID uuid = uuidGenerator.generate();</pre>
+    <p>
+      And that's it. Other variants are generated similarly, by creating 
+      generator instance with <i>Generators</i> factory.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, October 14, 2010 7:25 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_429.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_429.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_429.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Wednesday, October 13, 2010 </h2>
+
+<div class="entry" id="post-426">
+			<h3 class="entry-header">Something new, something rather old: Java Uuid Generator, version 3.0</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      As briefly mention in the previous blog entry, <a href="http://wiki.fasterxml.com/JugHome">Java 
+      Uuid Generator</a> version 3.0 was <a href="http://wiki.fasterxml.com/JugDownload">just 
+      released</a>. For those who do not know it, JUG is my first widely used 
+      Open Source library, dating to something like 2002; written when JDK 1.1 
+      was still the bee's knees.
+    </p>
+    <p>
+      Version 3.0 is just a bit of refurbishing (2.0 was released almost 5 
+      years ago), and no new functionality was added.<br>But it's good cleanup 
+      still, achieving following:
+    </p>
+    <ul>
+      <li>
+        Move to using standard java.util.UUID (which came with JDK 1.4) for 
+        better interoperability
+      </li>
+      <li>
+        Build jar as an OSGi bundle (it has no dependencies, no big deal)
+      </li>
+      <li>
+        Deploy to Maven repos (using Sonatype OSS repository), use Maven for 
+        build as well
+      </li>
+      <li>
+        Better API: instead of a global static singleton UUIDGenerator, 
+        construct generator instances (for different methods)
+      </li>
+      <li>
+        Simplified synchronization (generators are fully synchronized)
+      </li>
+      <li>
+        Offer access to Ethernet address (MAC address) without native code, 
+        using JDK 1.6 method '<b>NetworkInterface.getHardwareAddress()</b>'
+      </li>
+    </ul>
+    <p>
+      Obvious downside is that API did change, so existing code that uses JUG 
+      2.0 will not work as is. But since classes are now in package 
+      &quot;com.fasterxml.uuid&quot;), it is possible for both versions to co-exist. 3.0 
+      will also require JDK 1.4 (2.0 could run on 1.1); or 1.6 if Ethernet 
+      address access functionality is needed.
+    </p>
+    <p>
+      Anyway, if you are using JUG 2.0, update probably makes sense and should 
+      be easy to do.
+    </p>
+    <p>
+      ps. Why use JUG over java.util.UUID? JDK version can only generate 
+      random-number based UUIDs and convert from bytes to UUIDs (or vice 
+      versa) -- JUG can generate other variants (name-based, time/location 
+      based).
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, October 13, 2010 7:39 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_426.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_426.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_426.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Tuesday, October 12, 2010 </h2>
+
+<div class="entry" id="post-424">
+			<h3 class="entry-header">Look back on "prioritizing Open Source projects" (from May 2010)</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      It has been more than 4 months since I wrote about my experiences with <a href="/blog/archives/2010/05/entry_400.html">priorization 
+      for Open Source projects</a>, it seems like good time to see how things 
+      have been moving.
+    </p>
+    <p>
+      Looks like there are two ways to look at things -- whether glass is half 
+      full or half empty -- as I have pretty much completed 50% of tasks; but 
+      not necessarily in order of priority. And this even thought I publicly 
+      outlined priorities.
+    </p>
+    <p>
+      One positive thing is that the top entry (Java UUID Generator 3.) was 
+      just completed; and the second entry (Woodstox 4.1) is nicely in 
+      progress, to be completed within a month or two. On the other hand, 
+      other two completed tasks (both related to Jackson 1.6 that was 
+      completed a month ago) were entries listed as having the lowest 
+      priority. Some entries not on the list were also completed; specifically 
+      work with <a href="http://github.com/AsyncHttpClient/async-http-client">Async 
+      HTTP Client</a> and OAuth signature calculation.
+    </p>
+    <p>
+      I guess I think this is reasonable outcome, as priority lists for my 
+      &quot;hobby&quot; development are there to help and assist, not to drive to 
+      specific business goals or to rein in my creativity. So even more 
+      important than getting things done in &quot;right order&quot; is that things do 
+      get done. So as long as more important or more urgent things are more 
+      likely to get worked on than less important or urgent things, overall 
+      efficiency remains brutally high, which is the way I like it. Finally, 
+      part of the reason for fluctuating order of execution is due to some 
+      tasks being more interesting than others; and working on &quot;most 
+      interesting&quot; things tends to maximize amount of progress (in contrasts 
+      to working on less interesting but more highly prioritized things).
+    </p>
+    <p>
+      But to get some closure on this entry, let's consider this a completed 
+      4-month Scrum and create an updated priority list. Here's what it might 
+      look like:
+    </p>
+    <ol>
+      <li>
+        Complete Woodstox 4.1 (XML Schema, other user requested features) -- 
+        carry-over from the original list
+      </li>
+      <li>
+        Aalto 1.0: finalize async API, implementation
+      </li>
+      <li>
+        Jackson 1.7: focus on extensibility (module registration, contextual 
+        serializers)
+      </li>
+      <li>
+        ClassMate (1.0?) -- library for fully resolving generic types; based 
+        on Jackson code
+      </li>
+      <li>
+        External version of Mr Bean (from Jackson 1.6)
+      </li>
+      <li>
+        StaxMate 2.1? (from the original list)
+      </li>
+      <li>
+        Tr13 1.0? (from the original list)
+      </li>
+      <li>
+        ... and then re-consider
+      </li>
+    </ol>
+    <p>
+      This is an incomplete list and I expect roughly similar completion rate 
+      if I was to look back again in 4 months. Maybe I should start doing 
+      quarterly project reviews just for fun. :-)
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, October 12, 2010 7:32 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_424.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_424.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_424.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Monday, October 11, 2010 </h2>
+
+<div class="entry" id="post-410">
+			<h3 class="entry-header">Jackson tips: overriding serializer or type for Map keys, values, Collection/List values</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      I have only recently realized that much of <a href="http://wiki.fasterxml.com/JacksonHome">Jackson</a> 
+      functionality is a unknown to most users. Part of unawareness is due to 
+      lack of documentation; but even though <a href="http://wiki.fasterxml.com/JacksonDocumentation">documentation</a> 
+      has arguably been improving over time (at least <a href="http://wiki.fasterxml.com/JacksonJavaDocs">Javadocs</a> 
+      and rest of FasterXML wiki), there are limits to what can be achieved by 
+      feature-listing style of documentation. To add supporting documentation, 
+      then, I am trying to write bit more about both specific features that 
+      could use more spotlight, as well as more how-to style explanations.
+    </p>
+    <p>
+      So let's start with something reasonably simple that is not universally 
+      known by Jackson users (this is actually based on my answer to one 
+      expert user):
+    </p>
+    <p>
+      <b>Jackson Tip of 21-Oct-2010: annotations for overriding 
+      deserialization settings of Collection and Map properties</b>
+    </p>
+    <p>
+      Let's say that you have bean like this:
+    </p>
+    <pre>class Bean {
+  public List&lt;Object&gt; values;
+}  </pre>
+    <p>
+      where you want to deserialize List entries as type 'ValueBean'. To 
+      specify type of 'values' property itself you could use annotation <b>@JsonDeserialize.as</b>; 
+      but this can not be used to define content type (since annotation values 
+      can not be generic types, only classes). So how do you do specify 
+      deserialization type of List values (or Map values)? One possibility 
+      would be specifying a custom deserializer, but that would be an overkill.
+    </p>
+    <p>
+      It is actually simple enough: there is another @JsonDeserialize property 
+      to use for this use case:
+    </p>
+    <pre><font face="monospaced">class Bean {
+  @JsonDeserialize(contentAs=ValueBean.class)
+  public List&lt;Object&gt; values;
+}</font></pre>
+    <p>
+      which also works for Map values (for Map keys you would use 
+      @JsonDeserialize.keyAs).
+    </p>
+    <p>
+      Similarly, you can explicitly specify deserializer to use for keys and 
+      values using <b>@JsonDeserialize.contentUsing</b> and <b>@JsonDeserialize.keyUsing</b> 
+      instead of basic <b>@JsonDeserialize.using</b> which is used for the 
+      property itself:
+    </p>
+    <pre><font face="monospaced">class Bean {
+  @JsonDeserialize(contentUsing=ValueBeanDeserializer.class)
+  public List&lt;Object&gt; values;
+}</font></pre></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, October 11, 2010 9:21 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_410.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_410.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_410.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Tuesday, October 05, 2010 </h2>
+
+<div class="entry" id="post-422">
+			<h3 class="entry-header">Lazy Coder Cuisine: Balsamic Sausage Chunks (aka Venetian Sausage Bites)</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      (note: I decided to use title prefix &quot;Lazy Coder Cuisine&quot; to make it 
+      easier to find food/drink recipes from the Blog -- who knows, maybe it 
+      could even lead to a virtual cook book over time!)
+    </p>
+    <p>
+      On my quest to find recipes with exceptionally high value/effort ratio, 
+      I came across this gem. It is basically a very simple snack, offering 
+      good taste (if non-stellar looks) with modest effort. To give credit 
+      where it is due I found the source recipe (<a href="http://www.foodnetwork.com/recipes/michael-chiarello/venetian-sausage-bites-recipe/index.html">Venetian 
+      Sausage Bites)</a> at Food Network web site.
+    </p>
+    <p>
+      Basic idea is very simple:
+    </p>
+    <ol>
+      <li>
+        Take sausage -- uncooked sweet italian sasusage suggested (whatever is 
+        convenient package; 6 sausages recommended)
+      </li>
+      <li>
+        Poach (cook in boiling water) for a bit (6 - 7 minutes); slice into 
+        bite-sized pieces
+      </li>
+      <li>
+        Fry slightly on skillet, using as much olive oil as necessary (like 2 
+        table spoons) to get bit of color, firm texture
+      </li>
+      <li>
+        Add balsamic vinegar (1 cup; more if you want more sauce), simmer to 
+        reduce into syrupy sauce (15 - 20 minutes or s)
+      </li>
+    </ol>
+    <p>
+      And the result is a very tasty cocktail snack, in about half an hour 
+      (and probably less if you are in a hurry). Results have interesting 
+      looks, charcoal black, which is bit acquired taste; but taste itself has 
+      broader appeal I think.
+    </p>
+    <p>
+      But wait! There is room for further simplification (as well as for 
+      variation) here. For one, you can just use cooked sausage (and obviously 
+      vary different kinds), which gets rid of the second step. And if you 
+      like bit of additional fat and salt, feel free not to discard melted fat 
+      after step 3.
+    </p>
+    <p>
+      It is actually kind of cool how flexible balsamic vinegar is; 
+      considering how different resulting reduction tastes compared to source 
+      material. Plus it is probably easy to further pimp the recipe -- I bet 
+      adding bit of cream could not hurt the sauce... maybe even add something 
+      like apple sauce for added hint of sweetness (best sauce for ham, for 
+      example, adds mustard, cream and apple sauce on fat melted from ham... 
+      and maybe dash of pepper).
+    </p>
+    <p>
+      The main consideration here is just what to serve these with, if 
+      anything. As cocktail snacks, can definitely serve them stand-alone. But 
+      other typical companions of sausages should work well too (serve with 
+      scrambled eggs?).
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, October 05, 2010 9:54 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_422.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_422.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_422.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_432.html">Faster compression on Java platform with LZF</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_431.html">Java Pearls: case-insensitive Map?</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_430.html">From Canada, with Better Windmills</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_429.html">More on Java UUID Generator (JUG), a word on performance</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_426.html">Something new, something rather old: Java Uuid Generator, version 3.0</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

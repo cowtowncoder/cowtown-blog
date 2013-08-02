@@ -1,0 +1,1707 @@
+<html lang="en">
+<head>
+<title>December 2009</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Thursday, December 31, 2009 </h2>
+
+<div class="entry" id="post-362">
+			<h3 class="entry-header">Upgrading from Woodstox 3.x to 4.0</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p resolver="NamedStyle:default {font-size=3,font-style=,name=default,font-family=Tahoma,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      It has now been almost one year since <a href="http://www.cowtowncoder.com/blog/archives/2009/01/entry_129.html">Woodstox 
+      4.0 was released</a>.<br>Given this, it would be interesting to know how 
+      many Woodstox users continue using older versions, and how many have 
+      upgraded.
+    </p>
+    <p resolver="NamedStyle:default {font-size=3,font-style=,name=default,font-family=Tahoma,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      My guess (somewhat educated, too, based on bug reports and some 
+      statistcs on Maven dependencies) is that adoption has been quite slow. I 
+      think this is primarily due to 3 things:
+    </p>
+    <ol>
+      <li resolver="NamedStyle:default {font-size=3,font-style=,name=default,font-family=Tahoma,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+        Older versions work well, and fulfill all current needs of the user
+      </li>
+      <li>
+        New functionality that 4.0 offers is not widely known, and/or is not 
+        (currently!) needed
+      </li>
+      <li>
+        There are concerns that because this is a major version upgrade, 
+        upgrade might not go smoothly.
+      </li>
+    </ol>
+    <p>
+      I can not argue against (1): Woodstox has been a rather solid product 
+      since first official releases; and 3.2 in particular is a well-rounded 
+      rock solid XML processor (if you are using an earlier version, however, 
+      at least upgrade to latest 3.2 patch version, 3.2.9!).<br>And with 
+      respect to (2), I have covered most important pieces of new 
+      functionality, <a href="http://www.cowtowncoder.com/blog/archives/2009/09/entry_320.html">Typed 
+      Access API</a> and <a href="http://www.cowtowncoder.com/blog/archives/2007/11/entry_53.html">Schema 
+      Validation</a>.
+    </p>
+    <p>
+      But so far I have not written anything about incompatible changes 
+      between 3.2 and 4.0 versions. So let's rectify that omission.
+    </p>
+    <p>
+      <b>1. Why Upgrade?</b>
+    </p>
+    <p>
+      But first: maybe it is worth iterating couple of reasons why you might 
+      want to upgrade at all:
+    </p>
+    <ol>
+      <li>
+        You might want to validate XML documents you read or write against W3C 
+        Schema (aka XML Schema). Earlier versions only allowed validating 
+        against DTDs and Relax NG schemas
+      </li>
+      <li>
+        If you want to access typed content -- that is, numbers, XML qualified 
+        names, even binary content, contained as XML text -- new Typed Access 
+        API simplifies code a lot, and also makes it more efficient.
+      </li>
+      <li>
+        Latest versions of useful helper libraries like <a href="http://wiki.fasterxml.com/StaxMateHome">StaxMate</a> 
+        require Woodstox 4.0 (StaxMate 2.0 needs 4.x, for example)
+      </li>
+      <li>
+        No new development will be done for 3.2 branch; and eventually not 
+        even bug fixes.
+      </li>
+    </ol>
+    <p>
+      Assuming you might want to upgrade, what possible issues could you face?
+    </p>
+    <p>
+      <b>2. Backwards incompatible changes since 3.2</b>
+    </p>
+    <p>
+      Based on my own experiences, there are few issues with upgrade. Although 
+      the <a href="http://woodstox.codehaus.org/4.0.7/release-notes/COMPATIBILITY">official 
+      list of incompatibilities</a> has a few entries, I have only really 
+      noticed one class of things that tend to fail: Unit tests!
+    </p>
+    <p>
+      Sounds bad? Actually, yes and no: no, because these are not real 
+      failures (ones I have seen). And yes, since it means that you end up 
+      fixing broken test code (extra overhead without tangible benefits). But 
+      this is one of challenges with unit tests: fragility is often 
+      desireable, but not always so.
+    </p>
+    <p>
+      Specific problem that I have seen multiple times is related to one 
+      cosmetic aspect of XML: inclusion of white space with elements.
+    </p>
+    <p>
+      Woodstox 3.2 used to output empty elements with &quot;extra&quot; white space, 
+      like so:
+    </p>
+    <p>
+      &lt;empty /&gt;
+    </p>
+    <p>
+      but 4.0 will not add this white space:
+    </p>
+    <p>
+      &lt;empty/&gt;
+    </p>
+    <p>
+      (this is a new feature as per <a href="http://jira.codehaus.org/browse/WSTX-125">WSTX-125</a> 
+      Jira entry)
+    </p>
+    <p>
+      and so some existing unit tests for systems I have worked on compare 
+      literal XML for output tests. This is not optimal, but it is bit less 
+      work than writing tests in more robust way, to check for logical (not 
+      physical) equality. So whereas they formerly assume existence of such 
+      white space, tests need to be modified not to expect it (or allow either 
+      way).
+    </p>
+    <p>
+      <b>3. Other challenges?</b>
+    </p>
+    <p>
+      Actually, I have not seen any actual problems, or other cosmetic 
+      problems. But here are other changes that are most likely to cause 
+      compatibility problems (refer to the full list mentioned earlier for 
+      couple of changes that are much less likely to do so):
+    </p>
+    <ul>
+      <li>
+        &quot;Default namespace&quot; and &quot;no prefix&quot; are now consistently reported as 
+        empty Strings, not nulls (unless explicitly specified otherwise in 
+        relevant Stax/Stax2 Javadocs). Usually this does not cause problems, 
+        because Stax-dependant code has had to deal with inconsistencies with 
+        other Stax implementations; but could cause problems if code is 
+        expecting null.
+      </li>
+      <li>
+        &quot;IS_COALESCING&quot; was (accidentally) enabled for Woodstox versions prior 
+        to 4.0. This was fixed for 4.0 (as per Stax specification), but it is 
+        possible that some code was assuming on never getting partial text 
+        segments (if developer was not aware of Stax allowing such splitting 
+        of segment, similar to how SAX API does it.
+      </li>
+    </ul>
+    <p>
+      <b>4. Upgrade or not?</b>
+    </p>
+    <p>
+      I would recommend investigating upgrade; if for nothing else, because of 
+      maintenance aspect. Pre-4.0 versions will not be actively maintained in 
+      future. But it is good to be aware of what has changed, and of course 
+      having good set of unit tests should guard against unexpected problems.
+    </p>
+    <p>
+      And hey, it's soon 2010 -- Woodstox 3.2 is soooo 2008. :-)
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, December 31, 2009 10:33 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_362.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_362.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_362.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Tuesday, December 22, 2009 </h2>
+
+<div class="entry" id="post-360">
+			<h3 class="entry-header">How much does Free cost again?</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      One of supposedly hard question is what is the actual cost of freedom of 
+      speech. It can be debated endlessly, and is often considered priceless 
+      (Mastercard trademarks not-with-standing). Hard question, sure, and 
+      something I generally don't spend much time thinking about.
+    </p>
+    <p>
+      And then again, sometimes it is rather easy to know the exact cost. Like 
+      in case of my little blog: it is US$ 9.95.<br>
+    </p>
+    <p>
+      That ultra fancy commenting interface that you see next to entries (and 
+      elaborate insanely complicated machinery that powers in in the backend), 
+      provided by kind folks of Haloscan, has been free (of cost) so far. But 
+      it was very recently brought to my attention that there is now a simple 
+      choice for me, a happy user of said system, to make: I am free to either 
+      (a) pay up (annual fee), or (b) &quot;vacate the premises&quot; (but with graceful 
+      allowance of letting me keep stuff I brought along, i.e. export 
+      comments!). What's not to like? What a delightful jule-time offer!
+    </p>
+    <p>
+      Choice is bit tricky: on one hand, philosophically I do not object to 
+      paying for services I use (or offer for others to use). But on the other 
+      hand, I really REALLY dislike impression of a bait-and-switch scheme in 
+      operation. Worse, given the short transition period -- unless I totally 
+      missed earlier notices, just a couple of weeks -- makes this feel rather 
+      rushed, &quot;an offer you can't refuse&quot;. So in many ways I do feel like just 
+      taking my crap (no offense to respected authors of high-quality 
+      commentary here) to someplace else. Perhaps even spending lotsa time 
+      (which is money) to build a simple replacement for the system. Heck, I 
+      have been paid to write such systems. Might as well do some pro bono 
+      work for my own blog. But then again... I am lazy and time-constrained.
+    </p>
+    <p>
+      So: question is; is this dinky little commentary system worth 10 bucks a 
+      year? Especially when advertising income from all the sidebar ads is 
+      within that same order of magnitude, possibly less.
+    </p>
+    <p>
+      ps. Anyone know an actual free plug-in comment interface? Send me a note 
+      if you do! (or if you must... leave a comment... but if so, before Jan 
+      02, 2010 :-) )
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, December 22, 2009 9:53 PM </span>
+<br />	Categories: <a href=""></a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_360.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_360.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_360.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header"> </h2>
+
+<div class="entry" id="post-359">
+			<h3 class="entry-header">Another Jackson adopter: Spring-json</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      As has been reported earlier, Spring 3.0 (and Spring-json module, 
+      specifically) now has a Jackson-based JSON view variant: see <a href="http://www.jroller.com/kaiulrich/entry/a_mappingjacksonjsonview_springframework_and_spring">MappingJacksonJsonView 
+      and spring-json view comparison</a>. Comparison seems reasonable, 
+      mentioning annotation-based configurability and performance as strong 
+      points of jackson-based view.
+    </p>
+    <p>
+      <b>UPDATE, 28-Dec-2009</b>: One more for the road: Restlet is also <a href="http://wiki.restlet.org/docs_2.0/13-restlet/28-restlet/299-restlet.html">including 
+      Jackson-based extension</a>.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, December 22, 2009 7:58 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_359.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_359.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_359.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Sunday, December 20, 2009 </h2>
+
+<div class="entry" id="post-357">
+			<h3 class="entry-header">Jackson 1.4: more control over writing JSON, improved interoperability</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+  First things first: if you haven't noticed yet, <a href="http://wiki.fasterxml.com/JacksonRelease14">Jackson 
+  1.4.0</a> was just released.
+</p>
+<p>
+  This release focuses mainly on writer (serialization) side, but there 
+  are also continuing improvements to interoperability. I will review main 
+  improvements below.
+</p>
+<p>
+  <b>1. JSON generation improvements</b>
+</p>
+<p>
+  <b>1.1 Ignoring properties</b>
+</p>
+<p>
+  A new annotation, <b>@JsonIgnoreProperties</b>, allows:
+</p>
+<ul>
+  <li>
+omitting serialization of listed properties:
+<b>@JsonIgnoreProperties({ &quot;secretField&quot;, &quot;internalProperty&quot; })</b>;
+listed properties will not be included in JSON output
+  </li>
+  <li>
+omitting listed properties from being deserialized; if encountered 
+they are just ignored even if there is a setter for them (regardless 
+of whether setter is marked to be ignored or not)
+  </li>
+  <li>
+ignoring all unknown properties for annotated class during 
+deserialization (similar to disabling <i>DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES</i>), 
+but only affects instances of annotated class. This is done with 
+property &quot;ignoreUnknown&quot;: <b>@JsonIgnoreProperties(ignoreUnknown=true)</b> 
+(note: has no effect on serialization)
+  </li>
+</ul>
+<p>
+  <b>1.2 JsonView</b>
+</p>
+<p>
+  New @JsonView annotation allows defining logical views for 
+  serialization: sets of properties to be written out for given view.
+</p>
+<p>
+  Let's consider a simple example, where we want to control amount of 
+  information written out, based on, say, user's credentials. To define 3 
+  classes of properties, we can define views (more about identification 
+  below):
+</p>
+<pre>  class Views { // container for View classes
+static class Public { }
+static class ExtendedPublic extends PublicView { }
+static class Internal extends ExtendedPublicView { }
+  }
+  <br>And to define access levels for our info class, we would do<br>
+  public class PersonalInformation { // Bean that uses Views to define subsets of properties to include
+// Name is public
+@JsonView(Views.Public.class) String name;
+// Address semi-public
+@JsonView(Views.ExtendPublic.class) Address address;
+// SSN only for internal usage
+@JsonView(Views.Internal.class) SocialSecNumber ssn;
+  }  </pre>
+<p>
+  Given this set up, we would define View to use for serialization by:
+</p>
+<pre>  objectMapper.writeValueUsingView(out, infoInstance, Views.Public.class); // short-cut
+  // or full version:
+  objectMapper.getSerializationConfig().setSerializationView(Views.Public.class);
+  objectMapper.writeValue(out, beanInstance); // will use active view set via Config
+  // (note: can also pre-construct config object with 'mapper.copySerializationConfig'; reuse configuration)</pre>
+<p>
+  Which in this particular case would only contain &quot;name&quot; property. If we 
+  had used view <i>Views.ExtendedPublic.class</i>, we would have gotten 2 
+  fields; and with <i>Views.Internal.class</i>, all 3.
+</p>
+<p>
+  Views are identified by classes: you can either create specific marker 
+  classes, or use existing classes. Views use inheritance indicated by 
+  class structure: such that a view is considered a sub-view of another 
+  view if it extends that view. Child views include properties that parent 
+  views include.
+</p>
+<p>
+  For more description see <a href="http://wiki.fasterxml.com/JacksonJsonViews">JsonView 
+  wiki page</a>.
+</p>
+<p>
+  <b>1.3 Ordering properties output</b>
+</p>
+<p>
+  Another new annotation, @JsonPropertyOrder, allows defining complete and 
+  partial field orderings:
+</p>
+<ul>
+  <li>
+You can define explicit ordering by listing properties as annotation 
+value: <b>@JsonPropertyOrder({ &quot;id&quot;, &quot;name&quot; })</b> 
+would ensure that &quot;id&quot; and &quot;name&quot; are output before any other 
+properties during serialization
+  </li>
+  <li>
+You can specify that anything not explicitly ordered will be output in 
+alphabetic order: <b>@JsonPropertyOrder(alphabetic=true)</b>
+  </li>
+  <li>
+Without these settings order is undefined because JVM does not expose 
+order of underlying fields or methods (but see note below)
+  </li>
+</ul>
+<p>
+  Beyond these definitions, 1.4 also guarantees that properties used with <b>@JsonCreator</b> 
+  annotations (constructors, factories) are serialized before other 
+  properties, unless there are explicitly ordered properties (which will 
+  have priority). This change was to optimize @JsonCreator property usage: 
+  ideally these properties should be readable before other properties -- 
+  although JSON logical model does not provide for such guarantee, Jackson 
+  will try to do its best to make ordering optimal.
+</p>
+<p>
+  <b>2. Interoperability improvements</b>
+</p>
+<p>
+  Goal of interoperability improvement is to make Jackson a &quot;universal&quot; 
+  JSON data binding tool on JVM. That is: we hope to make Jackson usable 
+  from other JVM languages, not just Java -- already one can use it from 
+  quite a few (reported to work from Groovy, Clojure), and hopefully 
+  supporting others like Scala in near future (Scala lists are not well 
+  handled, yet) -- as well as interoperate nicely with most common data 
+  libraries.
+</p>
+<p>
+  To this end, there is now default support (i.e. no need for custom 
+  converters or mix-in annotations) for following data types:
+</p>
+<ul>
+  <li>
+DOM (xml) trees: properties declared as DOM Document, Element and Node 
+will now be properly serialized to, and deserialized from JSON 
+Strings. Useful if you want to embed XML as JSON properties (sometimes 
+good for interoperability)
+  </li>
+  <li>
+<a href="http://joda-time.sourceforge.net/">Joda</a> DateTime type, 
+and mechanism to easily add more types as needed (file a <a href="http://jira.codehaus.org/browse/JACKSON">Jira</a> 
+request if you need more!)
+  </li>
+  <li>
+Handling of <b>javax.xml</b> types that some platforms lack (Android 
+and GAE have had some issues) much improved so that they are 
+dynamically and reliably added, if underlying types are present.
+  </li>
+</ul>
+<p>
+  Last point should also make it yet easier to make Jackson run on new 
+  &quot;subset platforms&quot;; containers that support subset of JDK 1.5 (or have 
+  issues with some parts).
+</p>
+<p>
+  <b>3. Plans for 1.5</b>
+</p>
+<p>
+  So what next? 1.4 release can be thought of a &quot;minor&quot; minor release, 
+  similar to 1.3; compared to fundamentally new functionality of 1.2 
+  (mix-in annotations, JsonCreators), 1.3 and 1.4 have consisted of 
+  smaller (but more numerous) evolutionary incremental improvements. In 
+  many ways, Jackson releases have mirror JDK releases, come to think of 
+  that.
+</p>
+<p>
+  Anyway: the next Big Thing will be &quot;<a href="http://wiki.fasterxml.com/JacksonPolymorphicDeserialization">Polymorphic 
+  Deserialization</a>&quot;, which is by far the most requested feature. That 
+  is, ability to deserialize instances of correct types, even in absence 
+  of static type information (declared type of, say, List&lt;Object&gt; could 
+  still be deserialized to contain whatever actual type of serialized 
+  instance was). Getting this done is important in itself, but the most 
+  important aspect in my mind is to Do It Right. This should not be a 
+  stop-gap solution, or something to rewrite in near future. It should be 
+  comprehensive, flexible and robust solution to the non-trivial problem. 
+  And plan is to do just that; now that other queued blocking issues (like 
+  that of finall getting much-requested JsonView done) have been dealt 
+  with.
+</p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Sunday, December 20, 2009 5:33 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_357.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_357.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_357.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Saturday, December 19, 2009 </h2>
+
+<div class="entry" id="post-354">
+			<h3 class="entry-header">Could you please tell me some more about athletes' marital problems, CNN?</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      It is an unfortunate fact of life that &quot;news&quot; services in US are in 
+      sorry, tepid state; and to get decent news coverage one has to use 
+      better international sources (BBC, or any european agency), or turn to 
+      non-daily/non-TV alternatives (magazines, which still offer reasonable 
+      in-depth coverage). But this on-going idiotic episode with a celebrity 
+      golf player's domestic issues takes the cake as the low point for this 
+      decade (maybe competing with media's criticless bashing of UN Iraq 
+      nuclear inspectors back in 2002 -- but I digress)<b>.</b>
+    </p>
+    <p>
+      <b>1. What could POSSIBLY be more important issue?</b>
+    </p>
+    <p>
+      But hey, there have been recent orgies of lesser relevant news (did 
+      Michael Jackson's or Ann-Nicole Smith's deaths really warrant being top 
+      news entries). Why is this any different? Aside from being even less 
+      relevant -- honestly, gossip pages, or perhaps sports section (... which 
+      is ridiculously inflated part of local newspapers and TV programmes, 
+      anyway...) would have been better placements; and for respectable 
+      publications, possibly not even those -- than anything comparable in 
+      recent history, there is the thing that there has actually been lots of 
+      newsworthy things to write about.
+    </p>
+    <p>
+      Like, say, that gathering of world leaders in Copenhagen; discussing 
+      urgent (and eventually life-and-death) matters of saving the world. And 
+      in domestic section, well, there's plenty of economic stuff to write 
+      about, or the thing about medical industry and insurance. Oh, and hey, 
+      wasn't there a war of sizable portions also going on (actually, two, but 
+      who's counting).
+    </p>
+    <p>
+      In fact, I can't think of a reason for this even ranking on page 7 of 
+      thursday edition of the local newspaper. There are tabloids, after all, 
+      that could cover this stuff. Well, except that in US, it's not 
+      &quot;newspapers vs tabloids&quot;; it's mainstream (tabloid level) and fringes 
+      (&quot;news of the world&quot;). Even mainstream sells manufactured controversies 
+      (trademark of tabloid in other countries) and social porn.
+    </p>
+    <p>
+      And yet, somehow what irritates me most is that I noticed that CNN 
+      followed up on this stupid episode like a hawk; as if it really was a 
+      major story.
+    </p>
+    <p>
+      <b>2. What did that &quot;N&quot; originally mean? </b>
+    </p>
+    <p>
+      So why pick on CNN? After all, CNN is to News what MTV is to Music -- 
+      sad, irrelevant misnomer. Ted Turner would be rolling in his grave was 
+      he not alive. I guess it has more to do with the fact that CNN is 
+      ostensibly in the news business. Newspapers and most other networks are 
+      in general &quot;media&quot; business; they are also News dilettantes, spewing 
+      some amateur-level newsy stuff. But clearly TV networks are more into 
+      general entertainment; and newspapers into advertising with some 
+      commentary columns (well, actually, they also do do some local news 
+      stuff -- useful and sometimes noteworthy -- maybe I am being too harsh 
+      --  but only local, seldom even reaching to regional level).
+    </p>
+    <p>
+      So it's that when even entities that claim to do News fail to do that, 
+      well, that's pathetic.
+    </p>
+    <p>
+      <b>3. Message to mr. Woods</b>
+    </p>
+    <p>
+      Ok; enough ranting about sad state of US media. But here's a personal 
+      message for the nominal cause of this red herring of a news: Tiger, go 
+      stuff that golf club up your ass. Sideways. I don't care about your 
+      business (personal or otherwise) -- but it appears that your messy 
+      business has suddenly become my business. Stop it. Go, disappear. And 
+      for crying out loud, don't cry out loud in public. It is so pathetically 
+      unmanly that I feel nauseous. So, grow a spine (a pair you apparently 
+      already have). Whatever else you do, do NOT cause more media events. You 
+      are rich enough to afford to do whatever that other stupid athlete did 
+      after murdering his wife (of hey, yeah, come to think of that, do not do 
+      what that guy did in the end -- just the initial part of trying to keep 
+      low profile).
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Saturday, December 19, 2009 10:57 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_354.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_354.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_354.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, December 17, 2009 </h2>
+
+<div class="entry" id="post-353">
+			<h3 class="entry-header">On good, efficient data formats</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      There are 2 fairly recent additions to category of &quot;good binary data 
+      formats that work nice with Java&quot; category: <a href="http://www.cloudera.com/blog/2009/11/02/avro-a-format-for-big-data/">Avro</a> 
+      and <a href="http://code.google.com/p/kryo/">Kryo</a>. I have meant to 
+      write something about both for a while.
+    </p>
+    <p>
+      <b>1. Avro</b>
+    </p>
+    <p>
+      Avro is a simple and efficient general-purpose data format, developed as 
+      part of Hadoop project. Due to its background, it should work very well 
+      with Hadoop (and map/reduce systems in general). It is also quite 
+      similar to what I had been thinking of implementing for my own (well, my 
+      employer's, rather) large-scale data processing needs, when there was no 
+      Avro. From my shallow understanding of Avro, it seems to nicely fit the 
+      bill for data format for huge sequence of records; but with 
+      self-describing property that is sadly lacking from other contestants 
+      like Google's protobuf.
+    </p>
+    <p>
+      I will hopefully have some more tangible notes to add in future: for now 
+      it's enough to note that Avro's performance seems to be pretty good, at 
+      least in the &quot;<a href="http://code.google.com/p/thrift-protobuf-compare/wiki/Benchmarking">thrift-protobuf</a>&quot; 
+      benchmark.
+    </p>
+    <p>
+      <b>2. Kryo</b>
+    </p>
+    <p>
+      Strictly speaking Kryo is not a data format, but rather Java object 
+      serialization framework that happens to define a data format to handle 
+      its main task. But since sending POJOs back and forth over the wire is a 
+      very common (perhaps the most common) task for data formats, in Java 
+      world, this is not a big difference.
+    </p>
+    <p>
+      First thing I noticed was its good performance (on above-mentioned 
+      benchmark). This is nice, since there is already JDK default 
+      serialization that performs adequately for most tasks; so anything else 
+      that does binary serialization should be able to meet and beat that 
+      performance baseline, to be of interest. But as importantly, API seems 
+      straight-forward, simple, and adequately customizable.<br>So I have 
+      reasonably high expectations for this library -- it could be nice 
+      complement to something like, say, <a href="http://sourceforge.net/projects/dirmi/">Dirmi</a> 
+      (RMI alternative for JDK default one -- should be coupled with 
+      alternative, similarly improved, serialization mechanism, n'est pas?).
+    </p>
+    <p>
+      <b>3. Disclaimer</b>
+    </p>
+    <p>
+      Alas, I have not made up compelling use case for using these two 
+      projects, yet. But given promise they hold, I should be able to test 
+      them out come next year.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, December 17, 2009 11:12 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_353.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_353.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_353.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Wednesday, December 16, 2009 </h2>
+
+<div class="entry" id="post-352">
+			<h3 class="entry-header">More Jackson adoption: Mule/iBeans</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      As per <a href="http://blogs.mulesoft.org/using-json-bindings-with-ibeans/">this 
+      announcement</a>, Mule is another major framework that has officially 
+      adopted Jackson for its JSON processing needs (&quot;first we take JAX-RS... 
+      then we take ESB!&quot;). That should be good for everyone involved. And more 
+      work for the development, polishing and fixing things that new flow of 
+      users brings in; as well as plenty more exposure for the project &amp; 
+      processor.<br>That should keep the project honest, relevant, and 
+      hopefully producing diamond(s) -- without high pressure, all you'd have 
+      would be lump of coal. :-)
+    </p>
+    <p>
+      On a sort of related note; the latest tally of number of contributors 
+      (individuals named on 'release-notes/CREDITS') is 50. Not too shabby -- 
+      Jackson will pretty soon bypass Woodstox in most regards (see an<a href="/blog/archives/2008/04/entry_62.html">earlier 
+      blog entry</a> for context); probably not by LOC, but in most other 
+      measures.
+    </p>
+    <p>
+      
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, December 16, 2009 11:01 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_352.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_352.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_352.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, December 10, 2009 </h2>
+
+<div class="entry" id="post-351">
+			<h3 class="entry-header">Simple data analysis: 2x swiss pocket knife is sometimes ok</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p resolver="NamedStyle:default {font-weight=normal,font-family=Tahoma,font-style=,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-size=3,}" margin-top="0">
+      Although I am bit of a &quot;nosql&quot; believer (<a href="http://incubator.apache.org/cassandra/">Cassandra</a>, 
+      <a href="http://project-voldemort.com/">Voldemort</a> and <a href="http://aws.amazon.com/s3/">Amazon 
+      S3</a> kick a55!); and get easily frustrated with non-intuitive behavior 
+      of Excel, I admit there are real uses for spreadsheets and relational 
+      databases. And not just ones that developers often associate with them 
+      (plus there are lots of anti-patterns: do NOT stuff those config files 
+      in DB, please). But tasks like, say, Ad hoc chicken-wire-n-bubble-gum 
+      low-budget quick-n-dirty data analysis are something where combination 
+      of the two makes whole lots of sense.
+    </p>
+    <p resolver="NamedStyle:default {font-weight=normal,font-family=Tahoma,font-style=,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-size=3,}" margin-top="0">
+      So I was glad to see this <a href="http://blog.zvikico.com/2009/12/analyzing-csvs-with-h2.html">blog 
+      pos</a>t showing how to do that with <a href="http://www.h2database.com/html/main.html">H2</a> 
+      and a spreadsheet (note: you don't really need Excel -- <a href="http://www.openoffice.org/product/calc.html">OpenOffice 
+      (OOo) Calc</a> is almost as good in many cases). H2 project itself seems 
+      interesting -- quite healthy amount of discussion on dev mailing lists, 
+      seemingly reasonable progress. So I may just write something about that 
+      in future as well.
+    </p>
+    <p resolver="NamedStyle:default {font-weight=normal,font-family=Tahoma,font-style=,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-size=3,}" margin-top="0">
+      
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, December 10, 2009 7:26 PM </span>
+<br />	Categories: <a href=""></a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_351.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_351.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_351.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Wednesday, December 09, 2009 </h2>
+
+<div class="entry" id="post-342">
+			<h3 class="entry-header">Classic Android, with Electric Sheep</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Yes, best pop and rock music, as well as sci-fi books seem to have been 
+      written in (late) 60s.
+    </p>
+    <p>
+      Case in point: Philip K Dick's classic, <a href="http://en.wikipedia.org/wiki/Do_Androids_Dream_of_Electric_Sheep%3F">&quot;Do 
+      Androids Dream of Electric Sheep?&quot;</a>. What an absolute 
+      masterpiece. Very prescient, relevant, and fundamentally deep; all 
+      without seemingly trying too hard to be anything more than a decent 
+      story. None of wanna-be-intellectual babble -- smart with dead-on style; 
+      or trying to predict future -- it is enough to just reflect on reality, 
+      observations of human mind, and there you have it.
+    </p>
+    <p>
+      I originally read this book about 10 years ago, but as a translation (in 
+      finnish). It made a big impression even then -- even more so than <a href="http://en.wikipedia.org/wiki/Blade_Runner">the 
+      movie</a> that was based on it (movie is pretty good too, but book is 
+      just so much much better... this even though I read book only after 
+      seeing the movie, usually &quot;first one wins&quot;).
+    </p>
+    <p>
+      So: few months back I noticed a paperback english copy at the local book 
+      store (no, I don't order all my books online...) and decided to re-read 
+      it. Was it still good? Not just good, absolutely positively great. So if 
+      you like sci-fi but have somehow managed not to read it, go read it. 
+      Same applies to most (or perhaps all) books by PKD of course; like <a href="http://en.wikipedia.org/wiki/The_Man_in_the_High_Castle">The 
+      Man in The High Castle</a>, (written in -62), <a href="http://en.wikipedia.org/wiki/The_Three_Stigmata_of_Palmer_Eldritch">The 
+      Three Stigmata of Palmer Eldritch</a> (-65) or <a href="http://en.wikipedia.org/wiki/Ubik">Ubik</a> 
+      (-69)... the list goes on and on. And even though his later works are 
+      very good too (like, say, VALIS and The Transmigration of Timothy 
+      Archer, his last book), it's something about those books from 60s that 
+      has the absolute brilliant genius. Or, shall we say, &quot;shine of crazy 
+      diamons&quot; (I know, I know, that's refecence to a great 70s song... but 
+      YEARLY 70s, not that far removed). I just wish he had had a chance to 
+      write just some more books. Yes, they are that good.
+    </p>
+    <p>
+      Oh, and just in case you are wondering: his 50s books are strikingly 
+      good too. :-)<br>I love &quot;The World Jones Made&quot; for example. Totally cool 
+      book, which somehow manages to mix in strong environmentalist themes 
+      (about 20-30 years before anyone else did, it seems), extension of 
+      pan-Gaia, and of course plenty of dark humor and bit of political 
+      commentary.
+    </p>
+    <p>
+      Given above, I concur that I am bit of a fan boy. Now, maybe I should 
+      get Kindle for Christmas, to be able to read more...
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, December 09, 2009 7:31 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_342.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_342.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_342.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Tuesday, December 08, 2009 </h2>
+
+<div class="entry" id="post-345">
+			<h3 class="entry-header">JSON data binding performance (again!): Jackson / Google-gson / JSON Tools... and FlexJSON too</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      (note: this is a follow-up on an <a href="/blog/archives/2009/09/entry_326.html">earlier 
+      measurements</a>)
+    </p>
+    <p>
+      <b>1. A New Contestant: FlexJson</b>
+    </p>
+    <p>
+      After realizing that <a href="http://flexjson.sourceforge.net/">FlexJson</a> 
+      is actually capable of both serialization and deserialization (somehow I 
+      thought it would only serialize things), I decided to add it as the 
+      fourth contestant in the &quot;full service Java/JSON data binding&quot; category 
+      of tests.
+    </p>
+    <p>
+      Initially I was bit discouraged to find that it makes one rookie 
+      mistake: assumes that somehow JSON comes in (and goes out) as Java 
+      Strings. But aside from this glitch, package actually looks quite solid 
+      -- and its exclusion/inclusion mechanism looks interesting. Maybe not 
+      exactly my cup of joe (if it was, after all, Jackson API would look more 
+      like it does), but a viable alternative. And I can see how ability to 
+      prevent deep copy would come in handy sometimes. And finally, some of 
+      the features actually exceed what Jackson can currently do, regarding 
+      polymorphic deserialization (since FJ includes class name by default, I 
+      assume it can do it) and some level of cyclic-dependency handling 
+      (ignoring serialization of cyclic references at least).
+    </p>
+    <p>
+      So let's see how &quot;rookie&quot; (yes, I know, it's not exactly a new package, 
+      just new addition to the test) fares...
+    </p>
+    <p>
+      <b>2. Test setup</b>
+    </p>
+    <p>
+      Tests are run using nice Japex performance test framework, running on my 
+      somewhat old AMD work station (~1700 Ghz Athlon -- someone needs to 
+      click on those right-hand-side ads to get me a new performance-testing 
+      work station! :-) ).
+    </p>
+    <p>
+      Input data used consists of serialization of tabular data (database 
+      dump, good old &quot;db100.xml&quot; used by countless xml tests), converted to 
+      Java POJOs, and then to individual data formats (here as JSON, but can 
+      be tested as XML and whatnot). Document size is 20k in XML, and slightly 
+      less in JSON (about 16k). It would be easy to run using other data sets, 
+      but in the past, performance ratios for 2k, 20k and 200k documents have 
+      not had radical differences, so 20k one seems like a reasonable choice 
+      (but note that the earlier benchmark did in fact use 2k documents, so 
+      actual numbers do differ).
+    </p>
+    <p>
+      Test project itself, &quot;StaxBind&quot; is still in Woodstox SVN repository, 
+      accessible via Codehaus SVN page. (one of these days I should just 
+      create a Github project -- but not today).
+    </p>
+    <p>
+      Versions of JSON processing packages are as follows:
+    </p>
+    <ul>
+      <li>
+        Jackson 1.2.0
+      </li>
+      <li>
+        Google-gson 1.4
+      </li>
+      <li>
+        Json-tools-core 1.7
+      </li>
+      <li>
+        Flexjson-1.9.1
+      </li>
+    </ul>
+    <p>
+      Code for each library is using default settings, and using what appears 
+      as the most efficient interface, for cases where transformations are 
+      from byte streams on server side (byte streams in, byte streams out).
+    </p>
+    <p>
+      <b>3. Results</b>
+    </p>
+    <p>
+      First things first: here's the money shot:
+    </p>
+    <p>
+      <img alt="Data Binding Performance Graph" width="750" src="/perf/json-bind-2009-12-08/testcase0.jpg" border="2" height="550" align="left">
+      
+    </p>
+    <p>
+      (or check out the <a href="/perf/json-bind-2009-12-08/">full results</a> 
+      for details)
+    </p>
+    <p>
+      Another way to represent results is by showing performance ratios, using 
+      the slowest implementation as base line (TPS == transactions per second; 
+      number of times a 20k document is read, written, or both):
+    </p>
+    <p>
+      (note: Jackson/manual is omitted since it is hand-written (if simple) 
+      serializer/deserializer, and there are no direct counterparts for other 
+      packages -- while it would give even bigger faster-than-thou ratio, it 
+      wouldn't be a fair comparison)
+    </p>
+    <p>
+      
+    </p>
+    <table border="1">
+      <tr>
+        <th>
+          Impl
+        </th>
+        <th>
+          Read (TPS)
+        </th>
+        <th>
+          Write (TPS)
+        </th>
+        <th>
+          Read+Write (TPS)
+        </th>
+        <th>
+          R+W, times baseline
+        </th>
+      </tr>
+      <tr>
+        <td>
+          Jackson (automatic)
+        </td>
+        <td>
+          1599.272
+        </td>
+        <td>
+          2463.097
+        </td>
+        <td>
+          1033.809
+        </td>
+        <td>
+          25.6
+        </td>
+      </tr>
+      <tr>
+        <td>
+          FlexJson
+        </td>
+        <td>
+          125.277
+        </td>
+        <td>
+          125.277
+        </td>
+        <td>
+          94.904
+        </td>
+        <td>
+          2.35
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Json-tools
+        </td>
+        <td>
+          94.051
+        </td>
+        <td>
+          126.954
+        </td>
+        <td>
+          49.008
+        </td>
+        <td>
+          1.2
+        </td>
+      </tr>
+      <tr>
+        <td>
+          GSON
+        </td>
+        <td>
+          56.58
+        </td>
+        <td>
+          112.455
+        </td>
+        <td>
+          40.38
+        </td>
+        <td>
+          1
+        </td>
+      </tr>
+    </table>
+    <p>
+      So looks like our &quot;new kid on the block&quot; manages to outperform the other 
+      two non-Jackson JSON processors here. And at least get within an 
+      order-of-magnitude with Jackson... :-)
+    </p>
+    <p>
+      <b>4. Musings</b>
+    </p>
+    <p>
+      So it turns out that despite its interfacing (those String/byte 
+      conversions), Flexjson package manages to work more efficiently than 
+      some other packages that claim &quot;simplicity and performance&quot;. And this 
+      without actually claiming to be particularly performant, but rather 
+      focusing on design of API and ease-of-use aspects. Pretty neat, I 
+      respect that.
+    </p>
+    <p>
+      <b>5. Next?</b>
+    </p>
+    <p>
+      My current main interest (with respect to performance issues) lie in the 
+      area of compressing data for transfer: after all, most of the time there 
+      is relative abundance of CPU power compared to available network and I/O 
+      bandwidth. This means that trading some CPU (needed for compression and 
+      decompression) seems like a bargain for many use cases.
+    </p>
+    <p>
+      But on the other hand, <a href="/blog/archives/2009/05/entry_263.html">as 
+      we saw earlier</a>, the question is &quot;how much is too much&quot;. And that's 
+      where my new favorite simple-and-fast algorithm, LZF, comes in. But 
+      that's a different story.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, December 08, 2009 10:34 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_345.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_345.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_345.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Monday, December 07, 2009 </h2>
+
+<div class="entry" id="post-343">
+			<h3 class="entry-header">Soft ball: entry #101 for 2009, mission kinda complete</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Ok, looks like I managed to hit the target I set up recently, to write 
+      &quot;one hundred and one&quot; blog entries this year. Granted, this was not a 
+      giant stretch of literal muscle, given that at the time I had already 
+      gone most of the way. Nonetheless it is good to hit the target.
+    </p>
+    <p>
+      Since there's still some time to go until New Year, I think I might as 
+      well target the next even number, 111 entries.
+    </p>
+    <p>
+      Stay tuned...
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, December 07, 2009 7:35 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_343.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_343.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_343.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Friday, December 04, 2009 </h2>
+
+<div class="entry" id="post-336">
+			<h3 class="entry-header">Not your type? Jackson as the match-maker</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p resolver="NamedStyle:default {font-weight=normal,font-size=3,font-style=,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-family=Tahoma,}" margin-top="0">
+      By now, <a href="http://wiki.fasterxml.com/JacksonHome">Jackson</a> is 
+      becoming widely-known for its lightning-fast streaming JSON parser, as 
+      well as for its powerful, intuitive and efficient data binding 
+      functionality. But wait! There is more!
+    </p>
+    <p resolver="NamedStyle:default {font-weight=normal,font-size=3,font-style=,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-family=Tahoma,}" margin-top="0">
+      (and when you are convinced you need Jackson, head straight to <a href="http://wiki.fasterxml.com/JacksonDownload">Download</a> 
+      page)
+    </p>
+    <p resolver="NamedStyle:default {font-weight=normal,font-size=3,font-style=,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-family=Tahoma,}" margin-top="0">
+      <b>1. Background</b>
+    </p>
+    <p resolver="NamedStyle:default {font-weight=normal,font-size=3,font-style=,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-family=Tahoma,}" margin-top="0">
+      Has this ever happened to you? You need an array of ints, and all you 
+      got is this dingy little List of Strings (representing numbers)! You 
+      would think JVM, as smart as it is, could quickly whip up a conversion 
+      to &quot;do the needful&quot;... but no. In fact, even simpler conversions like 
+      number to/from String, String to/from boolean, Sets to/from Lists and so 
+      on are irritating: easy to solve, sure, but with too much monkey code.
+    </p>
+    <p resolver="NamedStyle:default {font-weight=normal,font-size=3,font-style=,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-family=Tahoma,}" margin-top="0">
+      And don't even get me started on other conversions between encodings 
+      like base64 to byte arrays; dumping Object fields as Maps; or building 
+      Objects from Maps (possibly read from properties files). There are tons 
+      of simple tasks that should be made even simpler.
+    </p>
+    <p resolver="NamedStyle:default {font-weight=normal,font-size=3,font-style=,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-family=Tahoma,}" margin-top="0">
+      <b>2. What if..</b>.
+    </p>
+    <p resolver="NamedStyle:default {font-weight=normal,font-size=3,font-style=,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-family=Tahoma,}" margin-top="0">
+      Ok, now: let's round up some facts related to POJO serialization and 
+      Jackson:
+    </p>
+    <ol>
+      <li resolver="NamedStyle:default {font-weight=normal,font-size=3,font-style=,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-family=Tahoma,}" margin-top="0">
+        Jackson is great at serializing all kinds of Java objects as JSON
+      </li>
+      <li>
+        Jackson is awesome at deserializing JSON into Java objects
+      </li>
+    </ol>
+    <p resolver="NamedStyle:default {font-weight=normal,font-size=3,font-style=,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-family=Tahoma,}" margin-top="0">
+      So: what if... say... you serialized, List&lt;String&gt; into JSON and... 
+      lessee... deserialized it back to.... int[]... what would happen? 
+      Conversion! (as long as Strings indeed contain numbers -- if not, what 
+      would happen is an exception of some kind)
+    </p>
+    <p resolver="NamedStyle:default {font-weight=normal,font-size=3,font-style=,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-family=Tahoma,}" margin-top="0">
+      Ah! I see, so, you are saying that <b>serialize+deserialize == conversion</b>! 
+      Like:
+    </p>
+    <pre>  //ObjectMapper mapper = new ObjectMapper();
+  String json = mapper.writeValueAsString(myStringList);
+  int[] intArray = mapper.readValue(json, int[].class);</pre>
+    <p>
+      Presto!
+    </p>
+    <p>
+      <b>3. Jackson 1.3 gets it</b>
+    </p>
+    <p>
+      With version 1.3, there is something that simplifies above procedure by 
+      50%:
+    </p>
+    <pre>  int[] intArray = mapper.convertValue(myStringList, int[].class);</pre>
+    <p>
+      (yes, you should have seen that one coming)
+    </p>
+    <p>
+      <b>3.1. Conversions: Basic types</b>
+    </p>
+    <p>
+      Primitive type conversions obviously work:
+    </p>
+    <pre>  Boolean b = mapper.convertValue(&quot;true&quot;, Boolean.class);<br>  Date d = mapper.convertValue(&quot;2009-10-10T12:00:00.00+0800&quot;);</pre>
+    <p>
+      although are not exactly any shorter than equivalent idioms you would 
+      use. But they serve as basis for other conversions, for Lists, Maps and 
+      arrays of primitives and wrappers.
+    </p>
+    <p>
+      <b>3.2. Conversions: Containers</b>
+    </p>
+    <p>
+      Similarly, containers with various content types work as expected:
+    </p>
+    <pre>  ArrayList&lt;Integer&gt; ints = mapper.convertValue(new Object[] { 13, &quot;1&quot;, Integer.valueOf(3) });<br>  Set&lt;String&gt; uniq = mapper.convertValue(new String[] { &quot;a&quot;, &quot;b&quot;, &quot;a&quot; }); // would produce set with 2 entries</pre>
+    <p>
+      <b>3.3. Conversions Base64&lt;-&gt;binary</b>
+    </p>
+    <p>
+      And if you want to encode binary data, you can do:
+    </p>
+    <pre>  String encoded = mapper.convertValue(new byte[] { 1, 2, 3 });<br>  byte[] decoded = mapper.convertValue(encoded, byte[].class);<br>(usually reading from a File or such)</pre>
+    <p>
+      <b>3.4. Beans to Maps and back</b>
+    </p>
+    <p>
+      Finally, you can also convert simple Java beans (or more generally 
+      POJOs) into Maps or JSON trees:
+    </p>
+    <pre>  Map fieldMap = mapper.convertValue(myBean, Map.class);<br>  MyBean bean = mapper.convertValue(fieldMap, MyBean.class);<br>  // or read from properties file<br>  Properties props = new Properties();<br>  props.load(new FileInputStream(file));<br>  MyBean bean2 = mapper.convertValue(props, MyBean.class);<br>  // and can convert to a JSON tree as well:<br>  JsonNode rootNode = mapper.convertValue(bean2);<br></pre>
+    <p>
+      And you can obviously configure bean types with annotations (regular and 
+      mix-in annotations) as you like, as necessary for conversion you want to 
+      do.
+    </p>
+    <p>
+      Neat stuff, eh?
+    </p>
+    <p>
+      <b>4. What does this have to do with JSON?</b>
+    </p>
+    <p>
+      Good question. Nothing, really. :-)
+    </p>
+    <p>
+      That is: there is no requirement for the intermediate JSON generation; 
+      and in fact, for future Jackson versions, there will be improvements to 
+      allow use efficient intermediate data structure for these conversions.
+    </p>
+    <p>
+      And conveivably one could even refactor functionality into separate bean 
+      conversion package, if conversions are widely used without actual JSON 
+      processing.
+    </p>
+    <p>
+      <b>5. Got better use cases?</b>
+    </p>
+    <p>
+      I hope someone out there can come up with even better examples of this 
+      power. If so, let me know!
+    </p>
+    <p>
+      One area that I hope to improve upon is that of converting <i>java.util.Properties</i> 
+      into POJOs. Although sample above works, it does not deal with naming 
+      convention of &quot;refField.anotherField.field = 3&quot;, which is one natural 
+      way to represented nested structures. It should be made to work; just 
+      needs little bit of name mangling; especially when trying to handle 
+      arrays and lists (&quot;object.listField.4 = abx&quot;).
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Friday, December 04, 2009 8:17 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_336.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_336.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_336.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, December 03, 2009 </h2>
+
+<div class="entry" id="post-341">
+			<h3 class="entry-header">Milk of Human Madness, Jule-tide edition</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Ok, in between technical time, it's time to review some goofy stuff 
+      while we wait for Santa. Here goes...
+    </p>
+    <p>
+      <b>1. Can't manage to find time to do something useful..</b>.
+    </p>
+    <p>
+      yet have plenty of time for &quot;time management&quot;?
+    </p>
+    <p>
+      Sound silly? Have a look at <a href="http://www.pomodorotechnique.com/">Pomodoro 
+      Technique</a>. Great for giggles, as a case study for human insanity.<br>But 
+      if it starts to make some sense at any point, do not hesitate to get 
+      some professional help. Immediately.
+    </p>
+    <p>
+      But then again, there are always some co-workers who might benefit 
+      others by such techniques: by not having time to do anything, they could 
+      not make mistakes. And that's worth something too (brakes for loose 
+      cannons).
+    </p>
+    <p>
+      <b>update</b>: above comments are just related for application of said 
+      technique(s) to software development -- maybe other domains could 
+      benefit from intrusive regularly-scheduled interruptions (perhaps 
+      augmented by electrical shocks)
+    </p>
+    <p>
+      <b>2. IRC? Yes, that thing hackers use when they don't want to be 
+      overheard!</b>
+    </p>
+    <p>
+      Oh yes, you can always trust <a href="http://www.youtube.com/watch?v=O2rGTXHvPCQ">Numb3rs</a> 
+      to get technical things FUBAR. Funny stuff.
+    </p>
+    <p>
+      Now, if you will excuse me, I will have to disconnect from my blog 
+      server before connection can be traced by FBI (it's that 30 second rule 
+      you may know from movies -- must triangulate fast -- gotta go!)
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, December 03, 2009 11:08 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_341.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_341.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_341.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_362.html">Upgrading from Woodstox 3.x to 4.0</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_360.html">How much does Free cost again?</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_359.html">Another Jackson adopter: Spring-json</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_357.html">Jackson 1.4: more control over writing JSON, improved interoperability</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_354.html">Could you please tell me some more about athletes' marital problems, CNN?</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

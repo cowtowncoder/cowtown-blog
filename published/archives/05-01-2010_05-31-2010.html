@@ -1,0 +1,751 @@
+<html lang="en">
+<head>
+<title>May 2010</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Monday, May 31, 2010 </h2>
+
+<div class="entry" id="post-400">
+			<h3 class="entry-header">On prioritizing Open Source projects, tasks: First In, First Out</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      I have been bit less productive with my &quot;extra-curricular&quot; activities 
+      (open source coding, writing blogs) lately. This is mostly due to 
+      intense focus on my paying daytime job, and is part of the natural cycle 
+      of things for me.<br>But altohugh I have had bit less time and energy to 
+      spend on these tasks, I have had relatively more time to think about 
+      things. It turns out that amount of time I have to think about things 
+      does not quite correlate with amount of time to do things (which is 
+      interesting thing in its own right, but maybe worth a separate blog 
+      entry). More thinking often leads to having more ideas for writing blog 
+      entries; even if writing activity itself is still constrained by time 
+      crunch.
+    </p>
+    <p>
+      <b>1. FIFO as a priorization mechanism</b>
+    </p>
+    <p>
+      Anyway: I have realized that a fundamental operating principle that I 
+      have with respect to managing my open source projects -- tasks within 
+      projects, relative focus between projects -- is that of trying to tackle 
+      oldest issues first. Good old First-in-First-out (FIFO) queuing of 
+      things.<br>Except for high-priority urgent bug fixes, which I generally 
+      fast track (but which fortunately are not very common), I do try to 
+      increase priority of issues that have not been fixed. This is actually 
+      quite different from many task priorization methods (even if it's 
+      well-known algorithm for operating system process priorization), but 
+      which I feel is an important part of maintaining &quot;culture of 
+      excellence&quot;, ensuring that qualtity of project output remains high. And 
+      to reduce risk of letting most of your open source projects stagnate to 
+      death.
+    </p>
+    <p>
+      Thing is: as with fish (and guests, as per Mark Twaine), bugs also smell 
+      more longer they stay. Smell of code rot comes from long-standing 
+      unresolved issues. It also tends to be the case that it is easier to 
+      keep momentum than to get things rolling -- this makes it hard to revive 
+      stagnant projects; but possible to keep recently(-enough) worked-on 
+      projects chugging along.
+    </p>
+    <p>
+      Now: it is bit more well understood that teams should at least 
+      occasionally go through list of long-standing issues and ideally not 
+      only re-visit them but also fix. In for-profit development targets and 
+      priorities tend to fluctuate more than with labour-of-love projects that 
+      most open source projects still are. This tends to make it less likely 
+      that older issues get resolved, as priorities are more driven by who 
+      cries loudest, and most recently. Still, most good developers I know are 
+      uncomfortable leaving issues unresolved before starting to extend 
+      functionality, to build new things.
+    </p>
+    <p>
+      But I think FIFO principle as driving force for priorization goes beyond 
+      increasing priority of old tasks. I think it also should (and does, in 
+      my case) drive relative priorities of different projects (or services, 
+      systems, libs, frameworks). And this is something I also try to do more.
+    </p>
+    <p>
+      <b>2. Example case: my own project priorization (&quot;product backlog&quot;)</b>
+    </p>
+    <p>
+      Specific case in point is that of my focus on my current &quot;flagship&quot; 
+      project, <a href="http://jackson.codehaus.org">Jackson JSON processor</a>. 
+      Jackson has had my main focus for well over a year now -- mostly since 
+      it is by far the most popular of things I have built; and will likely 
+      remain so for a while now. So if I chose to, I could spend all my time 
+      and then some just working on issues related to Jackson.<br>Doing so 
+      would, however, essentially kill other projects I am heavily involved 
+      with -- Woodstox, StaxMate, Aalto, Java Uuid Generator -- as well as 
+      prevent me from expanding to new areas (like upcoming &quot;compact trie&quot; 
+      package, google for &quot;ning tr13&quot;; more on this once it is ready to be 
+      announced). And that is not something I find compelling as an idea. 
+      Especially since code that is not worked on will start to rot at fast 
+      rate, and becomes useless surprisingly fast.
+    </p>
+    <p>
+      So: as frustrating it is to watch issues stack for important projects 
+      like Jackson, the way I try to do things is to cycle through projects 
+      that I consider worth keeping alive. Sometimes it just means flipping 
+      between two projects; and some projects may even become complete in 
+      their own right, meaning there just isn't that much to work on, and thus 
+      the cost of switching focus for some minor work just isn't worth it. But 
+      to give further example of what I mean, here is my current thinking of 
+      roughly how I hope to complete next tasks, with respect to projects I 
+      work on (note: priorities are not absolute or carved in stone; they are 
+      akin to Scrum sprint plan, if even that solid):
+    </p>
+    <ol>
+      <li>
+        Complete Java Uuid Generator rewrite to version 3.0
+      </li>
+      <li>
+        Work on Woodstox 4.1, focusing on XML Schema handling improvements 
+        (working with couple of other OS developers who have stake in this 
+        area -- including work on Sun Multi-Schema Validator)
+      </li>
+      <li>
+        Finish version 1.0 for the &quot;compact trie&quot; project
+      </li>
+      <li>
+        Implement minor extensions for StaxMate, to get to version 2.1
+      </li>
+      <li>
+        Jackson version 1.6: must have better Enum type handling; should have 
+        &quot;materialized interfaces&quot;; can not be delayed too long since there's 
+        always version 1.7 to write...
+      </li>
+      <li>
+        Compact binary format alternative for JSON (with Jackson as reference 
+        implementation)
+      </li>
+      <li>
+        ... maybe consider implementing &quot;DataMate&quot; (if you haven't heard my 
+        brainstorming on what it is, consider yourself lucky :) )
+      </li>
+      <li>
+        Cycle through projects again!
+      </li>
+    </ol>
+    <p>
+      So why consider work on JUG as the first priority? Well, for one, time 
+      is right to both upgrade it to be useful and relevant -- there are 
+      things like JDK 1.4 - introduced java.util.Uuid class; JDK-1.6 
+      introduced access to Etherner Mac address; as well as &quot;new&quot; use cases 
+      (Cassandra, for example, uses Time-based UUIDs heavily!). And as 
+      importantly, work has reasonably limited scope: it will take about week 
+      more of focus to get it all done; as I have already spend some time over 
+      past month or so to make this reality.
+    </p>
+    <p>
+      And Woodstox? While XML does not have same momentum in J2EE world as it 
+      once had, Woodstox is very widely used, complete and useful library. But 
+      its XML Schema support has only recently been more heavily exercised, 
+      and multiple implementation flaws have been incovered. To make Woodstox 
+      relevant as a first-class Java XML Schema supporting tool, some work is  
+      needed. Further, there are some useful improvements in trunk that can 
+      only be released with version 4.1 (retro-fitting to 4.0 would be too 
+      risky).
+    </p>
+    <p>
+      I think you get the idea -- maybe not exactly why I feel this order is 
+      sensible, but at least see that there are multiple conflicting factors. 
+      I guess I know my own working habits well enough to know that &quot;out of 
+      sight, out of mind&quot;, meaning that longer a project is not being worked 
+      on, harder it will be to get back to work on it. And so the best way to 
+      keep all the balls in the air is to juggle through them; and do this as 
+      a semi-formal process and not rely on user request to trigger such 
+      changes (esp. since there are more requests for work than time for it).
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, May 31, 2010 2:44 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_400.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_400.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_400.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Wednesday, May 19, 2010 </h2>
+
+<div class="entry" id="post-399">
+			<h3 class="entry-header">Un-hibernating projects: Java Uuid Generator, getting ready for 3.0!</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      As cycle of seasons has rolled to late spring, it is time for 
+      hibernating things -- bears, and stagnant open source projects -- to 
+      wake up and start moving. It just so happens that this is the case with 
+      venerable Java UUID Generator (JUG): my first true Open Source project.<br>Although 
+      it is not exactly the first thing that I ever released as open source 
+      (that would be something called &quot;NetReaper&quot;, or perhaps &quot;DLR&quot;, both from 
+      late 90s -- few have ever heard of them -- heck, even &quot;Fractalizer&quot; is 
+      older!), and much less the first piece of software I have released 
+      (shareware lib/app that compressed Amiga Soundtracker files using delta 
+      compression is probably the first one, from late 80s!), I count it as 
+      basically starting point of my open source &quot;career&quot;.
+    </p>
+    <p>
+      So what is happening? Well: there is the <a href="http://github.com/cowtowncoder/java-uuid-generator">new 
+      JUG project page</a> (at the OS darling GitHub); matching skeletal <a href="http://wiki.fasterxml.com/JugHome">JUG 
+      product page</a> at FasterXML; and of course the brand new <a href="http://groups.google.com/group/java-uuid-generator-users">JUG 
+      users discussion group</a> (java-uuid-generator-users) at Google Groups, 
+      waiting for users to talk about it. And probably most interestingly, 
+      actual development effort to produce third major version, 3.0.
+    </p>
+    <p>
+      Given that the project has spent past 5 or so years changing very 
+      little, why is there new development effort? Mostly because JDK finally 
+      caught up with JUG, so to speak -- JDK 1.6 finally has a pure Java 
+      method of accessing Ethernet interface MAC addresses -- but partly also 
+      because of other niceties that can now be added (java.util.UUID was 
+      added in JDK 1.4; which was not the stable version at the time of 
+      writing JUG 2.0). And finally, there's quite a bit of clean up that 
+      would be nice to do if I was to work on the code.
+    </p>
+    <p>
+      Given above, here are the modest goals for version 3.0
+    </p>
+    <ul>
+      <li>
+        Add convenient support for using local Ethernet address, without using 
+        JNI library (requires JDK 1.6); and remove legacy code that was needed 
+        for JNI
+      </li>
+      <li>
+        Change UUID type to use from JUG-specific to java.util.UUID (also 
+        allows removing quite a bit of code)
+      </li>
+      <li>
+        Build/deployment changes: change build to Maven (including releasing 
+        builds to Maven repos); jars built as OSGi bundles as well
+      </li>
+      <li>
+        SCM changes: move from Safehaus/svn to GitHub/git
+      </li>
+      <li>
+        Improve API to avoid relying heavily on singletons; streamline for 
+        simpler (and perhaps more elegant) access
+      </li>
+      <li>
+        Add support for one &quot;new&quot; UUID generation method (using SHA-1 instead 
+        of MD5 for name/hash based generation)
+      </li>
+      <li>
+        Maybe even write a simple tutorial for using the lib!
+      </li>
+    </ul>
+    <p>
+      Which is just to say, renovate the package so it does not feel quite so 
+      2002 any more (which is when it was written originally). :-)
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, May 19, 2010 10:30 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_399.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_399.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_399.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Monday, May 17, 2010 </h2>
+
+<div class="entry" id="post-398">
+			<h3 class="entry-header">Finally: Java JSON Schema validator; based on Jackson</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Ok here are some good news for Java developers who use (or might like to 
+      use) JSON, but are bothered by lack of data format validation options: 
+      Nicolas Vahlas has written the first <a href="http://nico.vahlas.eu/2010/05/17/json-schema-first-java-implementation-available/">Java 
+      JSON Schema validator</a>, and it is available from Gitorious as <a href="http://gitorious.org/json-schema-validation-in-java/json-schema-validator">project 
+      json-schema-validator</a>.
+    </p>
+    <p>
+      I have not yet have time to dig deep into it, but there all signs for it 
+      being so-called Good Stuff. Not just because it is based on Jackson -- 
+      although proper reuse of existing solid components is a general good 
+      sign -- but because description gives an idea of author being someone 
+      actually knows what he is doing.<br>
+    </p>
+    <p>
+      So please check it out if said functionality seems at all interesting: 
+      the best way to ensure it becomes a first-class tool (and maybe even 
+      help JSON Schema standard improve along the way) is to use it, give 
+      feedback, and get the whole flywheel-of-virtue (aka virtuous cycle) 
+      thing going on. That's how things like Jackson and Woodstox became good: 
+      feedback is the amplifier of open source productivity.
+    </p>
+    <p>
+      Ok, enough raving: I'm off to get the sources for bit of closer look. :-)
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, May 17, 2010 10:40 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_398.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_398.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_398.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, May 13, 2010 </h2>
+
+<div class="entry" id="post-397">
+			<h3 class="entry-header">Happy First Birthday, Jackson the JSON processor!</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Time sure flies when you are having fun: I just realized that<a href="http://wiki.fasterxml.com/JacksonHome">Jackson 
+      JSON processor</a> had its first birthday, if we use its 1.0 release's 
+      date (of May 9th, 2009) as the reference point.
+    </p>
+    <p>
+      And how far has Jackson community come? Here are some interesting 
+      statistics, mostly provided by good old Google Analytics:
+    </p>
+    <ul>
+      <li>
+        10,000 monthly visits to Jackson wiki; with 33,000 page views (getting 
+        close to half million page views per year)
+      </li>
+      <li>
+        5,000 monthly visits to Jackson Javadocs; with 17,000 page views (200k 
+        on annual basis)
+      </li>
+      <li>
+        close to 4,500 downloads (== visits to<a href="http://wiki.fasterxml.com/JacksonDownload">Jackson 
+        Download page</a>) -- meaning about 50k direct downloads on annual 
+        basis; and many more if access via Maven was included (wonder how 
+        could this be tracked)
+      </li>
+    </ul>
+    <p>
+      It is fascinating how far and how fast Jackson has gone: currently its 
+      downloads beat Woodstox by factor of 4:1, for example, although Woodstox 
+      has been the leading high-performance Java XML parser for years now -- 
+      difference has to do with both declining popularity of XML (compared to 
+      JSON), and because Woodstox is more commonly bundled with frameworks, 
+      whereas Jackson is quite pleasant to use directly. Furthermore looking 
+      at trends, it looks like &quot;Jackson traffic&quot; has doubled or tripled over 
+      past 8 months or so.
+    </p>
+    <p>
+      Of course, traffic numbers are not quite as interesting as more 
+      applicable things -- number of users, and even more importantly, amount 
+      of functionality Jackson offers. But still, above numbers give some 
+      guidance as to growing popularity of Jackson, as well as of JSON as THE 
+      dominant data format on Java platform.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, May 13, 2010 11:00 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_397.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_397.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_397.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_400.html">On prioritizing Open Source projects, tasks: First In, First Out</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_399.html">Un-hibernating projects: Java Uuid Generator, getting ready for 3.0!</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_398.html">Finally: Java JSON Schema validator; based on Jackson</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_397.html">Happy First Birthday, Jackson the JSON processor!</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

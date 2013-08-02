@@ -1,0 +1,1913 @@
+<html lang="en">
+<head>
+<title>XML/Stax</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important}
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+     <div id="container">
+          <div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+     <div id="banner-inner" class="pkg">
+          <h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+          <h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+     </div>
+</div>
+               <div id="pagebody">
+                    <div id="pagebody-inner" class="pkg">
+                         <div id="alpha">
+                              <div id="alpha-inner" class="pkg">
+<!-- entry -->
+
+   
+     <h2 class="date-header">Tuesday, March 27, 2012 </h2>
+<div class="entry" id="post-467">
+     <h3 class="entry-header">Jackson 2.0: now with XML, too!</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      (note: for general information on Jackson 2.0.0, see the previous 
+      article, &quot;<a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_466.html">Jackson 
+      2.0.0 released</a>&quot;)
+    </p>
+    <p>
+      While Jackson is most well-known as a JSON processor, its data-binding 
+      functionality is not tied to JSON format.<br>Because of this, there have 
+      been developments to extend support for XML and related things with 
+      Jackson; and in fact support for using JAXB (Java Api for Xml Binding) 
+      annotations has been included as an optional add-on since earliest 
+      official Jackson versions.
+    </p>
+    <p>
+      But Jackson 2.0.0 significantly increases the scope of XML-related 
+      functionality.
+    </p>
+    <p>
+      <b>1. Improvements to JAXB annotation support</b>
+    </p>
+    <p>
+      Optional support for using JAXB annotations (package 'javax.xml.bind' in 
+      JDK) became its own <a href="https://github.com/FasterXML/jackson-module-jaxb-annotations">Github 
+      project</a> with 2.0.<br>
+    </p>
+    <p>
+      Functionality is provided by <i>com.fasterxml.jackson.databind.AnnotationIntrospector</i> 
+      implementation '<b>c<i>om.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector</i></b>', 
+      which can be used in addition to (or instead of) the standard 
+      'com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector'.
+    </p>
+    <p>
+      But beyond becoming main-level project of its own, 2.0 adds to already 
+      extensive support for JAXB annotations by:
+    </p>
+    <ul>
+      <li>
+        Making <i>@XmlJavaTypeAdapter</i> work for Lists and Maps
+      </li>
+      <li>
+        Adding support for <b><i>@XmlID</i></b> and <b><i>@XmlIDREF</i></b> -- 
+        this was possible due to addition of Object Identity feature in core 
+        Jackson databind -- which basically means that Object Graphs (even 
+        cyclic ones) can be supported even if only using JAXB annotations.
+      </li>
+    </ul>
+    <p>
+      the second feature (@XmlID, @XmlIDREF) has been the number one request 
+      for JAXB annotation support, and we are happy that it now works.<br>Canonical 
+      example of using this feature would be:
+    </p>
+    <hr>
+    
+
+    <pre>    @XmlAccessorType(XmlAccessType.FIELD)
+    public class Employee<br>    {
+        @XmlAttribute
+        @XmlID
+        protected String id;
+     
+        @XmlAttribute
+        protected String name;
+     
+        @XmlIDREF
+        protected Employee manager;
+     
+        @XmlElement(name=&quot;report&quot;)
+        @XmlIDREF
+        protected List&lt;Employee&gt; reports;
+     
+        public Employee() {
+            reports = new ArrayList&lt;Employee&gt;();
+        }
+    }</pre>
+    <hr>
+    
+
+    <p>
+      where entries would be serialized such that the first reference to an 
+      Employee is serialized fully, and later references use value of 'id' 
+      field; conversely, when reading XML back, references get re-created 
+      using id values.
+    </p>
+    <p>
+      <b>2. XML databinding</b>
+    </p>
+    <p>
+      Support for JAXB annotations may be useful when there is need to provide 
+      both JSON and XML representations of data. But to actually produce XML, 
+      you need to use something like JAXB or XStream.
+    </p>
+    <p>
+      Or do you?
+    </p>
+    <p>
+      One of experimental new projects that Jackson project started a while 
+      ago was something called &quot;jackson-xml-databind&quot;.<br>After 
+      being developed for a while along with Jackson 1.8 and 1.9, it 
+      eventually morphed into project &quot;<a href="https://github.com/FasterXML/jackson-dataformat-xml">jackson-dataformat-xml</a>&quot;, 
+      hosted at Github.
+    </p>
+    <p>
+      With 2.0.0 we have further improved functionality, added tests; and also 
+      worked with developers who have actually used this for production 
+      systems.<br>This means that the module is now considered full supported 
+      and no longer an experimental add-on.
+    </p>
+    <p>
+      So let's have a look at how to use XML databinding.
+    </p>
+    <p>
+      The very first thing is to create the mapper object. Here we must use a 
+      specific sub-class, XmlMapper
+    </p>
+    <pre>  XmlMapper xmlMapper = new XmlMapper();<br>  // internally will use an XmlFactory for parsers, generators</pre>
+    <p>
+      (note: this step differs from some other data formats, like Smile, which 
+      only require use of custom JsonFactory sub-class, and can work with 
+      default ObjectMapper -- XML is bit trickier to support and thus we need 
+      to override some aspects of ObjectMapper)
+    </p>
+    <p>
+      With a mapper at hand, we can do serialization like so:
+    </p>
+    <hr>
+    
+
+    <pre>  public enum Gender { MALE, FEMALE };
+  public class User {
+    public Gender gender;
+    public String name;
+    public boolean verified;
+    public byte[] image;
+  }
+
+  User user = new User(); // and configure
+  String xml = xmlMapper.writeValueAsString(user);</pre>
+    <hr>
+    and get XML like:<hr>
+
+    <pre>  &lt;User&gt;<br>    &lt;gender&gt;MALE&lt;/gender&gt;<br>    &lt;name&gt;Bob&lt;/name&gt;<br>    &lt;verified&gt;true&lt;/verified&gt;<br>    &lt;image&gt;BARWJRRWRIWRKF01FK=&lt;/image&gt;<br>  &lt;/User&gt;</pre>
+    <p>
+      which we could read back as a POJO:
+    </p>
+    <pre>  User userResult = xmlMapper.readValue(xml, User.class);</pre>
+    <p>
+      But beyond basics, we can obviously use annotations for customizing some 
+      aspects, like element/attribute distinction, use of namespaces:
+    </p>
+    <hr>
+    
+
+    <pre>  JacksonXmlRootElement(&quot;custUser&quot;)<br>  public class CustomUser {
+    @JacksonXmlProperty(namespace=&quot;http://test&quot;)
+    public Gender gender;<br>    @JacksonXmlProperty(localname=&quot;myName&quot;)
+    public String name;
+
+    @JacksonXmlProperty(isAttribute=true)  
+    public boolean verified;
+    public byte[] image;
+  }
+  
+  // gives XML like:<br>  &lt;custUser verified=&quot;true&quot;&gt;<br>     &lt;ns:gender xmlns:ns=&quot;http://test&quot;&gt;MALE&lt;/gender&gt;<br>     &lt;myName&gt;Bob&lt;/myName&gt;<br>     &lt;image&gt;BARWJRRWRIWRKF01FK=&lt;/image&gt;<br>   &lt;/custUser&gt;</pre>
+    <hr>
+    
+
+    <p>
+      Apart from this, all standard Jackson databinding features should work: 
+      polymorphic type handling, object identity for full object graphs (new 
+      with 2.0); even value conversions and base64 encoding!
+    </p>
+    <p>
+      <b>3. Jackson-based XML serialization for JAX-RS (&quot;move over JAXB!&quot;)</b>
+    </p>
+    <p>
+      So far so good: we can produce and consume XML using powerful Jackson 
+      databinding. But the latest platform-level improvement in Java lang is 
+      the use of JAX-RS implementations like Jersey. Wouldn't it be nice to 
+      make Jersey use Jackson for both JSON <b>and</b> XML? That would remove 
+      one previously necessary add-on library (like JAXB).
+    </p>
+    <p>
+      We think so too, which is why we created &quot;<a href="https://github.com/FasterXML/jackson-jaxrs-xml-provider">jackson-jaxrs-xml-provider</a>&quot; 
+      project, which is the sibling of existing &quot;<a href="https://github.com/FasterXML/jackson-jaxrs-json-provider">jackson-jaxrs-json-provider</a>&quot; 
+      project.<br>As with the older JSON provider, by registering this 
+      provider you will get automatic data-binding to and from XML, using 
+      Jackson XML data handler explained in the previous section.
+    </p>
+    <p>
+      It is of course worth noting that Jersey (and RESTeasy, CXF) already 
+      provide XML databinding using other libraries (usually JAXB), so use of 
+      this provider is optional.<br>So why advocate use of Jackson-based 
+      variant? One benefits is good performance -- a bit better than JAXB, and 
+      much faster than XStream, as per <a href="https://github.com/eishay/jvm-serializers">jvm-serializer</a> 
+      benchmark (performance is limited by the underlying XML Stax processor 
+      -- but Aalto is wicked fast, not much slower than Jackson).<br>But more 
+      important is simplification of configuration and code: it is all 
+      Jackson, so annotations can be shared, and all data-binding power can be 
+      used for both representations.<br>
+    </p>
+    <p>
+      It is most likely that you find this provider useful if the focus has 
+      been on producing/consuming JSON, and XML is being added as a secondary 
+      addition. If so, this extension is a natural fit.
+    </p>
+    <p>
+      <b>4. Caveat Emptor</b>
+    </p>
+    <p>
+      <b>4.1 Asymmetric: &quot;POJO first&quot;</b>
+    </p>
+    <p>
+      It is worth noting that the main supported use case is that of starting 
+      with Java Objects, serializing them as XML, and reading such 
+      serialization back as Objects.<br>And the explicit goal is that ideally 
+      all POJOs that can be serialized as JSON should also be serializable 
+      (and deserializable back into same Objects) as XML.<br>
+    </p>
+    <p>
+      But there is no guarantee that any given XML can be mapped to a Java 
+      Object: some can be, but not all.
+    </p>
+    <p>
+      This is mostly due to complexity of XML, and its inherent 
+      incompatibility with Object models (&quot;Object/XML impedance mismatch&quot;): 
+      for example, there is no counterpart to XML mixed content in Object 
+      world. Arbitrary sequences of XML elements are not necessarily 
+      supported; and in some cases explicit nesting must be used (as is the 
+      case with Lists, arrays).
+    </p>
+    <p>
+      This means that if you do start with XML, you need to be prepared for 
+      possibility that some changes are needed to format, or you need 
+      additional steps for deserialization to clean up or transform structures.
+    </p>
+    <p>
+      <b>4.2 No XML Schema support, mixed content</b>
+    </p>
+    <p>
+      Jackson XML functionality specifically has zero support for XML Schema. 
+      Although we may work in this area, and perhaps help in using XML Schemas 
+      for some tasks, your best bet currently is to use tools like XJC from 
+      JAXB project: it can generate POJOs from XML Schema.
+    </p>
+    <p>
+      Mixed content is also out of scope, explicitly. There is no natural 
+      representation for it; and it seems pointless to try to fall back to 
+      XML-specific representations (like DOM trees). If you need support for 
+      &quot;XMLisms&quot;, you need to look for XML-centric tools.
+    </p>
+    <p>
+      <b>4.3 Some root values problematic: Map, List</b>
+    </p>
+    <p>
+      Although we try to support all Java Object types, there are some 
+      unresolved issues with &quot;root values&quot;, values that are not referenced via 
+      POJO properties but are the starting point of 
+      serialization/deserialization. Maps are especially tricky, and we 
+      recommend that when using Maps and Lists, you use a wrapper root object, 
+      which then references Map(s) and/or List(s).
+    </p>
+    <p>
+      (it is worth noting that JAXB, too, has issues with Map handling in 
+      general: XML and Maps do not mesh particularly well, unlike JSON and 
+      Maps).
+    </p>
+    <p>
+      <b>4.4 JsonNode not as useful as with JSON</b>
+    </p>
+    <p>
+      Finally, Jackson Tree Model, as expressed by JsonNodes, does not 
+      necessarily work well with XML either. Problem here is partially general 
+      challenges of dealing with Maps (see above); but there is the additional 
+      problem that whereas POJO-based data binder can hide some of 
+      work-arounds, this is not the case with JsonNode.
+    </p>
+    <p>
+      So: you can deserialize all kinds of XML as JsonNodes; and you can 
+      serialize all kinds of JsonNodes as XML, but round-tripping might not 
+      work. If tree model is your thing, you may be better off using 
+      XML-specific tree models such as XOM, DOM4J, JDOM or plain old DOM.
+    </p>
+    <p>
+      <b>5. Come and help us make it Even Better!</b>
+    </p>
+    <p>
+      At this point we believe that Jackson provides a nice alternative for 
+      existing XML producing/consuming toolkits. But what will really make it 
+      the first-class package is Your Help -- with increased usage we can 
+      improve quality and further extend usability, ergonomics and design.
+    </p>
+    <p>
+      So if you are at all interested in dealing with XML, consider trying out 
+      Jackson XML functionality!
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, March 27, 2012 9:53 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_467.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_467.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_467.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Saturday, March 12, 2011 </h2>
+<div class="entry" id="post-451">
+     <h3 class="entry-header">Non-blocking XML parsing with Aalto 0.9.7</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Aalto XML processor (see <a href="http://wiki.fasterxml.com/AaltoHome">home 
+      page</a>) is known for two things:
+    </p>
+    <ol>
+      <li>
+        It is the fastest Java-based XML parser available (for example, see <a href="https://github.com/eishay/jvm-serializers/wiki">jvm-serializers</a> 
+        benchmark, or <a href="http://technotes.blogs.sapo.pt/1708.html">this 
+        comparison</a>); both for Stax and SAX parsing
+      </li>
+      <li>
+        It is the only open-source Java parser that can do non-blocking 
+        parsing (aka asynchonous, or async, parsing)
+      </li>
+    </ol>
+    <p>
+      Former is relatively easy to figure out: given that Aalto implements two 
+      standard low-level Java streaming parsing APIs -- Stax and SAX -- you 
+      can easily switch Aalto in place of Woodstox or Xerces and see how fast 
+      it is. For many common types of XML data, it is almost exactly twice as 
+      fast for parsing as Woodstox (which itself is generally faster than 
+      alternatives like Xerces/SAX); and it is also bit faster for writing XML 
+      content.
+    </p>
+    <p>
+      But non-blocking parsing is more difficult to evaluate. This is because 
+      there are no other non-blocking Java XML parsers, nor real documentation 
+      for use of non-blocking part of Aalto; and also because this part of 
+      functionality has been only completed fairly recently (while some parts 
+      of functionality were written up to two years ago, last pieces were 
+      completed just for the latest official release).
+    </p>
+    <p>
+      So I will try to explain basic non-blocking operation here. But first, 
+      brief introduction to non-blocking parsing, using Aalto's non-blocking 
+      Stax extension. Non-blocking variant of SAX will be completed before 
+      Aalto 1.0 is released.
+    </p>
+    <p>
+      <b>1. Non-Blocking / Async operation for XML</b>
+    </p>
+    <p>
+      Basic feature of non-blocking parsing is that it does not rely on 
+      blocking input (InputStream or Reader). Instead of parser using a stream 
+      or reader to read content, and blocking the thread if none is available, 
+      content is rather &quot;pushed&quot; to parser; and parser will give out processed 
+      events if there is enough content available. This is similar to how many 
+      C parsers work; as well as operation of Java's gzip/zip/deflate codecs (<i>java.util.zip.Deflater</i>).
+    </p>
+    <p>
+      The main benefit of non-blocking operation is ability to process 
+      multiple XML input sources without having to allocate one thread per 
+      source, same benefit as that NIO has for basic web services. And in 
+      fact, having a non-blocking parser is something that could benefit 
+      non-blocking web services a lot: without such parser, services must 
+      buffer all the input before parsing, to ensure that no blocking occurs.
+    </p>
+    <p>
+      So why does it matter that there need not be as many threads as sources? 
+      While Java threading efficiency has improved a lot over time, it can 
+      still be hard to scale systems that use more than hundreds of threads 
+      (or low thousands; exact number depends on platform). So systems that 
+      are highly concurrent, but typically have high latencies, or highly 
+      varying workloads, cand benefit from this mode of operation.<br>In 
+      addition, another related benefit is that memory usage of non-blocking 
+      parser can be more close bounded: since limited amount of input is 
+      buffered at any given point, amount of working memory can be more 
+      limited (at least when not forcing coalecing of XML text segments).
+    </p>
+    <p>
+      On downside, writing code to use non-blocking parsing can be slightly 
+      more complex to write: and given lack of standardized APIs, it is 
+      something new to learn. And since regular blocking I/O can scale quite 
+      well nowadays for many (or most) uses, non-blocking parsing is not 
+      something one generally starts doing initially. But it can be a very 
+      useful technique for subset of all XML processing use cases.
+    </p>
+    <p>
+      <b>2. Non-blocking XML parsing using Aalto API</b>
+    </p>
+    <p>
+      The easiest way to explain operation is probably by showing piece of 
+      sample code (lifted from Aalto unit tests). Here we will actually 
+      construct a static XML document from String (for demonstration purposes: 
+      in real systems, it would be read via NIO channels or a higher-level 
+      non-blocking abstraction), and feed it into parser, single byte at a 
+      time. In actual production use one would typically feed content block at 
+      a time; either fully read blocks, or chunks of contents as soon as they 
+      become available. Aalto does not implement higher-level buffer 
+      management (there is just one active buffer), although adding basic 
+      buffer handling would not be difficult; it just tends to be either 
+      provided by input source (Netty), or be input source specific.
+    </p>
+    <hr>
+    
+
+    <pre>  byte[] XML = &quot;&lt;html&gt;Very &lt;b&gt;simple&lt;/b&gt; input document!&lt;/html&gt;&quot;;
+  AsyncXMLStreamReader asyncReader = new InputFactoryImpl().createAsyncXMLStreamReader();
+  final AsyncInputFeeder feeder = asyncReader.getInputFeeder();
+  int inputPtr = 0; // as we feed byte at a time
+  int type = 0;
+
+  do {
+    // May need to feed multiple &quot;segments&quot;
+    while ((type = asyncReader.next()) == AsyncXMLStreamReader.EVENT_INCOMPLETE) {
+      feeder.feedInput(buf, inputPtr++, 1);<br>      if (inputPtr &gt;= XML.length) { // to indicate end-of-content (important for error handling)<br>        feeder.endOfInput();
+      }
+    }
+    // and once we have full event, we just dump out event type (for now)
+    System.out.println(&quot;Got event of type: &quot;+type);
+    // could also just copy event as is, using Stax, or do any other normal non-blocking handling:
+    // xmlStreamWriter.copyEventFromReader(asyncReader, false);
+  } while (type != END_DOCUMENT);
+  asyncReader.close();</pre>
+    <hr>
+    
+
+    <p>
+      And that's it. There are actually just couple of additional things 
+      needed to do non-blocking parsing:
+    </p>
+    <ol>
+      <li>
+        Use of regular Stax API, with just a single extension, introduction of 
+        new token, <b>EVENT_INCOMPLETE</b> 
+        (com.fasterxml.aalto.AsyncXMLStreamReader.EVENT_INCOMPLETE), which is 
+        returned if there isn't enough content buffered to fully construct a 
+        token to return
+      </li>
+      <li>
+        Feeding of content using AsyncInputFeeder (instance of which is 
+        accessed via <b>AsyncXMLStreamReader</b>, extension of basic 
+        XMLStreamReader)
+      </li>
+      <li>
+        Indicating end-of-content via feeder when all content has been read
+      </li>
+    </ol>
+    <p>
+      Which makes operation bit more complicated than use of straight 
+      XMLStreamReader, but not significantly so.
+    </p>
+    <p>
+      <b>3. Next steps</b>
+    </p>
+    <p>
+      There are two things that Aalto non-blocking mode does not yet 
+      implement, which will be finished before Aalto becomes 1.0:
+    </p>
+    <ul>
+      <li>
+        Coalescing mode has not been implemented for non-blocking Stax. Since 
+        use of coalescing (of all adjacent text segments, as per Stax spec) is 
+        probably less important for non-blocking use cases than blocking ones 
+        (as it will increase need for buffering, possible increase latency), 
+        it was less as the last major piece to be completed.
+      </li>
+      <li>
+        There isn't yet non-blocking SAX mode. This should be relatively easy 
+        to implement, and should not require extensions to SAX API itself (one 
+        just has to call &quot;XMLReader.parse()&quot; multiple times; but as it is 
+        based on same parser core as Stax mode, it has not yet been completed.
+      </li>
+    </ul>
+    <p>
+      At this point what is needed most is actual usage: while there is some 
+      test coverage, non-blocking mode is less well tested than blocking mode: 
+      blocking mode can use full basic StaxTest suite, used succesfully for 
+      years with Woodstox (and for Aalto for more than a year as well).
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, March 12, 2011 3:49 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_451.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_451.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_451.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Monday, February 28, 2011 </h2>
+<div class="entry" id="post-446">
+     <h3 class="entry-header">Jackson: not just for JSON, Smile or BSON any more -- Now With XML, too!</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      (NOTE: see the newer article on &quot;<a href="/blog/archives/2012/03/entry_467.html">Jackson 
+      2.0 with XML</a>&quot;)
+    </p>
+    <p>
+      One of first significant new Jackson extension projects (result of <a href="/blog/archives/2011/02/entry_441.html">Jackson 
+      1.7</a> release which made it much easier to provide <a href="/blog/archives/2011/02/entry_442.html">modular 
+      extensions</a>) is <a href="https://github.com/FasterXML/jackson-xml-databind">jackson-xml-databind</a>, 
+      hosted at GitHub. Although this extension is still in its pre-1.0 
+      development phase, the latest released version is fully usable as is and 
+      is even in some limited production use by some brave developers (running 
+      on Google AppEngine, of all things!).
+    </p>
+    <p>
+      So it is probably a good idea to now give a brief overview of what this 
+      project is all about.
+    </p>
+    <p>
+      <b>1. What is jackson-xml-databind?</b>
+    </p>
+    <p>
+      <i>Jackson-xml-databind</i> comes in a small package (jar is only about 
+      55 kB) , and is used with Jackson data binding functionality 
+      (jackson-mapper jar). It provides basic replacement for <i>JsonFactory</i>, 
+      <i>JsonParser</i> and <i>JsonGenerator</i> components of Jackson 
+      Streaming API, and allows reading and writing of XML instead of JSON, in 
+      context of generic Jackson data binding functionality. In addition, core 
+      ObjectMapper is also sub-classed to provide customized versions of 
+      couple of other provider types, so typically all usage is done by 
+      creating com.fasterxml.jackson.xml.XmlMapper instead of ObjectMapper, 
+      and using it for data binding.
+    </p>
+    <p>
+      <b>2. What is it used for?</b>
+    </p>
+    <p>
+      This package is used to read XML and convert it to POJOs, as well as to 
+      write POJOs as XML. In this respect it is very similar to JAXB (<i>javax.xml.bind</i>) 
+      package; and an alternative for many other Java XML data binding 
+      packages such as XStream and JibX. Given Jackson support for JAXB 
+      annotations, it can be especially conveniently used as a JAXB 
+      replacement in many cases.
+    </p>
+    <p>
+      Functionality supported is in some ways a subset of JAXB, and in other 
+      ways a superset: XML-specific functionality is more limited (no explicit 
+      support for XML Schema), but general data binding functionality is 
+      arguably more powerful (since it is full set of Jackson functionality).
+    </p>
+    <p>
+      Two obvious benefits of this package compared to JAXB or other existing 
+      XML data binding solutions (like XStream) are superior performance -- 
+      with fast Stax XML parser, this is likely the fastest data binding 
+      solution on Java platform (see <a href="https://github.com/eishay/jvm-serializers/wiki">jvm-serializers</a> 
+      for results) -- and extensive and customizable data POJO conversion 
+      functionality, using all existing Jackson annotations and configuration 
+      options. The main downside currently is potential immaturity of the 
+      package; however, this only applies to interaction between mature XML 
+      packages (stax implementation) and Jackson data binder (which is also 
+      fairly mature at this point).
+    </p>
+    <p>
+      <b>3. So how do I use it?</b>
+    </p>
+    <p>
+      If you know how to use Jackson with JSON, you know almost everything you 
+      need to use this package. The only other thing you need to know is that 
+      there has to be a Stax XML parser/generator implementation available. 
+      While JDK 1.6 provides one implementation, your best best is using 
+      something bit more efficient, such as <a href="http://woodstox.codehaus.org">Woodstox</a> 
+      or <a href="http://wiki.fasterxml.com/AaltoHome">Aalto</a>. Both should 
+      work fine; Aalto is faster of two, but Woodstox is a more mature choice. 
+      So you will probably want to include one of these Stax implementations 
+      when using jackson-xml-databind.
+    </p>
+    <p>
+      Other than this, all you need to do is to construct XmlMapper:
+    </p>
+    <pre>  XmlMapper mapper = new XmlMapper(); // can also specify XmlFactory to 
+  use, to override Stax factories used</pre>
+    <p>
+      and use it like you would any other ObjectMapper, like so:
+    </p>
+    <pre>  User user = new User(); // from Jackson-in-five-minutes sample<br>  String xml = mapper.writeValueAsString(user);</pre>
+    <p>
+      and what you would get is something like:
+    </p>
+    <pre>&lt;User&gt;
+  &lt;name&gt;
+    &lt;first&gt;Joe&lt;/first&gt;
+    &lt;last&gt;Sixpack&lt;/last&gt;
+  &lt;/name&gt;
+  &lt;verified&gt;true&lt;/verified&gt;
+  &lt;gender&gt;MALE&lt;/gender&gt;
+  &lt;userImage&gt;AQIDBAU=&lt;/userImage&gt;
+&lt;/User&gt;</pre>
+    <p>
+      which is equivalent of JSON serialization that would look like:
+    </p>
+    <pre>{
+  &quot;name&quot;:{
+    &quot;first&quot;:&quot;Joe&quot;,
+    &quot;last&quot;:&quot;Sixpack&quot;
+  },
+  &quot;verified&quot;:true,
+  &quot;gender&quot;:&quot;MALE&quot;,
+  &quot;userImage&quot;:&quot;AQIDBAU=&quot;
+}</pre>
+    <p>
+      Pretty neat eh?
+    </p>
+    <p>
+      Oh, and reverse direction obviously works similarly:
+    </p>
+    <pre>  User user = mapper.readValue(xml, User.class);</pre>
+    <p>
+      There is really nothing extra-ordinary in it usage; just another way to 
+      use Jackson for slicing and dicing your POJOs.
+    </p>
+    <p>
+      <b>4. Limitations</b>
+    </p>
+    <p>
+      While existing version works pretty well in general, there are some 
+      limitations. These mostly stem from the basic difference between XML and 
+      JSON logical models; and specifically affect handling of Lists/arrays. 
+      XmlMapper for example only allows so-called &quot;wrapped&quot; lists (for now); 
+      meaning that there is one wrapper XML element for each List or array 
+      property, and separate element for each List item.
+    </p>
+    <p>
+      Compared to JAXB (and related to JAXB annotation support), no DOM 
+      support is included; meaning, it is not possible to use converters that 
+      take or produce DOM Elements.
+    </p>
+    <p>
+      With respect to Jackson functionality, while polymorphic type 
+      information does work, some combinations of settings may not work as 
+      expected.
+    </p>
+    <p>
+      And given project's pre-1.0 status, testing is not yet as complete as it 
+      needs to be, so other rough edges may also be found. But with help of 
+      user community I am sure we can polish these up pretty quickly.
+    </p>
+    <p>
+      <b>5. Feedback time!</b>
+    </p>
+    <p>
+      So what is needed most at this point? Users, usage, and resulting bug 
+      (or, possibly, success) reports! Seriously, more usage there is, faster 
+      we can get the project up to 1.0 release.
+    </p>
+    <p>
+      Happy hacking!
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Monday, February 28, 2011 9:28 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_446.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_446.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_446.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Saturday, November 20, 2010 </h2>
+<div class="entry" id="post-433">
+     <h3 class="entry-header">StaxMate 2.0.1 released; improved DOM-from-Stax, compatibility with default JDK 1.6 Stax implementation</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Quick update from &quot;XML world&quot; -- in which I have spent much less time, 
+      due to explosive growth in JSON land: <a href="http://wiki.fasterxml.com/StaxMateDownload">StaxMate 
+      2.0.1</a> was just released.
+    </p>
+    <p>
+      <b>1. StaxMate?</b>
+    </p>
+    <p>
+      First question you might ask is &quot;What the heck is StaxMate?&quot;. Fair 
+      enough -- given how little attention it has gotten, here is the main 
+      idea.
+    </p>
+    <p>
+      StaxMate is meant to offer &quot;convenience of DOM with performance of Stax 
+      (or SAX)&quot;. Although Stax API was an improvement in usability for many 
+      use cases, it is still a rather low-level access API. StaxMate builds 
+      concept of &quot;cursors&quot; when reading content; and output context objects 
+      when writing content. Sample code and bit more in-depth explanation can 
+      be found from <a href="http://wiki.fasterxml.com/StaxMateTutorial">StaxMate 
+      Tutorial</a> page; but basic idea is to offer better abstractions than 
+      simple flat event iterator. Sort of like how automatic transmission can 
+      simplify driving, compared to manual stick shift.
+    </p>
+    <p>
+      Working with cursors is typically similar to how DOM documents are 
+      traversed in simple top-down (recursive-descent) fashion: you start with 
+      root element, get child elements, locate more children, textual content 
+      and so forth. Same is done with StaxMate, with just one crucial 
+      limitation: all access must be done in document order (parent first, 
+      them children, in order they are in XML document). If you need to retain 
+      some information, you will do it explicitly (attribute values from 
+      parents need to be access before child elements, for example). StaxMate 
+      will take care to synchronize access when you use child cursors, so will 
+      never need to worry about skipping remaining siblings; you just can not 
+      access things in random order. Same is also true for output side; 
+      although there are ways to temporarily &quot;freeze&quot; output which does allow 
+      building content somewhat out-of-order, as necessary. This may be 
+      necessary for doing things like calculating parent attribute values 
+      based on content written for child elements.
+    </p>
+    <p>
+      The benefit of requiring access to be done in document order is that it 
+      means that there is no additional performance or memory overhead for 
+      keeping track of past content. Memory usage, therefore, is not very 
+      different from that of &quot;raw&quot; Stax parser or generator; same is true for 
+      performance. Overhead of DOM documents is often 3x - 5x that of 
+      streaming access; overhead of using StaxMate is typically in 10-20% 
+      range, sometimes even lower.
+    </p>
+    <p>
+      <b>2. Fixes in 2.0.1</b>
+    </p>
+    <p>
+      This patch release contains just 2 fixes, but both are quite important, 
+      so upgrade is strongly recommended.
+    </p>
+    <p>
+      First fix is to DOM-compatibility part (see &quot;<a href="/blog/archives/2009/06/entry_270.html">Reading 
+      DOM documents using Stax XML parser, StaxMate</a>&quot; for details on 
+      usage). It turns out that although building full DOM document worked 
+      fine with 2.0.0, there were issues if binding sub-trees; these issues 
+      should now be resolved.
+    </p>
+    <p>
+      Second fix is to interoperability with Stax parsers that do not 
+      implement Stax2 extension API (to date, Woodstox and Aalto do implement 
+      this, but not others; most notably, Sun Sjsxp which is the default Stax 
+      parser bundled with JDK 6). Although most operations work just fine, 
+      Typed Access accessors (getting XML element text as number, boolean 
+      value, enum) could cause state update to work incorrectly, leading to 
+      issues when accessing sequence of typed values. This has been resolved, 
+      by fixing the underlying problem in Stax2 API reference implementation 
+      library that StaxMate depends (version 3.0.4 of the library contains 
+      fixes).
+    </p>
+    <p>
+      
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, November 20, 2010 11:45 AM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/11/entry_433.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/11/entry_433.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/11/entry_433.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Thursday, December 31, 2009 </h2>
+<div class="entry" id="post-362">
+     <h3 class="entry-header">Upgrading from Woodstox 3.x to 4.0</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p resolver="NamedStyle:default {font-size=3,font-style=,name=default,font-family=Tahoma,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      It has now been almost one year since <a href="http://www.cowtowncoder.com/blog/archives/2009/01/entry_129.html">Woodstox 
+      4.0 was released</a>.<br>Given this, it would be interesting to know how 
+      many Woodstox users continue using older versions, and how many have 
+      upgraded.
+    </p>
+    <p resolver="NamedStyle:default {font-size=3,font-style=,name=default,font-family=Tahoma,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      My guess (somewhat educated, too, based on bug reports and some 
+      statistcs on Maven dependencies) is that adoption has been quite slow. I 
+      think this is primarily due to 3 things:
+    </p>
+    <ol>
+      <li resolver="NamedStyle:default {font-size=3,font-style=,name=default,font-family=Tahoma,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+        Older versions work well, and fulfill all current needs of the user
+      </li>
+      <li>
+        New functionality that 4.0 offers is not widely known, and/or is not 
+        (currently!) needed
+      </li>
+      <li>
+        There are concerns that because this is a major version upgrade, 
+        upgrade might not go smoothly.
+      </li>
+    </ol>
+    <p>
+      I can not argue against (1): Woodstox has been a rather solid product 
+      since first official releases; and 3.2 in particular is a well-rounded 
+      rock solid XML processor (if you are using an earlier version, however, 
+      at least upgrade to latest 3.2 patch version, 3.2.9!).<br>And with 
+      respect to (2), I have covered most important pieces of new 
+      functionality, <a href="http://www.cowtowncoder.com/blog/archives/2009/09/entry_320.html">Typed 
+      Access API</a> and <a href="http://www.cowtowncoder.com/blog/archives/2007/11/entry_53.html">Schema 
+      Validation</a>.
+    </p>
+    <p>
+      But so far I have not written anything about incompatible changes 
+      between 3.2 and 4.0 versions. So let's rectify that omission.
+    </p>
+    <p>
+      <b>1. Why Upgrade?</b>
+    </p>
+    <p>
+      But first: maybe it is worth iterating couple of reasons why you might 
+      want to upgrade at all:
+    </p>
+    <ol>
+      <li>
+        You might want to validate XML documents you read or write against W3C 
+        Schema (aka XML Schema). Earlier versions only allowed validating 
+        against DTDs and Relax NG schemas
+      </li>
+      <li>
+        If you want to access typed content -- that is, numbers, XML qualified 
+        names, even binary content, contained as XML text -- new Typed Access 
+        API simplifies code a lot, and also makes it more efficient.
+      </li>
+      <li>
+        Latest versions of useful helper libraries like <a href="http://wiki.fasterxml.com/StaxMateHome">StaxMate</a> 
+        require Woodstox 4.0 (StaxMate 2.0 needs 4.x, for example)
+      </li>
+      <li>
+        No new development will be done for 3.2 branch; and eventually not 
+        even bug fixes.
+      </li>
+    </ol>
+    <p>
+      Assuming you might want to upgrade, what possible issues could you face?
+    </p>
+    <p>
+      <b>2. Backwards incompatible changes since 3.2</b>
+    </p>
+    <p>
+      Based on my own experiences, there are few issues with upgrade. Although 
+      the <a href="http://woodstox.codehaus.org/4.0.7/release-notes/COMPATIBILITY">official 
+      list of incompatibilities</a> has a few entries, I have only really 
+      noticed one class of things that tend to fail: Unit tests!
+    </p>
+    <p>
+      Sounds bad? Actually, yes and no: no, because these are not real 
+      failures (ones I have seen). And yes, since it means that you end up 
+      fixing broken test code (extra overhead without tangible benefits). But 
+      this is one of challenges with unit tests: fragility is often 
+      desireable, but not always so.
+    </p>
+    <p>
+      Specific problem that I have seen multiple times is related to one 
+      cosmetic aspect of XML: inclusion of white space with elements.
+    </p>
+    <p>
+      Woodstox 3.2 used to output empty elements with &quot;extra&quot; white space, 
+      like so:
+    </p>
+    <p>
+      &lt;empty /&gt;
+    </p>
+    <p>
+      but 4.0 will not add this white space:
+    </p>
+    <p>
+      &lt;empty/&gt;
+    </p>
+    <p>
+      (this is a new feature as per <a href="http://jira.codehaus.org/browse/WSTX-125">WSTX-125</a> 
+      Jira entry)
+    </p>
+    <p>
+      and so some existing unit tests for systems I have worked on compare 
+      literal XML for output tests. This is not optimal, but it is bit less 
+      work than writing tests in more robust way, to check for logical (not 
+      physical) equality. So whereas they formerly assume existence of such 
+      white space, tests need to be modified not to expect it (or allow either 
+      way).
+    </p>
+    <p>
+      <b>3. Other challenges?</b>
+    </p>
+    <p>
+      Actually, I have not seen any actual problems, or other cosmetic 
+      problems. But here are other changes that are most likely to cause 
+      compatibility problems (refer to the full list mentioned earlier for 
+      couple of changes that are much less likely to do so):
+    </p>
+    <ul>
+      <li>
+        &quot;Default namespace&quot; and &quot;no prefix&quot; are now consistently reported as 
+        empty Strings, not nulls (unless explicitly specified otherwise in 
+        relevant Stax/Stax2 Javadocs). Usually this does not cause problems, 
+        because Stax-dependant code has had to deal with inconsistencies with 
+        other Stax implementations; but could cause problems if code is 
+        expecting null.
+      </li>
+      <li>
+        &quot;IS_COALESCING&quot; was (accidentally) enabled for Woodstox versions prior 
+        to 4.0. This was fixed for 4.0 (as per Stax specification), but it is 
+        possible that some code was assuming on never getting partial text 
+        segments (if developer was not aware of Stax allowing such splitting 
+        of segment, similar to how SAX API does it.
+      </li>
+    </ul>
+    <p>
+      <b>4. Upgrade or not?</b>
+    </p>
+    <p>
+      I would recommend investigating upgrade; if for nothing else, because of 
+      maintenance aspect. Pre-4.0 versions will not be actively maintained in 
+      future. But it is good to be aware of what has changed, and of course 
+      having good set of unit tests should guard against unexpected problems.
+    </p>
+    <p>
+      And hey, it's soon 2010 -- Woodstox 3.2 is soooo 2008. :-)
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Thursday, December 31, 2009 10:33 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_362.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_362.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_362.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Wednesday, October 28, 2009 </h2>
+<div class="entry" id="post-257">
+     <h3 class="entry-header">Data Format anti-patterns: converting between secondary artifacts (like xml to json)</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p resolver="NamedStyle:default {name=default,font-weight=normal,font-style=,font-family=Tahoma,font-size=3,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      One commonly asked but fundamentally flawed question is &quot;how do I 
+      convert xml to json&quot; (or vice versa).<br>Given frequency at which I 
+      have encountered it, it probably ranks high on list of data format <a href="http://en.wikipedia.org/wiki/Anti_pattern">anti-patterns</a>.
+    </p>
+    <p resolver="NamedStyle:default {name=default,font-weight=normal,font-style=,font-family=Tahoma,font-size=3,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      And just to be clear: I don't mean that there is any problem in having 
+      (or wanting to have) systems that produce data using multiple 
+      alternative data formats (views, representations). Quite on contrary: 
+      ability to do so is at core of REST(-like) web services, which are one 
+      useful form of web services. Rather, I think it is wrong to <b>convert</b> 
+      between such representations.
+    </p>
+    <p resolver="NamedStyle:default {name=default,font-weight=normal,font-style=,font-family=Tahoma,font-size=3,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      <b>1. Why is it Anti-pattern?</b>
+    </p>
+    <p resolver="NamedStyle:default {name=default,font-weight=normal,font-style=,font-family=Tahoma,font-size=3,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      Simply put: you should never convert from secondary (non-authoritative) 
+      representation into another such representation. Rather, you should 
+      render your source data (which is usually in relational model, or 
+      objects) into such secondary formats. So: if you need xml, map your 
+      objects to xml (using <a href="http://jaxb.dev.java.net">JAXB</a> or <a href="http://xstream.codehaus.org">XStream</a> 
+      or what you have); if you need JSON, map it using <a href="http://jackson.codehaus.org">Jackson</a>. 
+      And ditto for the reverse direction.
+    </p>
+    <p resolver="NamedStyle:default {name=default,font-weight=normal,font-style=,font-family=Tahoma,font-size=3,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      This of course implies that there are cases where such transformation 
+      might make sense: namely, when your data storage format is XML (Native 
+      Xml DBs) or Json (CouchDB). In those cases you just have to worry about 
+      the practical problem of model/format impedance, similar to what happens 
+      when doing Object-Relational Mapping (ORM).
+    </p>
+    <p resolver="NamedStyle:default {name=default,font-weight=normal,font-style=,font-family=Tahoma,font-size=3,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      <b>2. Ok: simple case is simple, but how about multiple mappings?</b>
+    </p>
+    <p resolver="NamedStyle:default {name=default,font-weight=normal,font-style=,font-family=Tahoma,font-size=3,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      Sometimes you do need multi-step processing; for example, if your data 
+      lives in the database. Following my earlier suggestion, it would seem 
+      like you should convert directly from relational model (storage format) 
+      into resulting transfer format (json or xml). Ideally, yes: if there are 
+      such conversions. But in practice it is more likely that a two-phase 
+      mapping (ORM from database to objects; and then from objects to xml or 
+      json) works better: mostly because there are good tools for separate 
+      phases, but fewer that would do the end-to-end rendition.
+    </p>
+    <p resolver="NamedStyle:default {name=default,font-weight=normal,font-style=,font-family=Tahoma,font-size=3,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      Is this wrong? No. To understand why, it is necessary to understand 3 
+      classes of formats that are talking about:
+    </p>
+    <ul>
+      <li resolver="NamedStyle:default {name=default,font-weight=normal,font-style=,font-family=Tahoma,font-size=3,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+        Persistence (storage) format, used for storing your data: usually 
+        relational model but can be something else as well (objects for object 
+        DBs; XML for native XML databases)
+      </li>
+      <li>
+        Processing format: Objects or structs of your processing language 
+        (POJOs for Java) that you use for actual processing. Occasionally this 
+        can also be something more exotic; like XML when using XSLT (or 
+        relational data for complicated reporting queries)
+      </li>
+      <li>
+        Transfer format: Serialization format used to transfer data between 
+        end points (or sometimes time-shifting, saving state over restart); 
+        may be closely bound to processing format (as is the case for Java 
+        serialization)
+      </li>
+    </ul>
+    <p>
+      So what I am really saying is that you should not transfer within a 
+      class of formats; in this case between 2 alternate transfer formats. It 
+      is acceptable (and often sensible) to do conversions between classes of 
+      formats; and sometimes doing 2 transforms is simpler than trying to one 
+      bigger one. Just not within a class.
+    </p>
+    <p>
+      <b>3. Three Formats may be simpler than Just One</b>
+    </p>
+    <p>
+      One more thing about above-mentioned three formats: there is also a 
+      related fallacy of thinking that there is a problem if you are using 
+      multiple formats/models (like relational model for storage, objects for 
+      processing and xml or json for transfer). Assumption is that additional 
+      transformations needed to convert between representations is wasteful 
+      enough to be a problem in and of itself. But it should be rather obvious 
+      why there are often distinct models and formats in use: <b>because each 
+      is optimal for specific use case</b>. Storage format is good for, gee, 
+      storing data; processing model good for efficiently massaging data, and 
+      transfer format good for piping it through the wire. As long as you 
+      don't add gratuitous conversions in-between, transforming on boundary is 
+      completely sensible; especially considering alternative of trying to 
+      find a single model that works for all cases. One only needs to consider 
+      case of &quot;XML for everything&quot; cluster (esp. XML for processing, aka XSLT) 
+      to see why this is an approach that should be avoided (or, Java 
+      serialization as transfer format -- that is another anti-pattern in and 
+      of itself).
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Wednesday, October 28, 2009 10:22 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/10/entry_257.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/10/entry_257.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/10/entry_257.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Thursday, October 01, 2009 </h2>
+<div class="entry" id="post-327">
+     <h3 class="entry-header">Critical updates: Woodstox 4.0.6 released</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      This just in: <a href="http://wiki.fasterxml.com/WoodstoxDownload">Woodstox 
+      4.0.6</a> was released, and it contains just one fix; but that one to a 
+      critical problem (text content truncation for long CDATA sections, when 
+      using <b>XMLStreamReader.getElementText()</b>). Upgrade is highly 
+      recommended for anyone using earlier 4.0 releases.
+    </p>
+    <p>
+      One more potentially useful addition is that I uploaded &quot;relocation&quot; 
+      Maven pom, for non-existing artifact &quot;wstx-asl&quot; v4.0.6 (the real id is 
+      &quot;woostox-core-asl&quot;, as of 4.0; &quot;wstx-asl&quot; was used with 3.2 and 
+      previous). This was suggested by a user, to make upgrade bit less 
+      painful -- problem is that Woodstox tends to be one of those ubiquitous 
+      transitive dependencies to anyone running a Soap service (or nowadays 
+      almost any server-side XML processing system).
+    </p>
+    <p>
+      Next big thing should then be Jackson-1.3, stay tuned!
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Thursday, October 01, 2009 9:23 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/10/entry_327.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/10/entry_327.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/10/entry_327.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Friday, September 18, 2009 </h2>
+<div class="entry" id="post-320">
+     <h3 class="entry-header">Typed Access API tutorial, part III/b: binary data, server-side</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p resolver="NamedStyle:default {font-family=Tahoma,name=default,font-size=3,font-style=,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      (note: this is part B of &quot;Typed Access API tutorial: binary data&quot;; first 
+      part can be found <a href="/blog/archives/2009/09/entry_178.html">here</a>)
+    </p>
+    <p resolver="NamedStyle:default {font-family=Tahoma,name=default,font-size=3,font-style=,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      <b>1. Server-side</b>
+    </p>
+    <p resolver="NamedStyle:default {font-family=Tahoma,name=default,font-size=3,font-style=,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      After implementing the client, let's next implement matching sample 
+      service that simply reads all files from a directory and creates 
+      download message that contains all files along with checksums for 
+      verifying their correctness (in real use case, those would probably be 
+      pre-computed). Simplest way to deploy service is as a Servlet-based web 
+      application; a single class and matching web.xml will do the trick.
+    </p>
+    <p resolver="NamedStyle:default {font-family=Tahoma,name=default,font-size=3,font-style=,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      Resulting code is meant to just show how (relatively) simple handling of 
+      binary data is -- obviously a real client and service would have much 
+      more checking for error cases, as well as for authentication, 
+      authorization, namespacing to avoid collision and so on.
+    </p>
+    <p resolver="NamedStyle:default {font-family=Tahoma,name=default,font-size=3,font-style=,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],}" margin-top="0">
+      Full source code can be found from <a href="http://svn.codehaus.org/woodstox/wstx/trunk/">Woodstox 
+      source code repository</a> (see 'src/samples/BinaryService.java') but 
+      here is the beef:
+    </p>
+    <hr>
+    
+
+    <pre>    public void doGet(HttpServletRequest req, HttpServletResponse resp)
+        throws IOException
+    {
+        resp.setContentType(&quot;text/xml&quot;);
+        try {
+            writeFileContentsAsXML(resp.getOutputStream());
+        } catch (XMLStreamException e) {
+            throw new IOException(e);
+        }
+    }
+
+    final static String DIGEST_TYPE = &quot;SHA&quot;; <br><br>    private void writeFileContentsAsXML(OutputStream out)
+        throws IOException, XMLStreamException
+    {
+        XMLStreamWriter2 sw = (XMLStreamWriter2) _xmlOutputFactory.createXMLStreamWriter(out);
+        sw.writeStartDocument();
+        sw.writeStartElement(&quot;files&quot;);
+        byte[] buffer = new byte[4000];
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance(DIGEST_TYPE);
+        } catch (Exception e) { // no such hash type?
+            throw new IOException(e);
+        }
+
+        for (File f : _downloadableFiles.listFiles()) {
+            sw.writeStartElement(&quot;file&quot;);
+            sw.writeAttribute(&quot;name&quot;, f.getName());
+            sw.writeAttribute(&quot;checksumType&quot;, DIGEST_TYPE);
+            FileInputStream fis = new FileInputStream(f);
+            int count;
+            while ((count = fis.read(buffer)) != -1) {
+                md.update(buffer, 0, count);<br>		// note: can write separate chunks without problems
+                <b>sw.writeBinary(buffer, 0, count);</b>
+            }
+            fis.close();
+            sw.writeEndElement(); // file
+            sw.writeStartElement(&quot;checksum&quot;);
+            <b>sw.writeBinaryAttribute(&quot;&quot;, &quot;&quot;, &quot;value&quot;, md.digest());</b>
+            sw.writeEndElement(); // checksum
+        }
+        sw.writeEndElement(); // files
+        sw.writeEndDocument();
+        sw.close();
+    }</pre>
+    <hr>
+    
+
+    <p>
+      As with the client, there really isn't anything too special here. Just 
+      the usual service, with bit of Stax2 Typed Access API usage.
+    </p>
+    <p>
+      I briefly tested this by bundling it up as a web app (if you want to do 
+      the same, run Ant target &quot;war.samples&quot; in Woodstox trunk), running web 
+      app under Jetty 6.1, and accessing from both web browser and via 
+      BinaryClient class. Worked as expected right away (which, granted, was 
+      somewhat unexpected... usually there are minor tweaks needed, but not 
+      today).
+    </p>
+    <p>
+      <b>2. Output</b>
+    </p>
+    <p>
+      Just to give an idea of what results should look like, here's what I can 
+      see when download a single file (run.sh):
+    </p>
+    <hr>
+    
+
+    <pre>&lt;?xml version='1.0' encoding='UTF-8'?&gt;<br>&lt;files&gt;&lt;file name=&quot;run.sh&quot; checksumType=&quot;SHA&quot;&gt;IyEvYmluL3NoCgojIExldCdzIGxpbWl0IG1lbW9yeSwgZm9yIHBlcmZvcm1hbmNlIHRlc3RzIHRv
+IGFjY3VyYXRlbHkgY2FwdHVyZSBHQyBvdmVyaGVhZAoKIyAtRGphdmEuY29tcGlsZXI9IC1jbGll
+bnQgXApqYXZhIC1YWDpDb21waWxlVGhyZXNob2xkPTEwMDAgLVhteDQ4bSAtWG1zMTZtIC1zZXJ2
+ZXJcCiAtY3AgbGliL3N0YXgtYXBpLTEuMC4xLmphcjpsaWIvc3RheF9yaS5qYXJcCjpsaWIvbXN2
+L1wqXAo6bGliL2p1bml0L2p1bml0LTMuOC4xLmphclwKOmJ1aWxkL2NsYXNzZXMvd29vZHN0b3g6
+YnVpbGQvY2xhc3Nlcy9zdGF4MlwKOnRlc3QvY2xhc3NlczpidWlsZC9jbGFzc2VzL3Rvb2w6YnVp
+bGQvY2xhc3Nlcy9zYW1wbGVzXAogJCoK&lt;/file&gt;&lt;checksum value=&quot;qAZIQ6GDUJYRgiubW/H+5GZaWg0=&quot;/&gt;&lt;/files&gt;</pre>
+    <hr>
+    
+
+    <p>
+      <b>3. More to known about Base64 variants</b>
+    </p>
+    <p>
+      One more thing to note is the existence of multiple slightly 
+      incompatible Base64 variants (see <a href="http://en.wikipedia.org/wiki/Base64">&quot;URL 
+      Applications&quot; section</a>). So which one does Typed Access API use?
+    </p>
+    <p>
+      The one you define it to use, of course! Stax2 API actually allows 
+      caller to specify the variant to use -- sample code just happens to use 
+      the default variant (i.e. uses methods that just call alternatives that 
+      do take a <b>Base64Variant</b> argument). Stax2-defined Base64 variants 
+      (from class '<b>org.codehaus.stax2.typed.Base64Variants</b>') are:
+    </p>
+    <ul>
+      <li>
+        <i>MIME</i>: this is what is usually considered &quot;the base64&quot; variant: 
+        uses default alphabet, requires padding, and uses 76-character lines 
+        with linefeed for content. This is the default variant used for 
+        element content.
+      </li>
+      <li>
+        <i>MIME_NO_LINEFEEDS</i> is similar to MIME, but does not split output 
+        in lines -- this is the default variant used for attribute values (due 
+        to verbosiveness caused by encoding linefeeds in XML attribute values)
+      </li>
+      <li>
+        <i>PEM</i> is similar to <i>MIME</i>, but mandates shorter (60 
+        character) line length
+      </li>
+      <li>
+        <i>MODIFIED_FOR_URL</i>: uses alternate alphabet (hyphen and 
+        underscore instead of plus and slash), does not use padding or line 
+        splitting.
+      </li>
+    </ul>
+    <p>
+      And these are all implemented by Woodstox. In addition, one can use 
+      custom encodings by implementing custom Base64Variant object and passing 
+      that explicitly to base64-binary read- and write-methods.
+    </p>
+    <p>
+      <b>4. Performance?</b>
+    </p>
+    <p>
+      Beyond simple usage shown so far, what more is there to know about 
+      handling binary data?
+    </p>
+    <p>
+      One open question is performance: how much faster is Typed Access API, 
+      compared to using alternatives like XMLStreamReader.getElementText() 
+      followed by decode using, say, JakartaCommons' base64 codec. There are 
+      no numbers yet, but producing some will be one of high priority items on 
+      my &quot;things to research for Blog&quot; list.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Friday, September 18, 2009 10:56 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/09/entry_320.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/09/entry_320.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/09/entry_320.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Tuesday, September 08, 2009 </h2>
+<div class="entry" id="post-178">
+     <h3 class="entry-header">Typed Access API tutorial, part III/a: binary data, client-side</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      (author's note: oh boy, this last piece of the &quot;Typed Access API series&quot; 
+      has been long coming -- apologies, and &quot;better late than never&quot;)
+    </p>
+    <p>
+      Now that we have tackled most of the Stax2 Typed Access API (reading and 
+      writing <a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_118.html">simple 
+      values</a>, <a href="http://www.cowtowncoder.com/blog/archives/2009/02/entry_170.html">arrays</a>), 
+      let's consider the last remaining part: that of reading and writing <a href="http://en.wikipedia.org/wiki/Base64">base64</a>-encoded 
+      binary data. For this installment, let's implement a simple web service 
+      that can be used for downloading files, as well as client to use that 
+      service.
+    </p>
+    <p>
+      Use of XML for such purpose may seem bit contrived, but there are other 
+      valid use cases for binary-in-xml (even if the example wasn't): for 
+      example, it may well make sense to embed small images (like icons), 
+      digital signatures, encryption keys and other non-textual data within 
+      documents. Sometimes convenience of inlining binary content within 
+      message is worth the modest overhead (base64 imposes +33% storage 
+      overhead, and similar processing overhead).<br>For example, in our 
+      example, we can embed multiple files with associated metadata quite 
+      easily without having to split the logical document. But both client and 
+      server can still handle files one-by-one with streaming interfaces, 
+      meaning that memory usage need not grow without bounds.
+    </p>
+    <p>
+      Finally, unlike many other xml processing packages, <a href="http://woodstox.codehaus.org">Woodstox</a> 
+      does not cut corners when it comes to processing efficiency: base64 
+      processing implementation is a significant improvement over using 
+      existing third-party base64 codes on other processing APIs (regular SAX, 
+      Stax or DOM).
+    </p>
+    <p>
+      So much for the philosophic part of why to use (or not to use) xml. 
+      Let's have look at a simple implementation to show binary content 
+      handling pieces that we need, along with a bit of glue to make example 
+      code work.<br>(note: source code is also accessible)
+    </p>
+    <p>
+      <b>1. Message format</b>
+    </p>
+    <p>
+      Here is the simple xml message format we will be using:
+    </p>
+    <pre>  &lt;files&gt;<br>    &lt;file name=&quot;test.jpg&quot; checksumType=&quot;SHA&quot;&gt;... base64 encoded content ...&lt;/file&gt;<br>    &lt;checksum value=&quot;...base64 encoded hash of content...&quot; /&gt;<br>    &lt;!-- ... and more files, if need be... --&gt;<br>  &lt;/files&gt;<br></pre>
+    <p>
+      That is, a single message contains one or more files, each with 
+      associated checksum. Checksym is used to verify that contents were 
+      passed unmodified (as opposed to being corrupted by transfer). Simple 
+      but functional.
+    </p>
+    <p>
+      <b>2. Client-side</b>
+    </p>
+    <p>
+      So let's start with sample client code; code downloads bunch of files 
+      from the service (for now assuming URL determines set of files we'll get 
+      with some criteria).
+    </p>
+    <p>
+      For this example we will just use the regular http client that JDK comes 
+      equipped with (which actually works pretty well for many use cases -- 
+      for others, <a href="http://hc.apache.org/">Jakarta httpclient</a> is 
+      the cat's meow).<br>Full source code can be found at <a href="http://svn.codehaus.org/woodstox/wstx/trunk/">Woodstox 
+      SVN repository</a> (under 'src/samples') but here's the interesting 
+      Client method:<br>
+    </p>
+    <p>
+      
+    </p>
+    <hr>
+    
+
+    <pre>public List&lt;File&gt; fetchFiles(URL serviceURL) throws Exception
+{
+  List&lt;File&gt; files = new ArrayList&lt;File&gt;();<br>  URLConnection conn = serviceURL.openConnection();
+  conn.setDoOutput(false); // only true when POSTing
+  conn.connect();
+// note, should check 'if (conn.getResponseCode() != 200) ...'
+
+// Ok, let's read it then... (note: StaxMate could simplify a lot!)
+  InputStream in = conn.getInputStream();
+  XMLStreamReader2 sr = (XMLStreamReader2) XMLInputFactory.newInstance().createXMLStreamReader(in);
+  sr.nextTag(); // to &quot;files&quot;
+  File dir = new File(&quot;/tmp&quot;); // for linux...
+  byte[] buffer = new byte[4000];
+
+  while (sr.nextTag() != XMLStreamConstants.END_ELEMENT) { // one more 'file'
+    String filename = sr.getAttributeValue(&quot;&quot;, &quot;name&quot;);
+    String csumType = sr.getAttributeValue(&quot;&quot;, &quot;checksumType&quot;);
+    File outputFile = new File(dir, filename);
+    FileOutputStream out = new FileOutputStream(outputFile);
+    files.add(outputFile);
+    MessageDigest md = MessageDigest.getInstance(csumType);
+
+    int count;
+  // Read binary contents of the file, calc checksum and write
+    while ((count = <b>sr.readElementAsBinary(buffer, 0, buffer.length)</b>) != -1) {
+      md.update(buffer, 0, count);
+      out.write(buffer, 0, count);
+    }
+    out.close();
+  // Then verify checksum
+    sr.nextTag();  
+    byte[] expectedCsum = <b>sr.getAttributeAsBinary(sr.getAttributeIndex(&quot;&quot;, &quot;value&quot;))</b>;
+    byte[] actualCsum = md.digest();
+    if (!Arrays.equals(expectedCsum, actualCsum)) {
+      throw new IllegalArgumentException(&quot;File '&quot;+filename+&quot;' corrupt: content checksum does not match expected&quot;);
+    }
+    sr.nextTag(); // to match closing &quot;checksum&quot;
+  }
+  return files;
+}</pre>
+    <hr>
+    
+
+    <p>
+      Much of the code deals with connecting to the service; actual access is 
+      rather simple; only complexity comes from streamability of API (i.e. you 
+      read chunks of binary data, instead of reading the whole thing).
+    </p>
+    <p>
+      What is left, then, is the server side... which will follow shortly (I 
+      swear, won't take months this time)
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, September 08, 2009 10:44 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/09/entry_178.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/09/entry_178.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/09/entry_178.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Thursday, July 09, 2009 </h2>
+<div class="entry" id="post-298">
+     <h3 class="entry-header">Are GAE developers a bunch of</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      ignorant, incompetent boobs... or what?
+    </p>
+    <p>
+      Usually I avoid ranting, at least on my blog entries. Thing is, negative 
+      output creates negative image: there is little positive in negativity. 
+      If you have nothing good to say, say nothing, and so on.
+    </p>
+    <p>
+      But sometimes enough is enough. This is the case with Google, and their 
+      pathetic attempts at Creating Java(-like) platforms.
+    </p>
+    <p>
+      <b>1. Past failures: Android</b>
+    </p>
+    <p>
+      In the past I have wondered at the clusterfuck known as Android: API is 
+      a mess, concoction of JDK pieces included (and mixed with arbitrary open 
+      source APIs and implementation classes) is arbitrary and incoherent. But 
+      since I don't really work much in the mobile space, I have just shook my 
+      head when observing it -- it's not really my problem. Just an eyesore.
+    </p>
+    <p>
+      But it is relevant in that it set the precedent for what to expect: 
+      despite some potentially clever ideas (regarding the lower level 
+      machinery), it all seems like a trainwreck, heading nowhere fast. And 
+      the only saving grace is that most mobile development platforms are even 
+      worse.
+    </p>
+    <p>
+      <b>2. Current problems: start with ignorance</b>
+    </p>
+    <p>
+      After this marvellous learning experience, you might expect that the big 
+      G would learn from its mistakes and get more things right second time 
+      around. No such luck: <a href="http://code.google.com/appengine/">Google 
+      App Engine</a> was a stillbirth; plagued by very similar problem as 
+      Android. Most specifically, significant portion of what SHOULD be 
+      available (given their implied goal of supporting all JDK5 pieces 
+      applicable to the context) was -- and mostly still is -- missing. And 
+      decisions again seem arbitrary and inconsistent; but probably made by 
+      different bunch of junior developers.
+    </p>
+    <p>
+      My specific case in point (or pet peeve) is the lack of <a href="http://code.google.com/p/googleappengine/issues/detail?id=1277">Stax 
+      API on GAE</a> (it is missing from white-list, which is needed to load 
+      anything within &quot;javax.&quot; packages). It seems clear that this was mostly 
+      due to good old ignorance -- they just didn't have enough expertise 
+      in-house to cover all necessary aspects of JDK. Hey, that happens: maybe 
+      they have no XML expertise within the team; or whoever had some 
+      knowledge was busy farting around doing something else. Who knows? 
+      Should be easy to fix, whatever gave.
+    </p>
+    <p>
+      <b>3. From ignorance to excuses</b>
+    </p>
+    <p>
+      Ok: omission due to ignorance would be easily solved. Just add 
+      &quot;javax.xml.stream&quot; on the white list, and be done with that. After all, 
+      what could possibly be problematic with an <i>API package</i>? (we are 
+      not talking about bundling an implementation here)
+    </p>
+    <p>
+      But this is where things get downright comical: almost all 
+      &quot;explanations&quot; center around the strawman argument of &quot;there must be 
+      some security-related issue here&quot;. I may be unfair here -- it is 
+      possible that all people peddling this excuse are non-Googlians (if so, 
+      my apologies to GAE team). But this is just very ridiculous (dare I say, 
+      retarded?) argument, because:
+    </p>
+    <ol>
+      <li>
+        Being but an API package, <b>there is no functionality</b> that could 
+        possibly have security implications (yes, l know exactly what is 
+        within those few classes -- the only actual code is for implementation 
+        discover, which was copied from SAX), and
+      </li>
+      <li>
+        If there are problems with implementations of the API (which should be 
+        irrelevant, but humor me here), <b>same problems would affect already 
+        included and sanctioned packages</b> (SAX, DOM, JAXP, bundled Xerces 
+        implementation of the same)
+      </li>
+    </ol>
+    <p>
+      Perhaps even worse, these &quot;explanations&quot; are served by people who seem 
+      to have little idea about package in question. I could as well ask about 
+      regular expression or image processing packages it seems.
+    </p>
+    <p>
+      <b>4. Misery loves company</b>
+    </p>
+    <p>
+      About the only silver lining here (beyond my not having to work on 
+      GAE...) is that there are other packages that got similarly hosed (I 
+      think JAXB may be one of those; and many open source libraries are 
+      affected indirectly, including popular packages like <a href="http://xstream.codehaus.org">XStream</a>). 
+      So hopefully there is little bit more pressure in fixing these flaws 
+      within GAE.
+    </p>
+    <p>
+      But I so hope that other big companies would consider implementing 
+      sand-boxed &quot;cloudy&quot; Java environments. Too bad competitors like 
+      Microsoft and <a href="http://amazon.com">Amazon</a> tend to focus on 
+      other approaches: both doing &quot;their own things&quot;, although those being 
+      very different from each other (Microsoft with their proprietary 
+      technology; Amazon focusing on offering low-level platform (EC2) and 
+      simple services (S3, SQS, SWF -- simple storage, queue, workflow service 
+      -- etc), but not managed runtime execution service.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Thursday, July 09, 2009 10:51 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_298.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_298.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_298.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+            </div>
+        </div>
+<div id="beta">
+  <div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+
+<!-- /SiteSearch Google -->
+<hr />
+</div>
+
+     <div class="module-archives module">
+          <h2 class="module-header">Last posts</h2>
+          <div class="module-content">
+               <ul class="module-list">
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_467.html">Jackson 2.0: now with XML, too!</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_451.html">Non-blocking XML parsing with Aalto 0.9.7</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_446.html">Jackson: not just for JSON, Smile or BSON any more -- Now With XML, too!</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/11/entry_433.html">StaxMate 2.0.1 released; improved DOM-from-Stax, compatibility with default JDK 1.6 Stax implementation</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_362.html">Upgrading from Woodstox 3.x to 4.0</a></li>
+               </ul>
+          </div>
+     </div>
+<div class="module-categories module">
+          <h2 class="module-header">Categories</h2>
+          <div class="module-content">
+        <ul>
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+          
+        </ul>
+          </div>
+</div>
+<div class="module-syndicate module">
+     <div class="module-content">
+          <a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+          [<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+     </div>
+
+</div>
+</div>
+     <div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+     </div>
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+</div>
+<div class="module-powered module">
+     <h2 class="module-header">Powered By</h2>
+
+     <div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a> and
+  Discus comments.
+     </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>

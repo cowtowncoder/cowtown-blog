@@ -1,0 +1,835 @@
+<html lang="en">
+<head>
+<title>March 2011</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Saturday, March 12, 2011 </h2>
+
+<div class="entry" id="post-451">
+			<h3 class="entry-header">Non-blocking XML parsing with Aalto 0.9.7</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Aalto XML processor (see <a href="http://wiki.fasterxml.com/AaltoHome">home 
+      page</a>) is known for two things:
+    </p>
+    <ol>
+      <li>
+        It is the fastest Java-based XML parser available (for example, see <a href="https://github.com/eishay/jvm-serializers/wiki">jvm-serializers</a> 
+        benchmark, or <a href="http://technotes.blogs.sapo.pt/1708.html">this 
+        comparison</a>); both for Stax and SAX parsing
+      </li>
+      <li>
+        It is the only open-source Java parser that can do non-blocking 
+        parsing (aka asynchonous, or async, parsing)
+      </li>
+    </ol>
+    <p>
+      Former is relatively easy to figure out: given that Aalto implements two 
+      standard low-level Java streaming parsing APIs -- Stax and SAX -- you 
+      can easily switch Aalto in place of Woodstox or Xerces and see how fast 
+      it is. For many common types of XML data, it is almost exactly twice as 
+      fast for parsing as Woodstox (which itself is generally faster than 
+      alternatives like Xerces/SAX); and it is also bit faster for writing XML 
+      content.
+    </p>
+    <p>
+      But non-blocking parsing is more difficult to evaluate. This is because 
+      there are no other non-blocking Java XML parsers, nor real documentation 
+      for use of non-blocking part of Aalto; and also because this part of 
+      functionality has been only completed fairly recently (while some parts 
+      of functionality were written up to two years ago, last pieces were 
+      completed just for the latest official release).
+    </p>
+    <p>
+      So I will try to explain basic non-blocking operation here. But first, 
+      brief introduction to non-blocking parsing, using Aalto's non-blocking 
+      Stax extension. Non-blocking variant of SAX will be completed before 
+      Aalto 1.0 is released.
+    </p>
+    <p>
+      <b>1. Non-Blocking / Async operation for XML</b>
+    </p>
+    <p>
+      Basic feature of non-blocking parsing is that it does not rely on 
+      blocking input (InputStream or Reader). Instead of parser using a stream 
+      or reader to read content, and blocking the thread if none is available, 
+      content is rather &quot;pushed&quot; to parser; and parser will give out processed 
+      events if there is enough content available. This is similar to how many 
+      C parsers work; as well as operation of Java's gzip/zip/deflate codecs (<i>java.util.zip.Deflater</i>).
+    </p>
+    <p>
+      The main benefit of non-blocking operation is ability to process 
+      multiple XML input sources without having to allocate one thread per 
+      source, same benefit as that NIO has for basic web services. And in 
+      fact, having a non-blocking parser is something that could benefit 
+      non-blocking web services a lot: without such parser, services must 
+      buffer all the input before parsing, to ensure that no blocking occurs.
+    </p>
+    <p>
+      So why does it matter that there need not be as many threads as sources? 
+      While Java threading efficiency has improved a lot over time, it can 
+      still be hard to scale systems that use more than hundreds of threads 
+      (or low thousands; exact number depends on platform). So systems that 
+      are highly concurrent, but typically have high latencies, or highly 
+      varying workloads, cand benefit from this mode of operation.<br>In 
+      addition, another related benefit is that memory usage of non-blocking 
+      parser can be more close bounded: since limited amount of input is 
+      buffered at any given point, amount of working memory can be more 
+      limited (at least when not forcing coalecing of XML text segments).
+    </p>
+    <p>
+      On downside, writing code to use non-blocking parsing can be slightly 
+      more complex to write: and given lack of standardized APIs, it is 
+      something new to learn. And since regular blocking I/O can scale quite 
+      well nowadays for many (or most) uses, non-blocking parsing is not 
+      something one generally starts doing initially. But it can be a very 
+      useful technique for subset of all XML processing use cases.
+    </p>
+    <p>
+      <b>2. Non-blocking XML parsing using Aalto API</b>
+    </p>
+    <p>
+      The easiest way to explain operation is probably by showing piece of 
+      sample code (lifted from Aalto unit tests). Here we will actually 
+      construct a static XML document from String (for demonstration purposes: 
+      in real systems, it would be read via NIO channels or a higher-level 
+      non-blocking abstraction), and feed it into parser, single byte at a 
+      time. In actual production use one would typically feed content block at 
+      a time; either fully read blocks, or chunks of contents as soon as they 
+      become available. Aalto does not implement higher-level buffer 
+      management (there is just one active buffer), although adding basic 
+      buffer handling would not be difficult; it just tends to be either 
+      provided by input source (Netty), or be input source specific.
+    </p>
+    <hr>
+    
+
+    <pre>  byte[] XML = &quot;&lt;html&gt;Very &lt;b&gt;simple&lt;/b&gt; input document!&lt;/html&gt;&quot;;
+  AsyncXMLStreamReader asyncReader = new InputFactoryImpl().createAsyncXMLStreamReader();
+  final AsyncInputFeeder feeder = asyncReader.getInputFeeder();
+  int inputPtr = 0; // as we feed byte at a time
+  int type = 0;
+
+  do {
+    // May need to feed multiple &quot;segments&quot;
+    while ((type = asyncReader.next()) == AsyncXMLStreamReader.EVENT_INCOMPLETE) {
+      feeder.feedInput(buf, inputPtr++, 1);<br>      if (inputPtr &gt;= XML.length) { // to indicate end-of-content (important for error handling)<br>        feeder.endOfInput();
+      }
+    }
+    // and once we have full event, we just dump out event type (for now)
+    System.out.println(&quot;Got event of type: &quot;+type);
+    // could also just copy event as is, using Stax, or do any other normal non-blocking handling:
+    // xmlStreamWriter.copyEventFromReader(asyncReader, false);
+  } while (type != END_DOCUMENT);
+  asyncReader.close();</pre>
+    <hr>
+    
+
+    <p>
+      And that's it. There are actually just couple of additional things 
+      needed to do non-blocking parsing:
+    </p>
+    <ol>
+      <li>
+        Use of regular Stax API, with just a single extension, introduction of 
+        new token, <b>EVENT_INCOMPLETE</b> 
+        (com.fasterxml.aalto.AsyncXMLStreamReader.EVENT_INCOMPLETE), which is 
+        returned if there isn't enough content buffered to fully construct a 
+        token to return
+      </li>
+      <li>
+        Feeding of content using AsyncInputFeeder (instance of which is 
+        accessed via <b>AsyncXMLStreamReader</b>, extension of basic 
+        XMLStreamReader)
+      </li>
+      <li>
+        Indicating end-of-content via feeder when all content has been read
+      </li>
+    </ol>
+    <p>
+      Which makes operation bit more complicated than use of straight 
+      XMLStreamReader, but not significantly so.
+    </p>
+    <p>
+      <b>3. Next steps</b>
+    </p>
+    <p>
+      There are two things that Aalto non-blocking mode does not yet 
+      implement, which will be finished before Aalto becomes 1.0:
+    </p>
+    <ul>
+      <li>
+        Coalescing mode has not been implemented for non-blocking Stax. Since 
+        use of coalescing (of all adjacent text segments, as per Stax spec) is 
+        probably less important for non-blocking use cases than blocking ones 
+        (as it will increase need for buffering, possible increase latency), 
+        it was less as the last major piece to be completed.
+      </li>
+      <li>
+        There isn't yet non-blocking SAX mode. This should be relatively easy 
+        to implement, and should not require extensions to SAX API itself (one 
+        just has to call &quot;XMLReader.parse()&quot; multiple times; but as it is 
+        based on same parser core as Stax mode, it has not yet been completed.
+      </li>
+    </ul>
+    <p>
+      At this point what is needed most is actual usage: while there is some 
+      test coverage, non-blocking mode is less well tested than blocking mode: 
+      blocking mode can use full basic StaxTest suite, used succesfully for 
+      years with Woodstox (and for Aalto for more than a year as well).
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Saturday, March 12, 2011 3:49 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_451.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_451.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_451.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Friday, March 11, 2011 </h2>
+
+<div class="entry" id="post-448">
+			<h3 class="entry-header">Jackson 1.8: custom property naming strategies</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      One of big goals for Jackson 1.8 is to implement oldest open feature 
+      requests. One such feature is ability to customize property naming 
+      strategy: that is, to allow use of JSON names that do not match 
+      requirements of Bean naming conventions.
+    </p>
+    <p>
+      For example, consider case of Twitter JSON API, which uses &quot;C-style&quot; 
+      naming convention, so what would be &quot;profileImageUrl&quot; with bean naming 
+      convention, is instead &quot;profile_image_url&quot;.<br>With earlier 
+      Jackson versions, one has had to annotate all properties with 
+      @JsonProperty annotation; or use rather unwieldy method names like 
+      &quot;getprofile_image_url()&quot; (which would work, just look ugly).
+    </p>
+    <p>
+      But version 1.8 will finally allow use of custom naming strategies. 
+      Let's examine how.
+    </p>
+    <p>
+      First thing to do is to extend <b>org.codehaus.jackson.map.PropertyNamingStrategy</b>
+    </p>
+    <pre>  static class CStyleStrategy extends PropertyNamingStrategy
+  {
+    public String nameForField(MapperConfig?&gt; config, AnnotatedField field, String defaultName) {<br>     return convert(defaultName);
+    }
+
+    public String nameForGetterMethod(MapperConfig?&gt; config, AnnotatedMethod method, String defaultName) {
+      return convert(defaultName);
+    }
+
+    public String nameForSetterMethod(MapperConfig?&gt; config, AnnotatedMethod method, String defaultName) {
+      return convert(defaultName);
+    }
+
+    private String convert(String input) {
+      //  easy: replace capital letters with underscore, lower-cases equivalent
+      StringBuilder result = new StringBuilder();
+      for (int i = 0, len = input.length(); i &lt; len; ++i) {
+        char c = input.charAt(i);
+        if (Character.isUpperCase(c)) {
+         result.append('_');
+          c = Character.toLowerCase(c);
+        }
+        result.append(c);
+      }
+      return result.toString();
+    }
+  }</pre>
+    <p>
+      which in this case will just convert property names by replacing all 
+      capital letters with underscore followed by lower-cased version of the 
+      letter.<br>And then the only other thing is to register this strategy 
+      with ObjectMapper:
+    </p>
+    <pre>   ObjectMapper mapper = new ObjectMapper();
+   mapper.setPropertyNamingStrategy(new PrefixStrategy());</pre>
+    <p>
+      and after this we could do:
+    </p>
+    <pre>  static class PersonBean {
+        public String firstName;
+        public String lastName;
+
+        public PersonBean(String f, String l) {
+            firstName = f;
+            lastName = l;
+        }
+  }
+
+  // so this would hold true:
+  assertEquals(&quot;{\&quot;first_name\&quot;:\&quot;Joe\&quot;,\&quot;last_name\&quot;:\&quot;Sixpack\&quot;}&quot;, new PersonBean(&quot;Joe&quot;, &quot;Sixpack&quot;));</pre>
+    <p>
+      This should help working with APIs that use C-style underscore notation, 
+      or variation of camel casing (such as one where first word is also 
+      capitalized).
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Friday, March 11, 2011 10:09 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_448.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_448.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_448.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, March 10, 2011 </h2>
+
+<div class="entry" id="post-447">
+			<h3 class="entry-header">Upgrade from org.json to Jackson, piece by piece, using jackson-module-org-json</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      <b>1. Background</b>
+    </p>
+    <p>
+      One common task for software engineers is upgrading legacy systems; 
+      things written a while ago, often by developers who have since moved on, 
+      using tools and techniques thought to be good fit back then. While the 
+      reason for upgrades are typically either addition of minor new features, 
+      or fixes to the most annoying issues, it can and should also include 
+      some pro-active work to improve quality of the system itself, to &quot;pay 
+      off technical debt&quot; before it is due.
+    </p>
+    <p>
+      One of first things you usually observe, when looking under the hood of 
+      such systems is that various design and implementation choices do not 
+      look so good any more. Sometimes technology choice turned to be a 
+      dead-end; sometimes design was based on incomplete or incorrect 
+      understand. But almost always some of supporting libraries have become 
+      obsolete: tool that was thought as best-of-breed back then may well now 
+      be amongst most despised pieces of software ever deviced.
+    </p>
+    <p>
+      <b>2. Problem</b>
+    </p>
+    <p>
+      One common case of &quot;library rot&quot; that I have often encountered is that 
+      of using &quot;org.json&quot; library (from http://json.org/java) for reading and 
+      writing JSON. It was the first Java JSON library around, and served as 
+      sort of proof of concept back in the early days of JSON usage. But time 
+      has not been kind to it: with arrival of more modern, fully-featured 
+      alternatives, it is the monoplane of the second world-war era; once 
+      serviceable, but now just cumbersome and slow thing that few would 
+      choose to use given a choice of modern JSON libraries like Jackson. You 
+      can get improvements in about any area, from convenience and 
+      intuitiveness to performance, just by upgrading.
+    </p>
+    <p>
+      When considering possible upgrate of the JSON library, the initial 
+      issues encountered are usually not very big: changing code that directly 
+      deals with reading and writing JSON is not awfully hard, and typically 
+      resulting code is much cleaner. But there is often much bigger problem 
+      outside this core JSON code: in case of org.json package, specifically, 
+      all processing is done using concrete types (JSONObject, JSONArray). And 
+      values of these types are very easy to leak outside, resulting in 
+      unintended tight coupling of non-JSON-processing code with the JSON 
+      parser implementation. While this may be a good lesson on values of 
+      proper design and encapsulation of concerns, it is of little consolation 
+      when you are looking at code that had neither.
+    </p>
+    <p>
+      If your only choice is to rewrite major portions of the legacy system 
+      (to mostly address relatively small JSON-specific portion), it is often 
+      easier to just let things be as they are.
+    </p>
+    <p>
+      <b>3. But what if we only upgraded parser, not JSONObject/JSONArray? </b>
+    </p>
+    <p>
+      Thinking about this a bit, I realized that the biggest immediate 
+      obstacle is really deep coupling via 2 value types. So what if we just 
+      continued to use these non-abstract &quot;abstractions&quot;, but replace 
+      underlying JSON parser and generator? While this would not allow use of 
+      more convenient and proper real abstractions (of data binding to POJOs), 
+      at least it could give some nice efficiency improvements (more on this 
+      below); and make it easier to do complete conversion bit later on. 
+      Killing a beast is often easiest by thousand cuts.
+    </p>
+    <p>
+      Fortunately for us, Jackson 1.7 made it very easy to add support for 
+      additional data types; so I decided to spend one (and only one!) evening 
+      to write an extension module -- <b>jackson-module-json-org</b> available 
+      from GitHub as <a href="https://github.com/FasterXML/jackson-module-json-org">https://github.com/FasterXML/jackson-module-json-org</a> 
+      -- to allow using Jackson to effectively read and write JSONObject and 
+      JSONArray types.
+    </p>
+    <p>
+      Usage is rather straight-forward; after registering new module with 
+      ObjectMapper
+    </p>
+    <pre>ObjectMapper mapper = new ObjectMapper();
+mapper.registerModule(new JsonOrgModule());</pre>
+    <p>
+      you can use all the usual conversions like so:
+    </p>
+    <pre>// read/write JSON
+JSONObject ob = mapper.readValue(json, JSONObject.class); // read from a source
+String json = mapper.writeValue(ob); // output as String
+
+// convert POJOs to/from JSONObject/JSONArray
+MyValue value = mapper.convertValue(jsonObject, MyValue.class);
+JSONObject jsonObject = mapper.convertValue(value, JSONObject.class);
+
+// and even conver to/from Jackson Tree model:
+JsonNode root = mapper.valueToTree(jsonObject);
+jsonObject = mapper.treeToValue(root, JSONObject.class);</pre>
+    <p>
+      and there you have it, convenient conversions between JSON, POJO, and 
+      org.json types.
+    </p>
+    <p>
+      In fact, this will also help with later stages, because you can easily 
+      (and relatively efficiently) go back and forth between representations: 
+      so we can extend &quot;org.json-free&quot; zone further and further away from the 
+      source. This is what I really mean by piece-by-piece approach: it is 
+      possible to do refactoring one component or area at a time.
+    </p>
+    <p>
+      <b>4. But wait! There is more.... performance bonus!</b>
+    </p>
+    <p>
+      By now it should be well-known that Jackson is the most performant 
+      library for doing JSON manipulation in Java. So could it be that using 
+      this module might speed up processing as well? Aren't we still using 
+      some org.json pieces? Turns out that since JSONObject is little more 
+      than a wrapper around basic Java HashMap (and JSONArray similarly around 
+      ArrayList), most performance benefits from different parser and 
+      generator. So I went ahead and modified my JSON parser performance test 
+      to compare &quot;raw Jackson&quot; (using Jackson Streaming API), &quot;Jackson with 
+      Tree Model&quot; (JsonNode), &quot;Jackson with org.json&quot; and stock org.json. Here 
+      is one sampling of results I saw on my machine (using sample document #5 
+      from org.json):
+    </p>
+    <hr>
+    
+
+    <pre>Test 'Jackson, stream' -&gt; 282 msecs
+Test 'Jackson, JsonNode' -&gt; 411 msecs
+Test 'Jackson + module-org-json' -&gt; 393 msecs
+Test 'Json.org' -&gt; 783 msecs</pre>
+    <hr>
+    
+
+    <p>
+      It turns out that while Streaming API is the fastest way, the new 
+      &quot;jackson-module-json-org&quot; extension can actually bind JSON as fast as 
+      Jackson Tree model -- both of which are twice as fast as basic org.json 
+      package for this small document (for bigger documents difference is 
+      typically even bigger).
+    </p>
+    <p>
+      So in addition to cleaning up the code, you may also end up speeding up 
+      your JSON processing code by 100%. Not a bad deal, eh?
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, March 10, 2011 7:17 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_447.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_447.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_447.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_451.html">Non-blocking XML parsing with Aalto 0.9.7</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_448.html">Jackson 1.8: custom property naming strategies</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_447.html">Upgrade from org.json to Jackson, piece by piece, using jackson-module-org-json</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

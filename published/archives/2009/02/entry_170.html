@@ -1,0 +1,612 @@
+<html lang="en">
+<head>
+<title>Typed Access API tutorial, part II: arrays</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<!-- HaloScan comments: -->
+<script type="text/javascript" src="http://www.haloscan.com/load/cowtowncoder">
+</script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+     <div id="container">
+          <div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+     <div id="banner-inner" class="pkg">
+          <h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+          <h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+     </div>
+</div>
+               <div id="pagebody">
+                    <div id="pagebody-inner" class="pkg">
+                         <div id="alpha">
+                              <div id="alpha-inner" class="pkg">
+<!-- entry -->
+
+
+   
+   
+
+     <h2 class="date-header">Wednesday, February 04, 2009 </h2>
+
+<div class="entry" id="post-170">
+<h3 class="entry-header">Typed Access API tutorial, part II: arrays</h3>
+     <div class="entry-content">
+          <div class="entry-body">
+          
+               <p><p>
+      It has been a while, but it's now time to continue the overview of Typed 
+      Access API, one of major features of Stax2 API version 3, implemented by 
+      Woodstox.
+    </p>
+    <p>
+      The <a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_118.html">first 
+      part</a> of this mini-series dealt with &quot;simple&quot; values like integers 
+      and booleans. So let's look at structured types that Typed Access API 
+      supports. Selection is quite limited: only 4 fundamental types (int, 
+      long, float, double) are directly supported, but perhaps most 
+      interestingly there is also a way to easily extend this functionality to 
+      parse custom types.
+    </p>
+    <p>
+      The contrived example to consider this time is that of a data set that 
+      consists of large number of rows, each with large number of integers. 
+      This could come from a spreadsheet full of sample data or such. 
+      Traditionally you might think of storing it using format like:
+    </p>
+    <pre>&lt;dataset&gt;
+ &lt;datarow&gt;
+  &lt;data&gt;1&lt;/data&gt;
+  &lt;data&gt;5&lt;/data&gt;
+  &lt;!-- and so on --&gt;
+ &lt;/datarow&gt;
+&lt;/dataset&gt;</pre>
+    <p>
+      But with Typed Access for arrays, you realize that you can actually make 
+      it like this instead:
+    </p>
+    <pre>&lt;dataset&gt;
+ &lt;datarow&gt;1 5 &lt;!-- and so on --&gt; &lt;/datarow&gt;
+&lt;/dataset&gt;</pre>
+    <p>
+      Which looks a bit better, and saves a byte or two in storage space as 
+      well.
+    </p>
+    <p>
+      <b>1. Reading numeric arrays</b>
+    </p>
+    <p>
+      So how would we read such data? And, regarding this example, what should 
+      we do with the data? Due to my limited skills in statistics, let's just 
+      calculate 3 simple(st) aggregates available: minimum value, maximum 
+      value, and total sum.
+    </p>
+    <pre>InputStream in = new FileInputStream(&quot;data.xml&quot;);
+TypedXMLStreamReader sr = (TypedXMLStreamReader) XMLInputFactory.newInstance().createXMLStreamReader(in);
+int min = Integer.MAX_VALUE, max = Integer.MIN_VALUE;<br>int total = 0;<br>sr.nextTag(); // dataset<br>int[] buffer = new int[20];<br>// let's loop over all &lt;datarow&gt; elements:
+while (sr.nextTag() == XMLStreamConstants.START_ELEMENT) { // ends when we hit &lt;/dataset&gt;
+// loop to get all int values for the row<br>  int count;<br>  while ((count = sr.readElementAsIntArray(buffer, 0, buffer.length)) &gt; 0) {<br>    for (int i = 0; i &lt; count; ++i) {<br>      int sample = buffer[i];<br>      total += sample;<br>      min = Math.min(min, sample);<br>      max = Math.max(max, sample);<br>    }
+// once there are no more samples, we'll be pointing to matching END_ELEMENT, as per javadocs<br>  }<br>}
+sr.close();
+in.close();
+// and there we have it<br></pre>
+    <p>
+      So far so good: we just need a buffer to read into, and we can read 
+      numeric element content in. With attributes code is even simpler, since 
+      the whole array would be returned with a single call (this because 
+      attribute values are inherently non-streamable).
+    </p>
+    <p>
+      <b>2. Writing numeric arrays</b>
+    </p>
+    <p>
+      So where would we get this data? Ah, let me come up with something... 
+      hmmh, why, yes, how about someone gave us a spreadsheet as a CSV 
+      (comma-separated value) file? That'll work. So, given this file, we 
+      could convert that into xml and... well, have some sample code to show. 
+      Sweet!
+    </p>
+    <pre>  BufferedReader r = new InputStreamReader(new FileInputStream(&quot;data.csv&quot;), &quot;UTF-8&quot;);
+  OutputStream out = new FileOutputStream(&quot;data.xml&quot;);
+  String line;
+
+  TypedXMLStreamWriter sw = (TypedXMLStreamWriter) XMLOutputFactory.newInstance().createXMLStreamWriter(out, &quot;UTF-8&quot;);
+  sw.writeStartDocument();
+  sw.writeStartElement(&quot;dataset&quot;);
+
+  while ((line = r.readLine()) != null) {
+    sw.writeStartElement(&quot;datarow&quot;);
+    String[] tokens = line.split(&quot;,&quot;); // assume comma as separator
+    int[] values = new int[tokens.length];
+    for (int i = 0; i  values.length; ++i) {
+      values[i] = Integer.parseInt(values[i]);
+    }
+    sw.writeIntArray(values, 0, values.length);
+    sw.writeEndElement();
+  }
+  sw.writeEndElement();
+  sw.writeEndDocument();</pre>
+    <p>
+      And there we have that, too. Simple? About the only additional thing 
+      worth noting is that we could have done outputting of int arrays in 
+      multiple steps too, if the incoming rows were very large. It is 
+      perfectly fine to call <b>sw.writeIntArray()</b> multiple times 
+      consecutively.
+    </p>
+    <p>
+      <b>3. Reading arrays of custom types</b>
+    </p>
+    <p>
+      And now let's consider the feature that might be the most interesting 
+      aspect of Typed Access API array handling: ability to plug in custom 
+      decoders. Just as with simple values (with which you can use<i><b> 
+      TypedXMLStreamReader.getElementAs(TypedValueDecoder)</b></i>), there is 
+      a specific method (<i><b>TypedXMLStreamReader.readElementArrayAs(TypedArrayDecoder)</b></i>) 
+      that acts as the extension point.
+    </p>
+    <p>
+      One possibility is to use one of existing simple value decoders (from 
+      package <i>org.codehaus.stax2.ri.typed</i>; inner classes of<i> 
+      ValueDecoderFactory</i>); this would allow implementing accessor for, 
+      say, QName[] or boolean[]. But for simplicity, let's write our own 
+      EnumSet decoder: decoder that can decode set of enumerated values into a 
+      container; for example, colors using their canonical names. We'll do it 
+      like so:
+    </p>
+    <pre>class ColorDecoder
+  extends TypedArrayDecoder
+{
+  public enum Color { FOO, BAR, OTHER };
+  
+  EnumSet&lt;Color&gt; colors;
+  
+  public boolean decodeValue(char[] buffer, int start, int end) {
+    return decodeValue(new String(buffer, start, end-start));
+  } 
+  public boolean decodeValue(String input) {
+    // would also be very easy to call a standard TypedValueDecoder here
+    colors.add(Color.valueOf(input));
+  }
+  public int getCount() { return colors.size(); }
+  public boolean hasRoom() { return true; } // never full
+
+  // Note: needed, but not part of TypedArrayDecoder
+  EnumSet&lt;Color&gt; getColors() { return colors; }
+}</pre>
+    <p>
+      And to use it, we would just do something like:
+    </p>
+    <pre>  TypedXMLStreamReader sr = ...;
+  ColorDecoder dec = new ColorDecoder();
+  sr.readElementAsArray(dec);
+  EnumSet&lt;Color&gt; colors = dec.getColors();</pre>
+    <p>
+      And obviously one can easily create sets of commonly needed decoders to 
+      essentially create semi-automated xml data binding libraries.
+    </p>
+    <p>
+      <b>4. Benefits of Array Access using Typed Access API</b>
+    </p>
+    <p>
+      Now that we know what can be done and how, it is worth considering one 
+      important question: why? What are the benefits of using Typed Access 
+      API, over alternatives like get-element-value-parse-yourself?<br>Consider 
+      following:
+    </p>
+    <ul>
+      <li>
+        Allows use of more compact representation: space-separated values, 
+        instead of wrapping each individual value in an element.
+      </li>
+      <li>
+        Faster, not only due to compactness (which in itself helps a lot), but 
+        also due to more optimal access Woodstox gives to raw data.
+      </li>
+      <li>
+        Lower memory usage for large data sets: since array access is chunked, 
+        memory usage is only relative to size of chunks. You can handle 
+        gigabyte sized data files with modest memory usage -- something no 
+        other standard API (or, for that matter, any non-standard API I am 
+        aware of) on Java platform allows!
+      </li>
+      <li>
+        More readable xml: compact representation generally improves 
+        readability.
+      </li>
+      <li>
+        With pluggable decoders can build simple reusable datatype libraries, 
+        while still adding very little processing overhead
+      </li>
+    </ul>
+    <p>
+      And these are just benefits compared to other Stax-based approaches. 
+      Benefits over, say, accessing data via DOM trees (*) are significantly 
+      higher.
+    </p>
+    <p>
+      (*) although note that you can actually use Stax2 Typed Access API on 
+      DOM trees, by constructing TypedXMLStreamReader from DOMSource, using 
+      Woodstox 4!
+    </p></p>
+
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Wednesday, February 04, 2009 9:36 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/02/entry_170.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/02/entry_170.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/02/entry_170.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+
+
+   
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /**
+    * var disqus_identifier; [Optional but recommended: Define a unique identifier (e.g. post id or slug) for this thread] 
+    */
+  (function() {
+   var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+   dsq.src = 'http://cowtalk.disqus.com/embed.js';
+   (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>(enable JavaScript to view the <a href="http://disqus.com/?ref_noscript=cowtalk">comments powered by Disqus)</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  </div>
+</div>
+<div id="beta">
+  <div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+
+<!-- /SiteSearch Google -->
+<hr />
+</div>
+
+     <div class="module-archives module">   
+          <h2 class="module-header">Last posts</h2>
+          <div class="module-content">
+               <ul class="module-list">
+                <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/02/entry_170.html">Typed Access API tutorial, part II: arrays</a></li>
+               </ul>
+          </div>
+     </div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+
+     <div class="module-categories module">
+          <h2 class="module-header">Categories</h2>
+          <div class="module-content">
+        <ul>
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+          
+        </ul>
+          </div>
+     </div>
+<div class="module-syndicate module">
+     <div class="module-content">
+          <a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+          [<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+     </div>
+
+</div>
+
+<div class="module-about module">
+  <h2 class="module-header">Sponsored By</h2>
+  <div class="module-content">
+  </div>
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+<hr />
+
+     <h2 class="module-header">Related Blogs</h2>
+          <div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+
+<div class="module-powered module">
+     <h2 class="module-header">Powered By</h2>
+
+     <div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a> and
+     </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>

@@ -1,0 +1,637 @@
+<html lang="en">
+<head>
+<title>StaxMate based web service, Results, Part 2</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<!-- HaloScan comments: -->
+<script type="text/javascript" src="http://www.haloscan.com/load/cowtowncoder">
+</script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+     <div id="container">
+          <div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+     <div id="banner-inner" class="pkg">
+          <h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+          <h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+     </div>
+</div>
+               <div id="pagebody">
+                    <div id="pagebody-inner" class="pkg">
+                         <div id="alpha">
+                              <div id="alpha-inner" class="pkg">
+<!-- entry -->
+
+
+   
+   
+
+     <h2 class="date-header">Monday, January 01, 2007 </h2>
+
+<div class="entry" id="post-30">
+<h3 class="entry-header">StaxMate based web service, Results, Part 2</h3>
+     <div class="entry-content">
+          <div class="entry-body">
+          
+               <p><p>
+      (continuing the story of StaxMate based simple web service, appendix B)
+    </p>
+    <p>
+      Ok, so it took bit longer than just couple of days to test out a more 
+      realistic scenario. This was not due to complexity of the task itself, 
+      results were in more than a month ago... but editorial time was limited 
+      during latter part of the last year. ;-)
+    </p>
+    <p>
+      But back to the business. The setup used for the second set of tests is 
+      simple: server is still the same oldish PC, and client is a somewhat 
+      newer 3 Ghz Windows XP (home edition -- bad choice, but more on this 
+      later on) box. Connection used is 100 Mbps switched Ethernet, using a 
+      cheap 4-port Netgear switch. And on Jetty side, traditional (blocking) 
+      I/O is used, since it seems to have higher throughput for this use case.
+    </p>
+    <p>
+      <b>1. Baseline </b>
+    </p>
+    <p>
+      To keep the results comparable with the earlier ones, let's start by 
+      using Random number based UUID generation method, and use 10 client 
+      requests (i.e. up to parallel 10 requests at any given point in time).
+    </p>
+    <p>
+      This gives us baseline of about <b>2380 requests</b> per second. So far 
+      so good -- this is almost 3 times as much as the local test case, and 
+      makes sense considering that client and server-side tasks are both 
+      reasonably CPU intensive.
+    </p>
+    <p>
+      <b>2. Generation method, Random vs. Time </b>
+    </p>
+    <p>
+      Since the time-based generation had lower overhead for the local test 
+      case, it would seem reasonable to expect some increase in throughput. 
+      And this is inn fact the case: throughput raises to <b>2680</b> rps. It 
+      is worth noting this is relatively higher increase; and once again, 
+      makes sense, considering that the whole test is now dominated on 
+      server-side processing, whereas earlier test also had client-side 
+      processing which is as fast for all generation methods.
+    </p>
+    <p>
+      <b>3. Number of UUIDs generated per request </b>
+    </p>
+    <p>
+      Using time-based generation as the new baseline (as with earlier test), 
+      let's see how batch size (number of UUIDs generated per request) affects 
+      results. As with earlier test, generating more UUIDs takes longer, both 
+      due to actual generation, and due to increased network overhead for 
+      longer response messages:
+    </p>
+    <ul>
+      <li>
+        For 10 UUIDs, throughput is bit lower, <b>2250</b> rps (for response 
+        length of 598 bytes)
+      </li>
+      <li>
+        For 100 UUIDs, throuhgput drops much more, down to <b>800</b> rps 
+        (response length of 5278 bytes).
+      </li>
+    </ul>
+    <p>
+      Results are once again quite what we expected, although the effects of 
+      longer response messages have even more profound effects. This would 
+      probably be even more significant for wide-area networks.
+    </p>
+    <p>
+      One thing that seemed worth investigating at this point, was to see 
+      whether increased request latency of the second test case could be 
+      alleviated by using more parallel requests. Testing with 20 concurrent 
+      request threads showed this not to be the case: throughput did not 
+      increase at all; even in this case. Perhaps the latencies involved at 
+      this point are still negligible (it is a high-speed LAN connection, and 
+      6 k messages only still need 4 - 5 segments to transmit).
+    </p>
+    <p>
+      <b>4. Parallelism (thread count) </b>
+    </p>
+    <p>
+      Now that we got the basics covered, let's focus more on parallelism 
+      side. Unlike results so far, which should reflect results from the local 
+      test case, results with different thread counts could display different 
+      patterns. This because there is somewhat less threading overhead (no 
+      client-side processes involved on server-side), and because there is bit 
+      more latency due to actual network connections. So, let's see actual 
+      measured throughputs for various client thread counts (using time-based 
+      UUID generation, 1 UUID per request, BIO):
+    </p>
+    <ul>
+      <li>
+        1 thread: 1750
+      </li>
+      <li>
+        2 threads: 2580
+      </li>
+      <li>
+        4 threads: 2950
+      </li>
+      <li>
+        8 threads: 2750
+      </li>
+      <li>
+        20 threads: 2300 (but with <b>very high</b> fluctuation)
+      </li>
+      <li>
+        50 threads: 1500 (even heavier fluctuation, 1000 - 2000)
+      </li>
+      <li>
+        100 threads: 1400 (heavy fluctuation, 1000 - 1900)
+      </li>
+    </ul>
+    <p>
+      So, with this setup, a little bit of parallelism does help out: about 4 
+      client threads achieves maxiumum throughput. Throughput remains quite 
+      high for a few more threads, but after 20 threads or so, overhead starts 
+      to take its toll. Interestingly, the fluctuation in throughput also 
+      increases, making it harder to really pinpoint throughput (which could 
+      be resolved by more thorough statistical approach). This fluctuation is 
+      not entirely intuitive: while lowering throughput makes some sense, its 
+      instability does not. Perhaps it is just a symptom of problems that the 
+      statistics gathering thread has, due to less reliable timing.
+    </p>
+    <p>
+      <b>5. GET vs. POST </b>
+    </p>
+    <p>
+      But how about effects of using POST requests instead of GET? Turns out 
+      that (as guessed in the previous blog entry) its effects are minor on 
+      the server side: throughput with 4 client threads drops only by 100 
+      requests, to<b> 2850 rps</b>.
+    </p>
+    <p>
+      <b>6. HTTP 1.1, persistent connections </b>
+    </p>
+    <p>
+      Another important HTTP property, that of being able to use persistent 
+      connections (which in the earlier article was incorrectly referred to as 
+      pipelining -- pipelining is unfortunately not implemented by most Java 
+      HTTP client packages, whereas basic connection reuse aka persistency 
+      is). It had very significant effect on the local test case, so it would 
+      seem likely to have an effect on this test case as well.
+    </p>
+    <p>
+      And effect it has: for the baseline 4 client connections, disabling 
+      persistent connections lowers throughput by about two thirds, down to <b>920</b> 
+      (!) rps. And just to see if the effects were mostly due to increased 
+      latency (of having to keep re-opening connections), another test was 
+      done with 8 client threads, with similar results (down to <b>850 rps</b>, 
+      from earlier 2750). So this appears to be mostly due to pure processing 
+      overhead, even without having to consider network effects.
+    </p>
+    <p>
+      But there was one strange thing: after running for about a minute, 
+      connections started failing. Error messages indicated something about 
+      being unable to establish connections. After investigating this problem 
+      for a while, I learn that it was most likely caused by the default 
+      Windows XP (non-professional edition) settings for number of available 
+      so-called ephemeral port numbers. The default setting is ridiculously 
+      low, but can fortunately be changed. However, documentation indicate 
+      that although this setting can be changed, the home edition does suffer 
+      from a few networking related limitations, which may well render these 
+      home editions less than useful for testing high throughput web 
+      applications and services.
+    </p>
+    <p>
+      Now, it is also possible that above-mentioned problem could affect 
+      results for this test case. But it seems likely that even if the 
+      absolute throughput numbers might be higher when using proper networking 
+      OSes (like Linux, BSDs, or MacOS X), disabling persistent connections is 
+      likely to have significant negative effect on throughput.
+    </p>
+    <p>
+      <b>7. NIO </b>
+    </p>
+    <p>
+      At this point, the last significant performance trade-off involves 
+      choosing between Jetty's traditional blocking I/O (BIO) and newer 
+      asynchronous, NIO-based listeners (many other containers also offer 
+      similar choices).
+    </p>
+    <p>
+      But it turned out to be difficult to test NIO-based listener with the 
+      combination. For some reason, even after resolving Windows-related 
+      problems (which reappeared with this test), the baseline throughput was 
+      much lower than expected. So much so, that I went ahead and re-run some 
+      of earlier tests -- only to find that those baselines were reduced as 
+      well. This was peculiar: almost as if the network switch was having some 
+      problems (like had negotiated 10 Mbps link speed instead of 100 Mbps or 
+      so).
+    </p>
+    <p>
+      So, unfortunately I couldn't get a fair comparison between NIO and BIO 
+      for this setup. I would like to re-visit this test some time in future, 
+      but for now I assume that the performance differences should be along 
+      similar lines as in the local test case. That is, BIO would slightly 
+      outperform NIO, but that the difference would not be huge.
+    </p>
+    <p>
+      <b>8. Next Steps?</b>
+    </p>
+    <p>
+      At this point, I think I have done enough testing for this little web 
+      service. While it would be nice to figure out what the absolute highest 
+      throughput would be -- after all, with an earlier test (check out blog 
+      history for &quot;Maximum TPS 10k&quot; or such), it took more than one dedicated 
+      client to saturate the server -- it's time to move on with other things 
+      related to efficient message and xml processing.
+    </p>
+    <p>
+      Since it has been while since I have written about Woodstox and 
+      StaxMate, and especially since there have been interesting new 
+      developments, I will probably blog a little bit about these two things 
+      next.
+    </p>
+    <p>
+       
+    </p></p>
+
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Monday, January 01, 2007 10:58 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/01/entry_30.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2007/01/entry_30.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/01/entry_30.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+
+
+   
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /**
+    * var disqus_identifier; [Optional but recommended: Define a unique identifier (e.g. post id or slug) for this thread] 
+    */
+  (function() {
+   var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+   dsq.src = 'http://cowtalk.disqus.com/embed.js';
+   (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>(enable JavaScript to view the <a href="http://disqus.com/?ref_noscript=cowtalk">comments powered by Disqus)</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  </div>
+</div>
+<div id="beta">
+  <div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+
+<!-- /SiteSearch Google -->
+<hr />
+</div>
+
+     <div class="module-archives module">   
+          <h2 class="module-header">Last posts</h2>
+          <div class="module-content">
+               <ul class="module-list">
+                <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2007/01/entry_30.html">StaxMate based web service, Results, Part 2</a></li>
+               </ul>
+          </div>
+     </div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+
+     <div class="module-categories module">
+          <h2 class="module-header">Categories</h2>
+          <div class="module-content">
+        <ul>
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+          
+        </ul>
+          </div>
+     </div>
+<div class="module-syndicate module">
+     <div class="module-content">
+          <a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+          [<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+     </div>
+
+</div>
+
+<div class="module-about module">
+  <h2 class="module-header">Sponsored By</h2>
+  <div class="module-content">
+  </div>
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+<hr />
+
+     <h2 class="module-header">Related Blogs</h2>
+          <div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+
+<div class="module-powered module">
+     <h2 class="module-header">Powered By</h2>
+
+     <div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a> and
+     </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>

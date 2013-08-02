@@ -1,0 +1,1337 @@
+<html lang="en">
+<head>
+<title>April 2012</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Tuesday, April 10, 2012 </h2>
+
+<div class="entry" id="post-473">
+			<h3 class="entry-header">What me like YAML? (Confessions of a JSON advocate)</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Ok. I have to admit that I learnt something new and gained bit more 
+      respect for YAML data format recently, when working on the 
+      proof-of-concept for YAML-on-Jackson (<a href="https://github.com/FasterXML/jackson-dataformat-yaml">jackson-dataformat-yaml</a>; 
+      more on this on yet another Jackson 2.0 article, soon).<br>And since it 
+      would be intellectually dishonest not to mention that my formerly 
+      negative view on YAML has brightened up a notch, here's my write-up on 
+      this bit of enlightenment.
+    </p>
+    <p>
+      <b>1. Bad First Impressions Stick</b>
+    </p>
+    <p>
+      My first look at YAML via its definition basically made my stomach turn. 
+      It just looked so much like a bad American Ice Cream: &quot;Too Much of 
+      Everything&quot; -- hey, if it isn't enough to have chocolate, banana and 
+      walnut, let's throw in bit of caramel, root beer essence and touch of 
+      balsamic vinegar; along with bit of organic arugula to spice things 
+      up!&quot;. That isn't the official motto, I thought, but might as well be. If 
+      there is an O'Reilly book on YAML it surely must have platypus as the 
+      cover animal.
+    </p>
+    <p>
+      That was my thinking up until few weeks ago.
+    </p>
+    <p>
+      <b>2. Tale of the Two Goals</b>
+    </p>
+    <p>
+      I have read most of YAML specification (which is not badly written at 
+      all) multiple times, as well as shorter descriptions. My overall 
+      conclusion has always been that there are multiple high-level design 
+      decisions that I disagree with, and that these can mostly be summarized 
+      that it tries to do too many things, tries to solve multiple conflicting 
+      use cases.
+    </p>
+    <p>
+      But recently when working on adding YAML support as Jackson module 
+      (based on nice <a href="http://code.google.com/p/snakeyaml/">SnakeYAML</a> 
+      library, solid piece of code, very unlike most parsers/generators I have 
+      seen), I realized that fundamentally there are just two conflicting 
+      goals:
+    </p>
+    <ol>
+      <li>
+        Define a Wiki-style markup for data (assuming it is easier to not only 
+        write prose in, but also data)
+      </li>
+      <li>
+        Create a straight-forward Object serialization data format
+      </li>
+    </ol>
+    <p>
+      (it is worth noting that these goals are orthogonal, functionality-wise; 
+      but they conflict at level of syntax, visual appearance and complicate 
+      handling significantly, mostly because there is always &quot;more than one 
+      way to do it&quot; (Perl motto!))
+    </p>
+    <p>
+      I still think that one could solve the problem better by defining two, 
+      not one, format: first one with a Wiki dialect; and second one with a 
+      clean data format.<br>But this lead me to think about something: what if 
+      those weird Wiki-style aspects were removed from YAML? Would I still 
+      dislike the format?
+    </p>
+    <p>
+      And I came to conclusion that no, I would not dislike it. In fact, I 
+      might like it. A lot.
+    </p>
+    <p>
+      Why? Let's see which things I like in YAML; things that JSON does not 
+      have, but really really should have in the ideal world.
+    </p>
+    <p>
+      <b>3. Things that YAML has and JSON should have</b>
+    </p>
+    <p>
+      Here's the quick rundown:
+    </p>
+    <ol>
+      <li>
+        Comments: oh lord, what kind of textual data format does NOT have 
+        comments? JSON is the only one I know of; and even it had them before 
+        spec was finalized. I can only imagine a brain fart of colossal 
+        proportions caused it to be removed from the spec...
+      </li>
+      <li>
+        (optional) Document start and end markers (&quot;---&quot; header, &quot;...&quot; 
+        footer&quot;). This is such a nice thing to have; both for format 
+        auto-detection purpose as well as for framing for data feeds. It's bit 
+        of a no-brainer; but suspiciously, JSON has nothing of sort (XML does 
+        have XML declaration which _almost_ works well, but not quite; but I 
+        digress)
+      </li>
+      <li>
+        Type tags for type metadata: in YAML, one can add optional type tags, 
+        to further indicate type of an Object (or any value actually). This is 
+        such an essential thing to have; and with JSON one must use in-band 
+        constructs that can conflict with data. XML at least has attributes 
+        (&quot;xsi:type&quot;).
+      </li>
+      <li>
+        Aliases/anchors for Object Identity (aka &quot;id / idref&quot;): although data 
+        is data, not objects with identity, having means to optionally pass 
+        identity information is very, very useful. And here too XML has some 
+        support (having attributes for metadata is convenient); and JSON has 
+        nada.
+      </li>
+    </ol>
+    <p>
+      The common theme with above is that all extra information is optional; 
+      but if used, it is included discreetly and can be used as appropriate by 
+      encoders, decoders, with or without using language- or platform-specific 
+      resolution mechanisms.<br>And I think YAML actually declares these 
+      things pretty well: it is neither over nor under engineered with respect 
+      to these features. This is surprisingly delicate balance, and very well 
+      chosen. I have seen over-complicated data formats (at Amazon, for 
+      example) that didn't know where to stop; and we can see how JSON stopped 
+      too short of even most rudimentary things (... comments). Interestingly, 
+      XML almost sort-of has these features; but they come about with extra 
+      constructs (xsi:type via XML Schema), or are side effects of otherwise 
+      quirky features (element/attribute separation).
+    </p>
+    <p>
+      Having had to implement equivalent functionality on top of simplistic 
+      JSON construct (&quot;add yet another meta-property, in-line with actual 
+      data; allow a way to configure it to reduce conflicts&quot;), I envy having 
+      these constructs as first-level concepts, convenient little additions 
+      that allow proper separation of data and metadata (type, object id; 
+      comments).
+    </p>
+    <p>
+      <b>4. Uses for YAML</b>
+    </p>
+    <p>
+      Still, having solved/worked around all of above problems -- Jackson 1.5 
+      added full support for polymorphic types (&quot;type tags&quot;); 2.0 finally 
+      added Object Identity (&quot;alias/anchor&quot;), use of linefeeds for framing can 
+      substitute for document boundaries -- I do not have compelling case for 
+      using YAML for data transfer. It's almost a pity -- I have come to 
+      realize that YAML could have been a great data format (it is also old 
+      enough to have challenged popularity of JSON, both seem to have been 
+      conceived at about same time). As is, it is almost one.
+    </p>
+    <p>
+      Somewhat ironically, then, is that maybe Wiki features are acceptable 
+      for the other main use case: that of configuration files. This is the 
+      use case I have for YAML; and the main reason for writing compatibility 
+      module (inspired by libs/frameworks like <a href="https://github.com/codahale/dropwizard">DropWizard</a> 
+      which use YAML as the main config file format).
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, April 10, 2012 9:52 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_473.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_473.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_473.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Monday, April 09, 2012 </h2>
+
+<div class="entry" id="post-472">
+			<h3 class="entry-header">Data format auto-detection with Jackson (JSON, XML, Smile, YAML)</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      There is one fairly advanced feature of Jackson that has been around a 
+      while (since version 1.8), but that has not really been publicized a 
+      lot: data format auto-detection. Let's see how it works, and what it 
+      could be used for.
+    </p>
+    <p>
+      <b>1. Format detection?</b>
+    </p>
+    <p>
+      By format detection I mean ability to figure out most likely data format 
+      that a piece of content has. Auto-detection means that a piece of code 
+      can try to automatically deduce this, given set of data formats to 
+      recognize, and accessor to content.
+    </p>
+    <p>
+      Jackson 1.8 added such capability to Jackson, by adding one new method 
+      in JsonFactory abstract class:
+    </p>
+    <pre>  public MatchStrength hasFormat(InputAccessor acc)</pre>
+    <p>
+      as well as couple of supporting classes; and most importantly, a helper 
+      class:
+    </p>
+    <pre>  com.fasterxml.jackson.core.format.DataFormatDetector</pre>
+    <p>
+      that coordinates calls to produce somewhat convenience mini-API for 
+      format auto-detection.
+    </p>
+    <p>
+      <b>2. Show Me Some Code!</b>
+    </p>
+    <p>
+      Let's start with a simple demonstration, with known content that should 
+      be either JSON or XML:
+    </p>
+    <hr>
+    
+
+    <pre>  JsonFactory jsonF = new JsonFactory();<br>  XmlFactory xmlF = new XmlFactory(); // from com.fasterxml.jackson.dataformat.xml (jackson-dataformat-xml)<br>  // note: ordering is importtant; first one that gives full match is chosen:<br>  DataFormatDetector det = new DataFormatDetector(new JsonFactory[] { jsonF, xmlF });<br>  // let's accept about any match; but only if no &quot;solid match&quot; found
+  det = det.withMinimalMatch(MatchStrength.WEAK_MATCH).withOptimalMatch(MatchStrength.SOLID_MATCH);<br>  // then see what we get:<br>  DataFormatMatcher match = det.findFormat(&quot;{ \&quot;name\&quot; : \&quot;Bob\&quot; }&quot;.getBytes(&quot;UTF-8&quot;));
+  assertEquals(jsonF.getFormatName(), match.getMatchedFormatName());<br>  match = det.findFormat(&quot;&lt;?xml version='1.0'?&gt;&lt;root/&gt;&quot;.getBytes(&quot;UTF-8&quot;));<br>  assertEquals(xmlF.getFormatName(), match.getMatchedFormatName();<br>  // or:<br>  match = det.findForm(&quot;neither really...&quot;.getBytes(&quot;UTF-8&quot;));<br>  assertNull(match);</pre>
+    <hr>
+    
+
+    <p>
+      which is useful if we want to display information; but perhaps even more 
+      useful, we can conveniently process the data.<br>So let's assume we have 
+      file &quot;data&quot;, with format of either XML or JSON:
+    </p>
+    <hr>
+    
+
+    <pre>  // note: can pass either byte[] or InputStream
+  match = det.findFormat(new File(&quot;data&quot;));<br>  JsonParser p = match.createParserWithMatch();<br>  // or; if we wanted to get factory: JsonFactory matchedFactory = p.getMatch();<br>  ObjectMapper mapper = new ObjectMapper();<br>  User user = mapper.readValue(p, User.class);</pre>
+    <hr>
+    
+
+    <p>
+      Basically you can let <i>DataFormatMatcher</i> construct a parser for 
+      the matched type (note: some data formats require specific kind of 
+      ObjectMapper to be used).
+    </p>
+    <p>
+      <b>3. Works on... ?</b>
+    </p>
+    <p>
+      Basically, any format for which there is JsonFactory that properly 
+      implements method &quot;hasFormat()&quot; can be auto-detected.
+    </p>
+    <p>
+      Currently (Jackson 2.0.0) this includes following data formats:
+    </p>
+    <ol>
+      <li>
+        JSON -- can detect standards-compliant data (main-level JSON Object or 
+        Array); and to some degree other variants (scalar values at root-level)
+      </li>
+      <li>
+        Smile -- reliably detected, especially when the standard header is 
+        written (enabled by default)
+      </li>
+      <li>
+        XML -- reliably detected either from XML declaration, or from first 
+        tag, PI or comment
+      </li>
+      <li>
+        YAML: experimental <a href="https://github.com/FasterXML/jackson-dataformat-yaml">Jackson 
+        YAML module</a> can detect document start marker (&quot;---&quot;) for reliable 
+        detection; otherwise inconclusive
+      </li>
+    </ol>
+    <p>
+      One existing dataformat for which auto-detection does not yet work is 
+      CSV: this is mostly due to inherent lack of header of any kind. However, 
+      some heuristic support will likely be added soon.
+    </p>
+    <p>
+      <b>4. Most useful for? </b>
+    </p>
+    <p>
+      This feature was originally implemented to allow for automatic detection 
+      and parsing of content that would be in either JSON, or a binary JSON 
+      (Smile) representation. For this use case, things work reliably and 
+      efficiently.
+    </p>
+    <p>
+      But fortunately system was designed to be pluggable, so it should 
+      actually work for a variety of other cases. Ideally this should nicely 
+      complement &quot;universal data adapter&quot; goal of Jackson project; so that you 
+      could usually simply just feed a data file, and as long as it is in one 
+      of supported formats, things would Just Work.
+    </p>
+    <p>
+      <b>5. Caveats</b>
+    </p>
+    <p>
+      Some things to note:
+    </p>
+    <ol>
+      <li>
+        Order of factories used for constructing <i>DataFormatDetector</i> 
+        matters: first one that provides optimal match is taken; and if no 
+        optimal match is found, first of otherwise equal acceptable matches is 
+        given
+      </li>
+      <li>
+        Some data formats require specific ObjectMapper implementation 
+        (sub-class) to be used: for those formats, automatic parser creation 
+        needs to be coupled with choosing of the right mapper (this may be 
+        improved in future)
+      </li>
+    </ol></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, April 09, 2012 7:19 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_472.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_472.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_472.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Saturday, April 07, 2012 </h2>
+
+<div class="entry" id="post-471">
+			<h3 class="entry-header">Java Type Erasure not a Total Loss -- use Java Classmate for resolving generic signatures</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      As I have written before (&quot;<a href="/blog/archives/2010/12/entry_436.html">Why 
+      'java.lang.reflect.Type' Just Does Not Cut It</a>&quot;), Java's Type Erasure 
+      can be a royal PITA.
+    </p>
+    <p>
+      But things are actually not quite as bleak as one might think. But let's 
+      start with an actual somewhat unsolvable problem; and then proceed with 
+      another important, similar, yet solvable problem.
+    </p>
+    <p>
+      <b>1. Actual Unsolvable problem: Java.util Collections</b>
+    </p>
+    <p>
+      Here is piece of code that illustrates a problem that most Java 
+      developers either understand, or think they understand:
+    </p>
+    <pre>  List&lt;String,Integer&gt; stringsToInts = new ArrayList&lt;String,Integer&gt;();<br>  List&lt;byte[],Boolean&gt; bytesToBools = new ArrayList&lt;byte[], Boolean&gt;();<br>  assertSame(stringsToInts.getclass(), bytesToBools.getClass();</pre>
+    <p>
+      The problem is that although conceptually two collections seem to act 
+      different, at source code level, they are instances of the very same 
+      class (Java does not generate new classes for genericized types, unlike 
+      C++).
+    </p>
+    <p>
+      So while compiler helps in keeping typing straight, there is little 
+      runtime help to either enforce this, or allow other code to deduce 
+      expected type; there just isn't any difference from type perspective.
+    </p>
+    <p>
+      <b>2. All Lost? Not at all</b>
+    </p>
+    <p>
+      But let's look at another example. Starting with a simple interface
+    </p>
+    <hr>
+    
+
+    <pre>public interface Callable&lt;IN, OUT&gt; {<br>  public OUT call(IN argument);<br>}</pre>
+    <hr>
+    
+
+    <p>
+      do you think following is true also?
+    </p>
+    <hr>
+    
+
+    <pre>public void compare(Callable&lt;?,?&gt; callable1, Callable&lt;?,?&gt; callable2) {<br>  assertSame(callable1.getClass(), callable2.getClass());<br>}</pre>
+    <hr>
+    
+
+    <p>
+      Nope. Not necessarilly; classes may well be different. WTH?
+    </p>
+    <p>
+      The difference here is that since Callable is an interface (and you can 
+      not instantiate an interface), instances must be of some other type; and 
+      there is a good chance they are different.
+    </p>
+    <p>
+      But more importantly, if you use <a href="https://github.com/cowtowncoder/java-classmate">Java 
+      ClassMate</a> library (more on this in just a bit), we can even figure 
+      out parameterization (unlike with earlier example, where all you could 
+      see is that parameters are &quot;a subtype of java.lang.Object&quot;), so for 
+      example we can do
+    </p>
+    <div>
+      <hr>
+      // Assume 'callable1' was of type:
+    </div>
+    <div>
+      // class MyStringToIntList implements Callable&lt;String, List&lt;Integer&gt;&gt; { 
+      ... }
+    </div>
+    <pre>  TypeResolver resolver = new TypeResolver();
+  ResolvedType type = resolver.resolve(callable1.getClass());
+  List&lt;ResolvedType&gt; params = type.typeParametersFor(Callable.class);<br>  // so we know it has 2 parameters; from above, 'String' and 'List&lt;Integer&gt;'<br>  assertEquals(2, params.size());
+  assertSame(String.class, params.get(0).getErasedType();<br>  // and second type is generic itself; in this case can directly access<br>  ResolvedType resultType = params.get(1);<br>  assertSame(List.class, resultType.getErasedType());<br>  List&lt;ResolvedType&gt; listParams = resultType.getTypeParameters();<br>  assertSame(Integer.class, listParams.get(0).getErasedType();<br>  //or, just to see types visually, try:<br>  String desc = type.getSignature(); // or 'getFullDescription'</pre>
+    <hr>
+    
+
+    <p>
+      How is THIS possible? (fun exercise: pick 5 of your favorite Java 
+      experts; ask if above is possible, observe how most of them would have 
+      said &quot;nope, not a chance&quot; :-) )
+    </p>
+    <p>
+      <b>3. Long live generics -- hidden deep, deep within</b>
+    </p>
+    <p>
+      Basically generic type information is actually stored in class 
+      definitions, in 3 places:
+    </p>
+    <ol>
+      <li>
+        When defining parent type information (&quot;super type&quot;); parameterization 
+        for base class and base interface(s) if any
+      </li>
+      <li>
+        For generic field declarations
+      </li>
+      <li>
+        For generic method declarations (return, parameter and exception types)
+      </li>
+    </ol>
+    <p>
+      It is the first place where ClassMate finds its stuff. When resolving a 
+      Class, it will traverse the inheritance hierarchy, recomposing type 
+      parameterizations. This is a rather involved process, mostly due to type 
+      aliasing, ability for interfaces to use different signatures and so on. 
+      In fact, trying to do this manually first looks feasible, but if you try 
+      it via all wildcarding, you will soon realize why having a library do it 
+      for you is a nice thing...
+    </p>
+    <p>
+      So the important thing to learn is this: <i><b>to retain run-time 
+      generic type information, you MUST pass concrete sub-types which resolve 
+      generic types via inheritance</b></i>.
+    </p>
+    <p>
+      And this is where JDK collection types bring in the problem (wrt this 
+      particular issue): concerete types like ArrayList still take generic 
+      parameters; and this is why runtime instances do not have generic type 
+      available.
+    </p>
+    <p>
+      Another way to put this is that when using a subtype, say:
+    </p>
+    <hr>
+    
+
+    <pre>  MyStringList list = new ArrayList&lt;String&gt;() { }<br>  // can use ClassMate now, a la:<br>  ResolvedType type = resolver.resolve(list.getClass());<br>  // type itself has no parameterization (concrete non-generic class); but it does implement List so:
+  List&lt;ResolvedType&gt; params = type.typeParametersFor(List.class);<br>  assertSame(String.class, params.get(0).getErasedType());  </pre>
+    <hr>
+    
+
+    <p>
+      which once again would retain usable amount of generic type information.
+    </p>
+    <p>
+      <b>4. Real world usage?</b>
+    </p>
+    <p>
+      Above might seem as an academic exercise; but it is not. When designing 
+      typed APIs, many callbacks would actually benefit from proper generic 
+      typing. And of special interest are callbacks or handlers that need to 
+      do type conversions.
+    </p>
+    <p>
+      As an example, my favorite Database access library, jDBI, makes use of 
+      this functionality (using embedded ClassMate) to figure out data-binding 
+      information without requiring extra Class argument. That is, you could 
+      pass something like (not an actual code sample):
+    </p>
+    <pre>  MyPojo value = dbThingamabob.query(queryString, handler);</pre>
+    <p>
+      instead of what would more commonly requested:
+    </p>
+    <pre>  MyPojo value = dbThingamabob.query(queryString, handler, MyPojo.class);</pre>
+    <p>
+      and framework could still figure out what kind of thing 'handler' would 
+      handle, assuming it was a generic interface caller has to implement.
+    </p>
+    <p>
+      difference may seem minute, but this can actually help a lot by 
+      simplifying some aspects of type passing, and remove one particular mode 
+      of error.
+    </p>
+    <p>
+      <b>5. More on ClassMate</b>
+    </p>
+    <p>
+      Above actually barely scratch surface of what <a href="https://github.com/cowtowncoder/java-classmate">ClassMate</a> 
+      provides. Although it is already tricky to find &quot;simple&quot; 
+      parameterization for main-level classes, there are much more trickier 
+      things. Specifically, resolving types of Fields and Methods (return 
+      types, parameters). Given classes like:
+    </p>
+    <pre>  public interface Base&lt;T&gt; {
+    public T getStuff();
+  }
+  public class ListBase&lt;T&gt; implements Base&lt;List&lt;T&gt;&gt; {<br>    protected T value;<br>    protected ListBase(T v) { value = v; }<br>    public T getstuff() { return value; }<br>  }
+  public class Actual implements ListBase&lt;String&gt; {<br>    public Actual(List&lt;String&gt; value) { super(value; }<br>  }</pre>
+    <p>
+      you might be interested in figuring out, exactly what is the type of 
+      return value of &quot;getStuff()&quot;. By eyeballing, you know it should be 
+      &quot;List&lt;String&gt;&quot;, but bytecode does not tell this -- in fact, it just 
+      tells it's &quot;T&quot;, basically.
+    </p>
+    <p>
+      But with ClassMate you can resolve it:
+    </p>
+    <pre>  // start with ResolvedType; need MemberResolver
+  ResolvedType classType = resolver.resolve(Actual.class);<br>  MemberResolver mr = new MemberResolver(resolver);<br>  ResolvedTypeWithMembers beanDesc = mr.resolve(classType, null, null);<br>  ResolvedMethod[] members = bean.getMemberMethods();<br>  ResolvedType returnType = null;<br>  for (ResolvedMethod m : members) {<br>    if (&quot;getStuff&quot;.equals(m.getName())) {<br>      returnType = m.getReturnType();<br>    }<br>  }<br>  // so, we should get<br>  assertSame(List.class, returnType.getErasedType());<br>  ResolvedType elemType = returnType.getTypeParameters().get(0);<br>  assertSame(String.class, elemType.getErasedType();<br></pre>
+    <p>
+      and get the information you need.
+    </p>
+    <p>
+      <b>6. Why so complicated for nested types? </b>
+    </p>
+    <p>
+      One thing that is obvious from code samples is that code that uses 
+      ClassMate is not as simple as one might hope. Handling of nested generic 
+      types, specifically, is bit verbose in some cases (specifically: when 
+      type we are resolving does not directly implement type we are interested 
+      in)<br>Why is that?
+    </p>
+    <p>
+      The reason is that there is a wide variety of interfaces that any class 
+      can (and often does) implement. Further, parameterizations may vary at 
+      different levels, due to co-variance (ability to override methods with 
+      more refined return types). This means that it is not practical to &quot;just 
+      resolve it all&quot; -- and even if this was done, it is not in general 
+      obvious what the &quot;main type&quot; would be. For these reasons, you need to 
+      manually request parameterization for specific generic classes and 
+      interfaces as you traverse type hierarchy: there is no other way to do 
+      it.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Saturday, April 07, 2012 1:51 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Friday, April 06, 2012 </h2>
+
+<div class="entry" id="post-470">
+			<h3 class="entry-header">Take your JSON processing to Mach 3 with Jackson 2.0, Afterburner</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      (this is part on-going &quot;Jackson 2.0&quot; series, starting with &quot;<a href="/blog/archives/2012/03/entry_466.html">Jackson 
+      2.0 released</a>&quot;)
+    </p>
+    <p>
+      <b>1. Performance overhead of databinding</b>
+    </p>
+    <p>
+      When using automatic data-binding Jackson offers, there is some amount 
+      of overhead compared to manually writing equivalent code that would use 
+      Jackson streaming/incremental parser and generator. But how overhead is 
+      there? The answer depends on multiple factors, including exactly how 
+      good is your hand-written code (there are a few non-obvious ways to 
+      optimize things, compared to data-binding where there is little 
+      configurability wrt performance).
+    </p>
+    <p>
+      But looking at benchmarks such as <a href="https://github.com/eishay/jvm-serializers/wiki">jvm-serializers</a>, 
+      one could estimate that it may take anywhere between 35% and 50% more 
+      time to serialize and deserialize POJOs, compared to highly tuned 
+      hand-written alternative. This is usually not enough to matter a lot, 
+      considering that JSON processing overhead is typically only a small 
+      portion of all processing done.
+    </p>
+    <p>
+      <b>2. Where does overhead come?</b>
+    </p>
+    <p>
+      There are multiple things that automatic data-binding has to do that 
+      hand-written alternatives do not. But at high level, there are really 
+      two main areas:
+    </p>
+    <ol>
+      <li>
+        Configurability to produce/consume alternative representations; code 
+        that has to support multiple ways of doing things can not be as 
+        aggressively optimized by JVM and may need to keep more state around.
+      </li>
+      <li>
+        Data access to POJOs is done dynamically using Reflection, instead of 
+        directly accessing field values or calling setters/getters
+      </li>
+    </ol>
+    <p>
+      While there isn't much that can be done for former, in general sense 
+      (especially since configurability and convenience are major reasons for 
+      popularity of data-binding), latter overhead is something that could be 
+      theoretically eliminated.
+    </p>
+    <p>
+      How? By generating bytecode that does direct access to fields and calls 
+      to getters/setters (as well as for constructing new instances).
+    </p>
+    <p>
+      <b>3. Project Afterburner</b>
+    </p>
+    <p>
+      And this is where <a href="https://github.com/FasterXML/jackson-module-afterburner">Project 
+      Afterburner</a> comes in. What it does really is as simple as generating 
+      byte code, dynamically, to mostly eliminate Reflection overhead. 
+      Implementation uses well-known lightweight bytecode library called <a href="http://asm.ow2.org/">ASM</a>.
+    </p>
+    <p>
+      Byte code is generated to:
+    </p>
+    <ol>
+      <li>
+        Replace &quot;Class.newInstance()&quot; calls with equivalent call to 
+        zero-argument constructor (currently same is not done for 
+        multi-argument Creator methods)
+      </li>
+      <li>
+        Replace Reflection-based field access (Field.set() / Field.get()) with 
+        equivalent field dereferencing
+      </li>
+      <li>
+        Replace Reflection-based method calls (Method.invoke(...)) with 
+        equivalent direct calls
+      </li>
+      <li>
+        For small subset of simple types (int, long, String, boolean), further 
+        streamline handling of serializers/deserializers to avoid auto-boxing
+      </li>
+    </ol>
+    <p>
+      It is worth noting that there are certain limitations to access: for 
+      example, unlike with Reflection, it is not possible to avoid visibility 
+      checks; which means that access to private fields and methods must still 
+      be done using Reflection.
+    </p>
+    <p>
+      <b>4. Engage the Afterburner!</b>
+    </p>
+    <p>
+      Using Afterburner is about as easy as it can be: you just create and 
+      register a module, and then use databinding as usual:
+    </p>
+    <hr>
+    
+
+    <pre>Object mapper = new ObjectMapper()
+mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeValueAsString(value);<br>Value value = mapper.readValue(json, Value.class);<br></pre>
+    <div>
+      <hr>
+      absolutely nothing special there (note: for Maven dependency, downloads, 
+      go see the <a href="https://github.com/FasterXML/jackson-module-afterburner">project 
+      page</a>).
+    </div>
+    <p>
+      <b>5. How much faster?</b>
+    </p>
+    <p>
+      Earlier I mentioned that Reflection is just one of overhead areas. In 
+      addition to general complexity from configurability, there are cases 
+      where general data-binding has to be done using simple loops, whereas 
+      manual code could use linear constructs. Given this, how much overhead 
+      remains after enabling Afterburner?
+    </p>
+    <p>
+      As per jvm-serializers, more than 50% of speed difference between 
+      data-binding and manual variant are eliminated. That is, data-bind with 
+      afterburner is closer to manual variant than &quot;vanilla&quot; data-binding. 
+      There is still something like 20-25% additional time spent, compared to 
+      highest optimized cases; but results are definitely closer to optimal.
+    </p>
+    <p>
+      Given that all you really have to do is to just add the module, register 
+      it, and see what happens, it just might make sense to take Afterburner 
+      for a test ride.
+    </p>
+    <p>
+      <b>6. Disclaimer</b>
+    </p>
+    <p>
+      While Afterburner has been used by a few Jackson users, it is still not 
+      very widely used -- after all, while it has been available since 1.8, in 
+      some form, it has not been advertised to users. This article can be 
+      considered an announcement of sort.
+    </p>
+    <p>
+      Because of this, there may be rought edges; and if you are unlucky you 
+      might find one of two possible problems:
+    </p>
+    <ul>
+      <li>
+        Get no performance improvement (which is likely due to Afterburner not 
+        covering some specific code path(s)), or
+      </li>
+      <li>
+        Get a bytecode verification problem when a serializer/deserializer is 
+        being loaded
+      </li>
+    </ul>
+    <p>
+      latter case obviously being nastier. But on plus side, this should be 
+      obvious right away (and NOT after running for an hour); nor should there 
+      be a way for it to cause data losses or corruption; JVMs are rather good 
+      at verifying bytecode upon trying to load it.
+    </p>
+    <p>
+      
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Friday, April 06, 2012 7:24 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header"> </h2>
+
+<div class="entry" id="post-469">
+			<h3 class="entry-header">Notes on upgrading Jackson from 1.9 to 2.0</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      If you have existing code that uses Jackson version 1.x, and you would 
+      like to see how to upgrade to 2.0, there isn't much documentation around 
+      yet; although <a href="http://wiki.fasterxml.com/JacksonRelease20">Jackson 
+      2.0 release</a> page does outline all the major changes that were made.
+    </p>
+    <p>
+      So let's try to see what kind of steps are typically needed (note: this 
+      is based on Jackson 2.0 upgrade experiences by <a href="https://twitter.com/#!/pamonrails">@pamonrails</a> 
+      -- thanks Pierre!)
+    </p>
+    <p>
+      <b>0. Pre-requisite: start with 1.9</b>
+    </p>
+    <p>
+      At this point, I assume code to upgrade works with Jackson 1.9, and does 
+      not use any deprecated interfaces (many methods and some classes were 
+      deprecated during course of 1.x; all deprecated things went away with 
+      2.0). So if your code is using an older 1.x version, the first step is 
+      usually to upgrade to 1.9, as this simplifies later steps.
+    </p>
+    <p>
+      <b>1. Update Maven / JAR dependencies</b>
+    </p>
+    <p>
+      The first thing to do is to upgrade jars. Depending on your build 
+      system, you can either get jars from <a href="http://wiki.fasterxml.com/JacksonDownload">Jackson 
+      Download</a> page, or update Maven dependencies. New Maven dependencies 
+      are:
+    </p>
+    <pre>
+&lt;dependency&gt;
+  &lt;groupId&gt;com.fasterxml.jackson.core&lt;/groupId&gt;
+  &lt;artifactId&gt;jackson-annotations&lt;/artifactId&gt;
+  &lt;version&gt;2.0.0&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;com.fasterxml.jackson.core&lt;/groupId&gt;
+  &lt;artifactId&gt;jackson-core&lt;/artifactId&gt;
+  &lt;version&gt;2.0.0&lt;/version&gt;
+&lt;/dependency&gt;<br>&lt;dependency&gt;
+  &lt;groupId&gt;com.fasterxml.jackson.core&lt;/groupId&gt;
+  &lt;artifactId&gt;jackson-databind&lt;/artifactId&gt;
+  &lt;version&gt;2.0.0&lt;/version&gt;
+&lt;/dependency&gt;</pre>
+    <p>
+      The main thing to note is that instead of 2 jars (&quot;core&quot;, &quot;mapper&quot;), 
+      there are now 3: former core has been split into separate &quot;annotations&quot; 
+      package and remaining &quot;core&quot;; latter contains streaming/incremental 
+      parser/generator components. And &quot;databind&quot; is a direct replacement of 
+      &quot;mapper&quot; jar.
+    </p>
+    <p>
+      Similarly, you will need to update dependencies to supporting jars like:
+    </p>
+    <ul>
+      <li>
+        Mr Bean: com.fasterxml.jackson.module / jackson-module-mrbean
+      </li>
+      <li>
+        Smile binary JSON format: com.fasterxml.jackson.dataformat / 
+        jackson-dataformat-smile
+      </li>
+      <li>
+        JAX-RS JSON provider: com.fasterxml.jackson.jaxrs / 
+        jackson-jaxrs-json-provider
+      </li>
+      <li>
+        JAXB annotation support (&quot;xc&quot;): com.fasterxml.jackson.module / 
+        jackson-module-jaxb-annotations
+      </li>
+    </ul>
+    <p>
+      these, and many many more extension modules have their own project pages 
+      under <a href="https://github.com/FasterXML/">FasterXML Git repo</a>.
+    </p>
+    <p>
+      <b>2. Import statements</b>
+    </p>
+    <p>
+      Since Jackson 2.0 code lives in Java packages, you will need to change 
+      import statements. Although most changes are mechanical, there isn't 
+      strict set of mappings.
+    </p>
+    <p>
+      The way I have done this is to simply use an IDE like Eclipse, and 
+      remove all invalid import statements; and then use Eclipse functionality 
+      to find new packages. Typical import changes include:
+    </p>
+    <ul>
+      <li>
+        Core types: org.codehaus.jackson.JsonFactory/JsonParser/JsonGenerator 
+        -&gt; com.fasterxml.jackson.core.JsonFactory/JsonParser/JsonGenerator
+      </li>
+      <li>
+        Databind types: org.codehaus.jackson.map.ObjectMapper -&gt; 
+        com.fasterxml.jackson.databind.ObjectMapper
+      </li>
+      <li>
+        Standard annotations: org.codehaus.jackson.annotate.JsonProperty -&gt; 
+        com.fasterxml.jackson.annotation.JsonProperty
+      </li>
+    </ul>
+    <p>
+      It is often convenient to just use wildcards imports for main categories 
+      (com.fasterxml.jackson.core.*, com.fasterxml.jackson.databind.*, 
+      com.fasterxml.jackson.annotation.*)
+    </p>
+    <p>
+      <b>3. SerializationConfig.Feature, DeserializationConfig.Feature</b>
+    </p>
+    <p>
+      The next biggest change was that of refactoring on/off Features, 
+      formerly defined as inner Enums of SerializationConfig and 
+      DeserializationConfig classes. For 2.0, enums were moved to separate 
+      stand-alone enums:
+    </p>
+    <ol>
+      <li>
+        <i>DeserializationFeature</i> contains most of entries from former 
+        DeserializationConfig.Feature
+      </li>
+      <li>
+        <i>SerializationFeature</i> contains most of entries from former 
+        SerializationConfig.Feature
+      </li>
+    </ol>
+    <p>
+      Entries that were NOT moved along are ones that were shared by both, and 
+      instead were added into new <i>MapperFeature</i> enumeration, for 
+      example:
+    </p>
+    <ul>
+      <li>
+        SerializationConfig.Feature.DEFAULT_VIEW_INCLUSION became 
+        MapperFeature.DEFAULT_VIEW_INCLUSION
+      </li>
+    </ul>
+    <p>
+      <b>4. Tree model method name changes (JsonNode)</b>
+    </p>
+    <p>
+      Although many methods (and some classes) were renamed here and there, 
+      mostly these were one-offs. But one area where major naming changes were 
+      done was with Tree Model -- this because 1.x names were found to be 
+      rather unwieldy and unnecessarily verbose. So we decided that it would 
+      make sense to try to do a &quot;big bang&quot; name change with 2.0, to get to a 
+      clean(er) baseline.
+    </p>
+    <p>
+      Changes made were mostly of following types:
+    </p>
+    <ul>
+      <li>
+        <i>getXxxValue</i>() changes to <i>xxValue</i>(): getTextValue() -&gt; 
+        textValue(), getFieldNames() -&gt; fieldNames() and so on.
+      </li>
+      <li>
+        getXxxAsYyy() changes to asYyy(): getValueAsText() -&gt; asText()<b>
+</b>      </li>
+    </ul>
+    <p>
+      <b>5. Miscellaneous</b>
+    </p>
+    <p>
+      Some classes were removed:
+    </p>
+    <ul>
+      <li>
+        CustomSerializerFactory, CustomDeserializerFactory: should instead use 
+        Module (like SimpleModule) for adding custom serializers, deserializers
+      </li>
+    </ul>
+    <p>
+      <b>6. What else?</b>
+    </p>
+    <p>
+      This is definitely an incomplete list. Please let me know what I missed, 
+      when you try upgrading!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Friday, April 06, 2012 9:33 AM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_473.html">What me like YAML? (Confessions of a JSON advocate)</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_472.html">Data format auto-detection with Jackson (JSON, XML, Smile, YAML)</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html">Java Type Erasure not a Total Loss -- use Java Classmate for resolving generic signatures</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html">Take your JSON processing to Mach 3 with Jackson 2.0, Afterburner</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html">Notes on upgrading Jackson from 1.9 to 2.0</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

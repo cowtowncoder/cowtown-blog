@@ -1,0 +1,723 @@
+<html lang="en">
+<head>
+<title>February 2008</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Wednesday, February 20, 2008 </h2>
+
+<div class="entry" id="post-59">
+			<h3 class="entry-header">Cowtown Classic Project I: Codebounce Applet</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      The first &quot;Forgotten Project&quot; (see <a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_58.html">Forgotten 
+      CTC Projects</a>) to be refurbished is a simple applet called <a href="/hatchery/codebounce">CodeBounce</a>. 
+      It's one from class of things (&quot;those goddamn useless applets&quot;) that 
+      many web surfers in late 90s considered a major annoyance. Had it been 
+      deployed by hordes of home page designers, it might have been infamous. 
+      It was not, for better or worse. :-)
+    </p>
+    <p>
+      Applet (which can also be run as a command-line application, via &quot;java 
+      Bounce&quot;) is simple eye candy, displaying hard-coded number of elastic 
+      bouncing balls, bumping into each other and so forth.
+    </p>
+    <p>
+      Now, there is nothing spectacular here, just 600 lines of trivially 
+      simple position and velocity calculation code sprinkled with AWT code. 
+      But it is kind of amazing that it still works as well (or poorly) as the 
+      day it was written, come to think of that. At the time JDK 1.1 was 
+      already mature, and that was the platform on which it was tested, 
+      although browsers still only or mostly supported 1.0.2. And runs just as 
+      expected on JDK 1.6, including adapting to resized main window (well, as 
+      I said, as well as it ever did). It was also cool that even when Java 
+      still did run slowly back then, as interpreted language, applet was 
+      plenty fast on an antiquated Pentium 66 mhz PC and Netscape browser.
+    </p>
+    <p>
+      At the time I had done at least 3 other apps in Java (NetReaper, 
+      Fractalizer/Fractlet and JiveTerm a.k.a SafeTerm, and this is by far the 
+      simplest. But I kind of like that -- writing Java apps and applets was 
+      refreshing: after having to write thousands of lines of C code to get 
+      anything to show on a window, 600 lines of code for this puppy seemed 
+      very compact indeed (although not nearly as compact as those 100 line 
+      basic programs in C-64, but close enough, and much prettier).
+    </p>
+    <p>
+      So that's the part explaining &quot;what&quot;. But more importantly, why? Why was 
+      it written? <a href="/hatchery/codebounce">CodeBounce project page</a> 
+      talks a bit about this. Basically, I wrote it as a proof-of-concept, 
+      trying to figure out some simple animation, to be used as an Easter Egg 
+      for a well-known and widely used commercial application. In the end, 
+      things worked bit differently: easter egg(s) were added (go Phoenix 
+      team!), but this particular idea wasn't used. It was simpler to use 
+      static graphics and straight-forward linear shuffling. But writing the 
+      thing did help in many other ways -- I hadn't used Java for almost a 
+      year at that point (having had to work on C, C++); but going back felt 
+      like home. So I was even more motivated to find a company that did use 
+      Java. I did, and got hired there (company's name nowadays even reflects 
+      their use of Java; that's the only hint I'll give). But that's another 
+      story for another day.
+    </p>
+    <p>
+      Oh, and as to the Easter Eggs: sad thing is I don't even know how many 
+      (or any?!) users know about these particular ones. Many people are 
+      familiar with the &quot;martian guy with laser gun&quot;. But I doubt many have 
+      seen the &quot;shuffling web form components&quot;. It was still cool to have 
+      added my own &quot;footprint on concrete&quot;, so to speak. Besides, there's at 
+      least one other cool Easter Egg in there, which adds &quot;eyes that follow 
+      mouse pointer&quot; in there, that I didn't write but knew about, and which 
+      probably is as little known as ones I worked on.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, February 20, 2008 8:03 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_59.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_59.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_59.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header"> </h2>
+
+<div class="entry" id="post-58">
+			<h3 class="entry-header">Forgotten CowtownCoder Projects</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      While taking a walk down the memory lane last week (see <a href="blog/archives/2008/02/entry_56.html">Woodstox 
+      Pre-History</a>), I remembered something that had slipped my mind for a 
+      while: there are projects that used to have home pages at CowtownCoder, 
+      but that basically got orphaned during ISP migration. The idea at the 
+      time must have been to focus mostly on active and relevant projects, 
+      like boring old xml parsers and such. Fortunately the old project home 
+      pages were obviously archived and well preserved, so I figured it would 
+      be nice to refurbish ones that have some significance to me: either by 
+      maybe being useful, or if not, providing some entertainment value.
+    </p>
+    <p>
+      Ok, so I will just copy over old home pages, source code packages and 
+      such? Well, more important than this, I will not only slightly clean up 
+      the pages (and, heh, add some useful decorations that you may notice on 
+      the right-hand side of the page -- keep in mind that they are 
+      interactive, too, you can like, click on them too, to see even more 
+      pertinent information!), but I will also produce a blog entry discussing 
+      each and every project. Think of it as preservaction of Geek History by 
+      documenting obscure projects that Tatu once worked on for whatever 
+      reason it was at the time. Damn I feel good to be such a dedicated 
+      preservationist! (is there such a word? now there is!)
+    </p>
+    <p>
+      So: you may see new links starting to pop up at the <a href="http://www.cowtowncoder.com/hatchery.html">Hatchery</a> 
+      page. And you should also start seeing short descriptions of the same 
+      projects, with some choice &quot;Author's Commentary&quot; entries on this very 
+      blog (you will have to wait a bit longer for your picture DVD containing 
+      the same: and please, do not hold your breath). Stay tuned!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, February 20, 2008 4:18 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_58.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_58.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_58.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Monday, February 18, 2008 </h2>
+
+<div class="entry" id="post-57">
+			<h3 class="entry-header">Release Early, Release Often: Jackson 0.9</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+  After fixing couple of bugs in mapper, I decided to release the next 
+  pre-1.0 release of <a href="http://www.cowtowncoder.com/hatchery/jackson">Jackson Json Processor</a>, version 0.9.0.
+  There are no drastic changes, just couple of bug fixes.
+</p>
+<p>
+  As usual, <a href="http://www.cowtowncoder.com/hatchery/jackson/0.9.0/release-notes/VERSION">release notes</a>
+  lists changes, and <a href="http://www.cowtowncoder.com/hatchery/jackson/0.9.0/release-notes/CREDITS">CREDITS</a> file lists kind 
+  developers who have helped weed out the bugs fixed.
+</p>
+<p>
+   </p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, February 18, 2008 9:05 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_57.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_57.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_57.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Friday, February 08, 2008 </h2>
+
+<div class="entry" id="post-56">
+			<h3 class="entry-header">Woodstox pre-history</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      <b>&quot;So How Did It All Start?&quot;</b>
+    </p>
+    <p>
+      As an author of a highly publicized software package, one often has to 
+      answer questions like above. That -- in addition to the fame, money and 
+      chicks -- is one of fringe benefits of being an uber-geek programmer doG.
+    </p>
+    <p>
+      But, ask you: how does that relate to me? Sadly, not in any way, shape 
+      or form. But I just thought I'll start with such a claim to grab your 
+      attention.
+    </p>
+    <p>
+      Anyway: the other day I started thinking about how I would answer such a 
+      question if anyone ever asked it. Interestingly, I am already having 
+      hard time remembering exactly when did Woodstox project start, as well 
+      as important milestones there have been. This despite the fact that it 
+      hasn't been a life-long hobby (although countless hours have been spent 
+      on it). What is curious here is just the difference between new 
+      projects, where you can usually remember details well (&quot;see, I added 
+      that feature on tuesday, this other one on thursday, and that thing will 
+      be done... say, tomorrow&quot;). But it doesn't take all that long to start 
+      losing track of history.
+    </p>
+    <p>
+      In Woodstox' case, I am lucky enough to have left a trail of mini update 
+      notes via crude <a href="http://woodstox.codehaus.org/News">Woodstox 
+      news section</a> at Codehaus. That log points to mid-2005 being one of 
+      highlights, release of version 2.0 with its full DTD-validation (full 
+      albeit not fully compliant, as I learn during 3.0 development...). That 
+      is a starting point, at least, outlining more recent, and somewhat less 
+      active, development history (although, granted, 2.0 -&gt; 3.0 development 
+      cycle may have burnt more time than either getting 1.0 or getting 2.0 
+      out the door).
+    </p>
+    <p>
+      But there was obviously some history before 2.0 release. I am no 
+      Microsoft, and my versioning scheme does not skip Important Release 
+      Numbers like 1.0!
+    </p>
+    <p>
+      <b>Ok, but what REALLY happened? </b>
+    </p>
+    <p>
+      Now, while I do not keep diary, I happen to have something similar at my 
+      disposal. My old linux desktop file system still has a copy of the 
+      earliest Woodstox home page (which, back in the day, was hosted here at 
+      cowtowncoder.com -- heck, I suspect I ordered the domain just to have a 
+      kewl domain for Woodstox, if my memory serves me), along with matching 
+      timestamps for downloadable files. So sequence of events, assuming 
+      timestamps are correct, is as follows:
+    </p>
+    <pre>  drwxr-xr-x  3 tatu tnt  4096 May 30  2004 0.7
+  drwxr-xr-x  4 tatu tnt  4096 Jun 21  2004 0.8
+  drwxr-xr-x  4 tatu tnt  4096 Aug 13  2004 0.8.8
+  drwxr-xr-x  4 tatu tnt  4096 Aug 13  2004 0.9.0
+  drwxr-xr-x  4 tatu tnt  4096 Aug 25  2004 0.9.1
+  drwxr-xr-x  4 tatu tnt  4096 Oct 11  2004 1.0-final
+  drwxr-xr-x  4 tatu tnt  4096 Oct 23  2004 1.0.1
+  drwxr-xr-x  4 tatu tnt  4096 Nov 14  2004 1.0.2
+  drwxrwxr-x  4 tatu tnt  4096 Mar  2  2005 1.0.3
+  drwxrwxr-x  4 tatu tnt  4096 Mar 10  2005 1.0.4
+  drwxrwxr-x  4 tatu tnt  4096 Mar 23  2005 1.0.5</pre>
+    <p>
+      So, given that I think version 0.5 must have been the first official 
+      release (ok ok, so my versioning scheme does have its quirks starting 
+      with &quot;half versions&quot;), which probably was cut somewhere in March 2004, 
+      Woodstox project could soon celebrate its 4th birthday. As such it has 
+      probably outlived commercial systems I have ever implemented...
+    </p>
+    <p>
+      Now, looking back in time is enlightening in many ways. Although exact 
+      release dates in this case are of historical curiosity value, if any, 
+      they can have surprisingly high indirect value: they can help one 
+      remember more important things that happened at around same time. For 
+      example, the thing that triggered my starting the project must have been 
+      the death of my-then-coolest project at Sun Microsystems (the [in]famous 
+      Voyager content management system!). Seeing it get killed due to 
+      politics, to be replaced by something more absurdly stupid than the 
+      Bad-News-powered rocket ship from the Hitchhiker's guide was just the 
+      kick in the balls I needed to spend less time at work, and focus on 
+      something cool outside working hours. That, and a very session by the 
+      Great Pragmatic Programmer mr. Dave Thomas, that I also listened to at 
+      about same time, explaining why one must have The Plan for skill 
+      development. Developing an xml parser may not seem like the optimal 
+      choice, but it &quot;just seemed like a good idea at the time&quot;.
+    </p>
+    <p>
+      Woodstox project also was one of things that made it easier to stay at 
+      that job (although switching to a different team to avoid having to 
+      implement that idiotic replacement system) for almost a year, before I 
+      could move on to better things (despite having basically lost all my 
+      respect for my managers and company, not to mention motivation). And 
+      interviews to this Better Thing (which is still my job after this time) 
+      must have occured at almost exact day I released version 1.0! (or, 
+      rather, night after I flew back from Seattle). And, very very close to 9 
+      months before birth of my younger daughter... :-)
+    </p>
+    <p>
+      Scary but true -- when it's raining, it's pouring. I better check 
+      timeline of Jackson and Aalto Xml Processor in a year or two. Or perhaps 
+      even my First Open Source project, JUG (Java Uuid Generator).
+    </p>
+    <p>
+       
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Friday, February 08, 2008 11:37 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_56.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_56.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_56.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Wednesday, February 06, 2008 </h2>
+
+<div class="entry" id="post-55">
+			<h3 class="entry-header">Maintenance releases: Woodstox 3.2.4, Jackson 0.8.2</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      <b>Public service announcements for 2008</b>
+    </p>
+    <p>
+      Quick update on state of projects: both <a href="http://woodstox.codehaus.org">Woodstox</a> 
+      and <a href="http://www.cowtowncoder.com/hatchery/jackson/index.html">Jackson</a> 
+      projects released minor bug-patch versions to kick off the new year.
+    </p>
+    <p>
+      Releases are available from respective home pages, and here are quick 
+      links for change lists:
+    </p>
+    <ul>
+      <li>
+        <a href="http://woodstox.codehaus.org/3.2.4/release-notes/VERSION">Woodstox 
+        3.2.4 release notes</a>
+      </li>
+      <li>
+        <a href="http://www.cowtowncoder.com/hatchery/jackson/0.8.2/release-notes/VERSION">Jackson 
+        0.8.2 release notes</a>
+      </li>
+    </ul></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, February 06, 2008 9:31 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_55.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_55.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_55.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_59.html">Cowtown Classic Project I: Codebounce Applet</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_58.html">Forgotten CowtownCoder Projects</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_57.html">Release Early, Release Often: Jackson 0.9</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_56.html">Woodstox pre-history</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2008/02/entry_55.html">Maintenance releases: Woodstox 3.2.4, Jackson 0.8.2</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

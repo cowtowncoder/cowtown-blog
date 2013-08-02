@@ -1,0 +1,665 @@
+<html lang="en">
+<head>
+<title>Introducing My Newest Open Source project: Tr13 (that is so 1337!)</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<!-- HaloScan comments: -->
+<script type="text/javascript" src="http://www.haloscan.com/load/cowtowncoder">
+</script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+     <div id="container">
+          <div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+     <div id="banner-inner" class="pkg">
+          <h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+          <h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+     </div>
+</div>
+               <div id="pagebody">
+                    <div id="pagebody-inner" class="pkg">
+                         <div id="alpha">
+                              <div id="alpha-inner" class="pkg">
+<!-- entry -->
+
+
+   
+   
+
+     <h2 class="date-header">Tuesday, June 08, 2010 </h2>
+
+<div class="entry" id="post-401">
+<h3 class="entry-header">Introducing My Newest Open Source project: Tr13 (that is so 1337!)</h3>
+     <div class="entry-content">
+          <div class="entry-body">
+          
+               <p><p>
+      I have briefly mentioned that I have been working on a new little 
+      low-level data structure package, called <a href="http://github.com/ning/tr13">(Ning) 
+      Tr13</a>, started at GitHub. Now that code is getting ready and tested, 
+      it is time to &quot;formally&quot; introduce it.
+    </p>
+    <p>
+      Tr13 is an interesting project form multiple angles: for one, it is my 
+      first &quot;corporate-sponsored&quot; Open Source project (i.e. related to may 
+      day-to-day work -- although not focus of it, just a useful thing for me 
+      and hopefully my colleagues at Ning). This alone is worth celebrating; 
+      the whole process has been remarkably smooth from 15-minute end-to-end 
+      approval process (take note Amazon developer community...), tosteady if 
+      somewhat slow development itself (there is nothing groundbreaking from 
+      CS perspective -- more on this below).<br>This is also a rare case of my 
+      already having reasonably clear idea as to where I would be using this 
+      package. It may sound surprising, but truthfully most open source 
+      libraries I have written, I have not actually absolutely needed them 
+      before writing. :-)<br>(there are exceptions: Java UUID Generator is 
+      something I wrote since I needed it -- but not so for Woodstox, or even 
+      Jackson, to some degree, both of which I have extensively used after I 
+      wrote them).<br>And finally, well, it is a change from my more common 
+      data format parsing / data binding work. Although I was thinking of 
+      &quot;climbing up the stack&quot; to write something higher level, I ended up 
+      going the other way, a slight detour.
+    </p>
+    <p>
+      Anyway, I digress. So...
+    </p>
+    <p>
+      <b>What exactly is tr13?</b>
+    </p>
+    <p>
+      It is a space-efficient (&quot;compact&quot;) read-only implementation of <a href="http://en.wikipedia.org/wiki/Trie">Trie</a> 
+      data structure, with slight modification to use Patricia/Radix structure 
+      for leaves (but not for branches, since that did not seem useful for my 
+      use cases).
+    </p>
+    <p>
+      Current implementation supports two kinds of Tries:
+    </p>
+    <ol>
+      <li>
+        Byte[] key, variable integer (~= long) value
+      </li>
+      <li>
+        Byte[] key, byte[] value
+      </li>
+    </ol>
+    <p>
+      In both cases, byte[] is typically a String, but can be any other 
+      serializable thing; for example, ints and longs could be trivially 
+      converted to 4/8 byte keys. Separate variant for variable-length 
+      integers is further optimization for my initial use case, where values 
+      are generally small ints, which can fit in a single byte, but where it 
+      is convenient not to be bound by arbitrary limits (like 256).
+    </p>
+    <p>
+      Internally structure is actually just a regular byte array (or, 
+      alternatively, ByteBuffer, to allow for &quot;GC-free&quot; tries!). Data format 
+      needs to be documented, but is a rather simple implementation of basic 
+      trie ideas, nothing to write a dissertation about.
+    </p>
+    <p>
+      <b>Why does it Rock?!</b>
+    </p>
+    <p>
+      Given how good plain old JDK HashMap can be -- you could just use 
+      HashMap&lt;String,Integer&gt; for the first case -- what is so special about 
+      tr13?
+    </p>
+    <p>
+      Simply put: memory usage, or lack thereof (ditto for GC activity). This 
+      because:
+    </p>
+    <ol>
+      <li>
+        Overall memory usage is pretty tight -- for test data I have (30 
+        million entries of typically 13-byte key, small integer number == 600 
+        meg input file), trie structure actually uses less memory than its 
+        file representation (by about 35% less). And,
+      </li>
+      <li>
+        Since it is all in just TWO objects (raw byte array, wrapper Trie 
+        object), it should keep GC rather happy.
+      </li>
+    </ol>
+    <p>
+      This is not coincidental, since the use case we have is that of sizable 
+      routing tabls that should ideally be kept fully in-memory. Hence 
+      compactness of data structure, with reasonable lookup times (i.e. no 
+      linear search), was design criteria. Even other somewhat frugal data 
+      structures (like b-trees) are not anywhere as space efficient.
+    </p>
+    <p>
+      <b>Downsides?</b>
+    </p>
+    <p>
+      First obvious limitation is that it is a read-only data structure: you 
+      must have all the data at hand when building it. Data also has to be 
+      ordered, not necessarily alphabetically (although that is the usual 
+      way), but in a stable lexicographic ordering, such that build process 
+      has invariants it needs. This is not as big a limitation as it might 
+      seem, at least when merging functionality (more on this later on) is 
+      added. For now it may be necessary to re-build data structure regularly, 
+      and keep an additional &quot;short-term&quot; lookup data structure at hand for 
+      additions that are needed between re-builds.
+    </p>
+    <p>
+      As to performancem resulting data structure is not the fastest way to 
+      find things: from complexity standpoint it is a linear algorithm, 
+      compared to theoretically constant time for hash-based alternatives. 
+      This may or may not matter; it should not matter a lot with respect to 
+      key length (HashMap has to calculate hash for key and compare key bytes, 
+      unless keys can be canonicalized). Another potential performance concern 
+      is that trie data structure does not have much locality; but this too is 
+      unlikely to be much worse than for typical alternatives. In fact, due to 
+      high memory efficiency, and use of plain byte array, it is not 
+      guaranteed that HashMap has any better locality, even if a single lookup 
+      results in a match (this due Java GC's habit of &quot;shuffling&quot; object data 
+      around).
+    </p>
+    <p>
+      All in all, Tr13 does much more work when finding values, since it 
+      traverses data structure once per each key byte (except for 
+      Patricia-optimized tail, which may be multi-byte linear match). So I 
+      would not expect it to be as fast as direct hash lookups.
+    </p>
+    <p>
+      But in the end, these are speculations, and the real test would be use.
+    </p>
+    <p>
+      ... or, how about a performance test?
+    </p>
+    <p>
+      <b>Performance Testing</b>
+    </p>
+    <p>
+      Ok: the question of efficiency is something worth looking deeper into. 
+      And so I wrote a benchmark that compares VIntTrieLookup (byte[]-to-vint 
+      trie) against HashMap&lt;String,Integer&gt; (for curious, it's under 
+      'src/java/test/manual/' in source tree). Test loads all the entries in 
+      memory, and then performs randomized lookups (one lookup for every key, 
+      but order shuffled so as to be different from 'natural' ordering of 
+      trie).
+    </p>
+    <p>
+      When given a subset of the whole data file (turns out HashMap hogs so 
+      much memory that I just can't test the whole data set!) -- a 32 meg, 2 
+      million entry chunk -- here are the results:
+    </p>
+    <p>
+      Memory usage:
+    </p>
+    <ol>
+      <li>
+        Tr13: 20.6 megs (reduction of about one third)
+      </li>
+      <li>
+        HashMap&lt;String,Integer&gt;: 314 megs
+      </li>
+    </ol>
+    <p>
+      So in this case, <i><u>HashMap&lt;String,Integer&gt; uses about 15 times more 
+      memory than Tr13</u></i> (note: Integer values are canonicalized using 
+      Integer.valueOf -- without this, usage would be 360 megs).
+    </p>
+    <p>
+      And what about performance? What is the cost of compactness?
+    </p>
+    <p>
+      For 3 million lookups, time taken was:
+    </p>
+    <ol>
+      <li>
+        Tr13: about 5000 milliseconds (about 400,000 lookups per second)
+      </li>
+      <li>
+        HashMap&lt;String,Integer&gt;: about 1200 milliseconds (about 1,670,000 
+        lookups per second)
+      </li>
+    </ol>
+    <p>
+      so <i><u>HashMap is about 4 times faster than Tr13 for lookups,</u></i> 
+      on my system (2.33 ghz mini-mac, JDK 1.6), for given data set.
+    </p>
+    <p>
+      Since my first need is to be able to do lookups in memory, performance 
+      difference is not of particular importance (there might be one or two 
+      lookups per request, so anything in tens of thousands per second would 
+      work), but it is good to know rough order of magnitude difference.
+    </p>
+    <p>
+      <b>What next?</b>
+    </p>
+    <p>
+      At this point Tr13 should be ready for use, and I plan to release 
+      version 0.5 soon. The only thing I am waiting for is to get a Maven 
+      repository set up at Sonatype OSS repository (kudos to Sonatype for this 
+      free hosting!), so that Maven-based (and I assume, Ivy-based) projects 
+      can use it. This is actually what I need for my daytime use.
+    </p>
+    <p>
+      But beyond Maven deployment, there are some additional features I want 
+      to implement in near future, such as:
+    </p>
+    <ul>
+      <li>
+        Ability to traverse through entries (Map.Entry&lt;&gt; style)
+      </li>
+      <li>
+        Ability to merge two tries efficiently -- could be built quite easily 
+        given iterator functionality
+      </li>
+      <li>
+        ... document the data structure (ok ok, not a development task, but 
+        &quot;hard&quot; (read: tedious) yet necessary work) -- it is very simple, but 
+        not so simple that reading code would make it obvious.
+      </li>
+      <li>
+        Current implementations are limited to 2 gigs, due to Java byte[] and 
+        ByteBuffer limitations. But fundamentally there is nothing 
+        particularly hard about writing segmented versions where only segments 
+        would have this limitation (well, probably values too, but I don't see 
+        any need for 2gb+ values in my tries...)
+      </li>
+    </ul>
+    <p>
+      Merging functionality specifically would be useful for &quot;semi-mutable&quot; 
+      lookup data structures. For data that evolves slowly (which is the case 
+      for routing table use case I have), it is possible to keep track of 
+      needed modifications (in a, say, HashMap), and do primary lookup against 
+      that data structure, and only if no match is found, against immutable 
+      trie. And when this short-term data structure goes enough, or enough 
+      time passes, trie could be re-built with existing and new data. Repeat 
+      and rinse.
+    </p>
+    <p>
+      And perhaps it might even be possible to work some more on fundamental 
+      data structure itself, and find ways to make it mutable. Insertions (and 
+      deletion) operations would be rather costly, due to global changes 
+      needed (another downside of compactness is that changes tend to spill 
+      far). But even slow mutability would be better than no mutability; and 
+      perhaps there could be ways to trade some space (intentional unused 
+      regions within trie, to be used for insertions?) for lesser likelihood 
+      of having move all the data around.
+    </p></p>
+
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, June 08, 2010 11:23 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_401.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_401.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_401.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+
+
+   
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /**
+    * var disqus_identifier; [Optional but recommended: Define a unique identifier (e.g. post id or slug) for this thread] 
+    */
+  (function() {
+   var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+   dsq.src = 'http://cowtalk.disqus.com/embed.js';
+   (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>(enable JavaScript to view the <a href="http://disqus.com/?ref_noscript=cowtalk">comments powered by Disqus)</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  </div>
+</div>
+<div id="beta">
+  <div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+
+<!-- /SiteSearch Google -->
+<hr />
+</div>
+
+     <div class="module-archives module">   
+          <h2 class="module-header">Last posts</h2>
+          <div class="module-content">
+               <ul class="module-list">
+                <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_401.html">Introducing My Newest Open Source project: Tr13 (that is so 1337!)</a></li>
+               </ul>
+          </div>
+     </div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+
+     <div class="module-categories module">
+          <h2 class="module-header">Categories</h2>
+          <div class="module-content">
+        <ul>
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+          
+        </ul>
+          </div>
+     </div>
+<div class="module-syndicate module">
+     <div class="module-content">
+          <a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+          [<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+     </div>
+
+</div>
+
+<div class="module-about module">
+  <h2 class="module-header">Sponsored By</h2>
+  <div class="module-content">
+  </div>
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+<hr />
+
+     <h2 class="module-header">Related Blogs</h2>
+          <div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+
+<div class="module-powered module">
+     <h2 class="module-header">Powered By</h2>
+
+     <div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a> and
+     </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>

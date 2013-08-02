@@ -1,0 +1,1289 @@
+<html lang="en">
+<head>
+<title>December 2008</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Tuesday, December 23, 2008 </h2>
+
+<div class="entry" id="post-126">
+			<h3 class="entry-header">Gravity of Java Generics: Type Erasure Sucks</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p resolver="NamedStyle:default {font-family=Tahoma,font-style=,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-size=3,}" margin-top="0">
+      I must admit it now: Java implementation of Generics sucks. Yes, it is 
+      true. Even though I had nothing to do with creating the suckitude, I 
+      feel guilty for not recognizing acknowledging it up-front.
+    </p>
+    <p resolver="NamedStyle:default {font-family=Tahoma,font-style=,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-size=3,}" margin-top="0">
+      So what broke this camel's back? After all, I have been learning bits 
+      and pieces about how generics work for a while now, and finally feel 
+      competent to even explain how they work to others. I would even go as 
+      far as to claim I &quot;understand Java generics&quot; (phew -- that took a while 
+      -- better late than never!). Now: generics do make life bit easier; 
+      programming is bit more literal, and there are fewer casts even if there 
+      is more angle bracket pollution. So what if it's mostly syntactic sugar, 
+      fairy dust that is (mostly) swept away by compiler when writing bytecode 
+      out, not to be seen again?
+    </p>
+    <p resolver="NamedStyle:default {font-family=Tahoma,font-style=,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-size=3,}" margin-top="0">
+      Problem is this: although it is mostly ok that code can access the Type 
+      information only during compilation, this is poison for anything outside 
+      of the class that tries to make sense of the class after it has been 
+      compiled. That is, anything that would need <b>Runtime (dynamic) Type 
+      Information</b>. Especially so for things like data-binding tools that 
+      try to determine <b>state</b> of objects of certain class; and 
+      specifically when they try to peek into content type of container 
+      classes (Collections, Maps). Thing is: due to type erasure, all you know 
+      about that List is that, well, it is a List -- while compiler knows that 
+      you claim it is to contain, say, Foobarables, JVM only knows contents 
+      come in as &quot;thing known as java.lang.Object&quot;s. Bummer.
+    </p>
+    <p resolver="NamedStyle:default {font-family=Tahoma,font-style=,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-size=3,}" margin-top="0">
+      Is all lost? Almost, but not quite. Type erasure is... how did mr. Adams 
+      put it... [resulting classes are] &quot;almost, but not quite, entirely&quot; 
+      [without type information].
+    </p>
+    <p resolver="NamedStyle:default {font-family=Tahoma,font-style=,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-size=3,}" margin-top="0">
+      Just to illustrate the problem: you might think following makes sense:
+    </p>
+    <p resolver="NamedStyle:default {font-family=Tahoma,font-style=,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-size=3,}" margin-top="0">
+      List&lt;String&gt; result = binder.bind(inputSource, List&lt;String&gt;.class); // 
+      invalid, won't compile
+    </p>
+    <p resolver="NamedStyle:default {font-family=Tahoma,font-style=,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-size=3,}" margin-top="0">
+      But no: that won't compile. You can not squeeze a Class out of a generic 
+      type -- and even if you could, it would just be Thing Known As (in this 
+      case) <b>List.class</b>. (why? because typing has been, well, erased, 
+      result is the same old untyped List!). Teasingly, JDK actually does have 
+      Type classes under &quot;java.lang.reflect&quot; (including the thing that would 
+      serve us ok here, ParameterizedType!). But there are precious few ways 
+      of actually getting hold of one of these things, except for Class. 
+      Which, like we know by now, knows almost nothing about Type information.
+    </p>
+    <p resolver="NamedStyle:default {font-family=Tahoma,font-style=,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-size=3,}" margin-top="0">
+      But there is one sparkle of hope here. If you dig through JDK Javadocs, 
+      you will find that there are couple of hiding places where fragments of 
+      Type Information are actually hiding. Basically:
+    </p>
+    <ul>
+      <li resolver="NamedStyle:default {font-family=Tahoma,font-style=,font-weight=normal,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,font-size=3,}" margin-top="0">
+        No dynamic type information is available. It's gone, zilch, nada, 
+        nihil. Not even with &quot;generic methods&quot;: those are just syntactic sugar.
+      </li>
+      <li>
+        But some static type information is being stashed in the only place 
+        capable of hiding it: within the class definition.
+      </li>
+      <li>
+        That is: you can not generate type information by instantiating 
+        generic instances, but you can actually generate and retain some by 
+        declaring typed things. Specifically:
+
+        <ul>
+          <li>
+            Methods retain their (generic) return type information
+          </li>
+          <li>
+            Method arguments likewise retain their type information
+          </li>
+          <li>
+            Sub-classes retain information about generic type parameters used 
+            to parameterize their supertypes.
+          </li>
+        </ul>
+      </li>
+    </ul>
+    <p>
+      Now: that is not much. But it actually may be just enough to make some 
+      things work, as long as we can get hold of one of things mentioned 
+      above. The main remaining problem is that of bootstrapping: for example, 
+      once you can get hold of a &quot;getter&quot; (getXxx) or &quot;setter&quot; (setXxx) 
+      method, you can tease out type information, if any is declared in class 
+      sources. And following classes from thereon may allow typing to be 
+      uncovered, for properly declared classes and methods. But this will not 
+      help with the initial call, such as one used above. You could of course 
+      require a dummy class to be implemented, with dummy method with either 
+      argument or return types. Or, dummy class extending a parameterized 
+      class, and then accesing super type's type information from sub-class. 
+      But boy do these sound convoluted.
+    </p>
+    <p>
+      But there has to be a way. And as usual, where there is will, there is a 
+      way. So let's look at one clever solution! I mean, next time, in the 
+      follow-up entry. Yours, mr. Cliff Hanger.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, December 23, 2008 10:15 PM </span>
+<br />	Categories: <a href=""></a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_126.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_126.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_126.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Wednesday, December 17, 2008 </h2>
+
+<div class="entry" id="post-122">
+			<h3 class="entry-header">Tequila: Not Just For Breakfast Anymore!</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Another public service announcement from the <a href="http://woodstox.codehaus.org">Woodstox</a> 
+      project: the second release candidate for eventual 4.0.0-final release, 
+      affectionately named &quot;3.9.9-2&quot;, hit the streets a minute ago. This is a 
+      fairly minor improvement over 3.9.9-1, consisting of:
+    </p>
+    <ul>
+      <li>
+        One critical bug fix to XMLStreamReader.getElementText() 
+        implementation (hit upon by a performance test suite)
+      </li>
+      <li>
+        Improvement to packaging: not the source tarball FINALLY uses an 
+        intermediate directory so that you don't end up all the crap in your 
+        current directory
+      </li>
+      <li>
+        It is possible to use any Stax2 implementation (such as Woodstox) via 
+        OSGi service interface: Stax2 API now has &quot;org.codehaus.stax2.osgi&quot; 
+        package, which has provider objects that implementations can register 
+        as services (for input, output and validation factories). Check out <a href="http://woodstox.codehaus.org/3.9.9-2/javadoc/index.html">3.9.9-2 
+        Javadocs</a> for more details.
+      </li>
+    </ul>
+    <p>
+      On a related note, I decided that a stiff major release like 4.0.0 
+      deserves its own code name. So, here it is: Woodstox 4.0 will be 
+      hereforth known as &quot;Tequila&quot;; as in <b>'Woodstox 4.0 &quot;Tequila&quot;</b>'. 
+      I'll drink to that!
+    </p>
+    <p>
+      <a href="http://woodstox.codehaus.org/Download">Download</a> responsibly!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, December 17, 2008 10:08 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_122.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_122.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_122.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Saturday, December 13, 2008 </h2>
+
+<div class="entry" id="post-121">
+			<h3 class="entry-header"> Jackson 0.9.5: Now With Bean Serialization! </h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      [Update on 22-Oct-2011: a LOT has happened since this blog entry -- be 
+      sure to read &quot;<a href="http://www.cowtowncoder.com/blog/archives/2010/11/entry_434.html">7 
+      Jackson Killer Features</a>&quot;, &quot;<a href="http://www.cowtowncoder.com/blog/archives/2011/10/entry_463.html">Jackson 
+      1.9</a>&quot; and other later entries here; as well as see <a href="http://wiki.fasterxml.com/JacksonHome">FasterXML 
+      Jackson Wik</a>i]
+    </p>
+    <p>
+      The latest <a href="http://jackson.codehaus.org">Jackson Json-processor</a> 
+      release, 0.9.5, is not loaded with tons of features: in fact there is 
+      pretty much just one significant new feature. But fortunately, this is 
+      the #2 requested feature: <b>ability to serialize regular Java 
+      beans/POJOs</b> (so what is #1? read on!). So in this case quality 
+      trumps quantity.
+    </p>
+    <p>
+      Serialization (s11n?) means ability to convert data contained in a Java 
+      object into a data format: in this case Json. Prior to 0.9.5, <b>org.codehaus.jackson.map.JavaTypeMapper 
+      </b>has been able to serialize some Java objects, but only those that 
+      are (or extend) basic Java types, such as java.util containers (Lists, 
+      Maps, Sets), wrappers (Boolean, Integer, Double etc), arrays (int[], 
+      long[], double[]) or &quot;simple&quot; values (Strings, nulls). While this is 
+      somewhat useful for loosely typed data processing, it is still bit 
+      low-level compared to normal dealing with Java Beans (simple but custom 
+      value types, where getXxx()/setXxx() naming convention is used to imply 
+      existence of set of accessible properties -- also known as Plain Old 
+      Java Objects, aka POJO).
+    </p>
+    <p>
+      This is no longer the case: now Jackson can fully serialize instances of 
+      any Java classes that use Bean-style method naming.
+    </p>
+    <p>
+      Let's have a look at a simple example of having class User (and related 
+      value classes), as follows:
+    </p>
+    <hr>
+    
+
+    <pre>public interface User {
+  public enum Gender { MALE, FEMALE };
+
+  public Name getName();
+  public Address getAddress();
+  public boolean isVerified();
+  public Gender getGender();
+  public byte[] getUserImage();
+}
+
+public interface Name {
+  public String getFirst();
+  public String getLast();
+}
+public interface Address {
+  public String getStreet();
+  public String getCity();
+  public String getState();
+  public int getZip();
+  public String getCountry();
+}</pre>
+    <hr>
+    
+
+    <p>
+      So how do we get Json out of an instance of User? Simple:
+    </p>
+    <pre>  User user = ...; // construct or fetch it
+  File resultFile = new File(&quot;user.json&quot;);
+  JavaTypeMapper mapper = new JavaTypeMapper();
+  mapper.writeValue(resultFile, user);</pre>
+    <p>
+      and there we have it. Output looks something like (with added 
+      indentation for readability -- can be enabled in Jackson JsonGenerator 
+      as well, if necessary):
+    </p>
+    <hr>
+    
+
+    <pre>{
+ &quot;verified&quot;:true,
+ &quot;gender&quot;:&quot;MALE&quot;,
+ &quot;userImage&quot;:&quot;Rm9vYmFyIQ==&quot;, /* base64 encoded gif/jpeg; although this is invalid */
+ &quot;address&quot;: {
+&quot;street&quot;:&quot;1 Deadend Street&quot;,
+&quot;city&quot;:&quot;Mercer Island&quot;,
+&quot;zip&quot;:98040,
+&quot;state&quot;:&quot;WA&quot;,
+&quot;country&quot;:&quot;US&quot;},
+ &quot;name&quot;: {
+   &quot;first&quot;:&quot;Santa&quot;,
+   &quot;last&quot;:&quot;Claus&quot;
+ }
+}</pre>
+    <hr>
+    
+
+    <p>
+      Simple, ay? I thought so.
+    </p>
+    <p>
+      Want to know more?
+    </p>
+    <ul>
+      <li>
+        check out <a href="http://jackson.codehaus.org/0.9.5/javadoc/index.html">Javadocs</a>
+      </li>
+      <li>
+        <a href="http://jackson.codehaus.org/Download">download jar and/or 
+        source code</a>
+      </li>
+    </ul>
+    <p>
+      Oh and the thing about #1 requested feature? Yes, you guessed it the 
+      Bean Deserialization. That's something for Jackson 0.9.6, if my crystal 
+      ball is right.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Saturday, December 13, 2008 8:16 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_121.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_121.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_121.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Monday, December 08, 2008 </h2>
+
+<div class="entry" id="post-120">
+			<h3 class="entry-header">XStream 1.3.1 released: performance improvements</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      A patch release of <a href="http://xstream.codehaus.org">XStream</a>, 
+      version 1.3.1, was just released. Although it would seem like a minor 
+      update based on version number alone, here is one cool fact: this 
+      version is measurably faster than 1.3.0. Considering XStream's strong 
+      points -- ease of use, minimal configuration needed, serialization of 
+      object graphs -- it is good that one of bit weaker areas gets improved.
+    </p>
+    <p>
+      As an initial data point, my results from my &quot;StaxBind&quot; <a href="http://japex.dev.java.net">Japex</a>-based 
+      test show +20% throughput for both reading and writing simple objects. 
+      While not earth-shattering, 20 percent, other there, and soon we are 
+      talking real numbers. :-)
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, December 08, 2008 9:09 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_120.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_120.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_120.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Saturday, December 06, 2008 </h2>
+
+<div class="entry" id="post-118">
+			<h3 class="entry-header">Typed Access API tutorial, part I </h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      So far I have mentioned &quot;Typed Access API&quot; a few times over past blog 
+      entries. As in, probably often enough to irritate; at least given that 
+      it has mostly been just namedropping. But this is about to change: I 
+      will try to give a simple overview of common usage of the new API.
+    </p>
+    <p style="margin-top: 0">
+      But first things first: API itself consist of not much more than 2 new 
+      interfaces:
+    </p>
+    <ul>
+      <li>
+        org.codehaus.stax2.typed.TypedXMLStreamReader
+      </li>
+      <li>
+        org.codehaus.stax2.typed.TypedXMLStreamWriter
+      </li>
+    </ul>
+    <p>
+      (both of which are implemented by matching Stax2 XMLStreamReader2 and 
+      XMLStreamWriter2 main-level interfaces)
+    </p>
+    <p>
+      And while there are plenty of methods in there, this is just due to 
+      combinatorial explosion due to different data types, structured types 
+      (int vs int array), and xml oddities (element vs attribute).
+    </p>
+    <p>
+      Given this conceptual simplicity (if not brevity), tutorials do not get 
+      too lengthy. Still, there's nothing quite as nice as bit of cut'n 
+      pastable code to get one started, so let's get coding.
+    </p>
+    <p margin-top="0">
+      This first tutorial focuses on so-called &quot;simple&quot; types: simple is 
+      defined as types supported other than array and binary types. The latter 
+      will be covered on follow-up entries.
+    </p>
+    <p margin-top="0">
+      <b>1. Writing simple values</b>
+    </p>
+    <p margin-top="0">
+      Let's first try outputting following simple data:
+    </p>
+    <pre>&lt;entries&gt;
+  &lt;entry id=&quot;1234&quot;&gt;
+&lt;active&gt;true&lt;/active&gt;
+&lt;value&gt;10.00&lt;/value&gt;
+  &lt;/entry&gt;
+&lt;/entries&gt;</pre>
+    <p>
+      it could be done by:
+    </p>
+    <pre>  StringWriter sw = new StringWriter();
+  TypedXMLStreamWriter tw = (TypedXMLStreamWriter) 
+  XMLOutputFactory.newInstance().createStreamWriter(sw);
+  tw.writeStartDocument();
+  tw.writeStartElement(&quot;entries&quot;);
+  tw.writeStartElement(&quot;entry&quot;);
+  tw.writeIntAttribute(null, null, &quot;id&quot;, 1234);
+  tw.writeEndElement(); // /entry
+  tw.writeStartElement(&quot;active&quot;);
+  tw.writeBoolean(true);
+  tw.writeEndElement();
+  tw.writeStartElement(&quot;value&quot;);
+  BigDecimal value = ...; // BigDecimal to keep exact decimal value (no rounding probs)
+  tw.writeDecimal(value);
+  tw.writeEndElement();
+  tw.writeEndElement(); // /entries
+  tw.writeEndDocument();</pre>
+    <p style="margin-top: 0">
+      (for a more convenient way, I always recommend <a href="http://staxmate.codehaus.org">StaxMate</a> 
+      helper lib -- but that'd lead to another blog entry so for now we'll 
+      just use &quot;raw&quot; Stax2 API)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p margin-top="0">
+      There are also couple of more types in there: about the only 'advanced' 
+      simple type included is QName: which can be used to write properly 
+      namespaced qualified names; at least if the stream writer is in 
+      namespace-repairing mode which allows for automatic namespace 
+      declarations to be added by writer.
+    </p>
+    <p margin-top="0">
+      <b>2. Reading simple values</b>
+    </p>
+    <p margin-top="0">
+      Typed writing seems like a minor incremental improvement, nothing too 
+      drastic. Without type support you would just convert values to Strings; 
+      for example:
+    </p>
+    <pre>  tw.writeCharacters(String.valueOf(intValue));</pre>
+    <p style="margin-top: 0">
+      would be functionally equivalent, although less efficient way to achieve 
+      the same.
+    </p>
+    <p white-space="pre">
+      Reader-side is where the action mostly is, since code will be more 
+      compact as well as more readable.<br>So, to read content written by code 
+      above, we could use something like:
+    </p>
+    <pre>  String docContent = sw.toString();
+  TypedXMLStreamReader tr = (TypedXMLStreamReader) 
+  XMLInputFactory.newInstance().createStreamReader(new 
+  StringReader(docContent));
+  tr.nextTag(); // to point to &lt;entries&gt;
+  tr.require(XMLStreamConstants.START_ELEMENT, &quot;&quot;, &quot;entries&quot;); // optional check
+  tr.nextTag(); // to point to &lt;entry&gt;
+  int id = tr.getAttributeAsInt(0); // or: 
+  getAttributeAsInt(tr.getAttributeIndex(null, &quot;id&quot;))
+  tr.nextTag(); // to point to &lt;active&gt;
+  boolean isActive = tr.getElementAsBoolean();
+  tr.nextTag(); // to point to &lt;value&gt;
+  BigDecimal value = tr.getElementAsDecimal();
+  tr.nextTag(); // closing &lt;/entry&gt;
+  tr.require(XMLStreamConstants.END_ELEMENT, &quot;&quot;, &quot;entry&quot;); // optional check
+  tr.nextTag(); // closing &lt;/entries&gt;</pre>
+    <p>
+      <b>3. So what's the Big Deal?</b>
+    </p>
+    <p>
+      Ok, so code above is slightly simpler than the alternative: for example, 
+      instead of:
+    </p>
+    <pre>  int id = tr.getAttributeAsInt(0);</pre>
+    <p>
+      we could have used:
+    </p>
+    <pre>  int id;
+  String value = tr.getAttributeValue(0);
+  try {
+    id = Integer.parseInt(value);
+  } catch (IllegalArgumentException iae) {
+    throw new XMLStreamException(&quot;value '&quot;+value+&quot;' not an int&quot;, tr.getLocation());
+  }</pre>
+    <p style="margin-top: 0">
+      (unless we are happy with a random IllegalArgumentException being thrown 
+      and can leave out try-catch block; but that will also lose contextual 
+      info on where in content problem occured, or with what input -- which is 
+      usually not the case)
+    </p>
+    <p style="margin-top: 0">
+      But maybe added convenience is not that huge: most developers by now 
+      have written their own utility methods. There are still other benefits 
+      even just for these simple types (we'll cover benefits of non-simple 
+      types later on; they are more plentiful):
+    </p>
+    <ul>
+      <li>
+        As implied above, proper exception handling is a plus: typed parser 
+        can provide more information about the actual problem (location, 
+        underlying data to convert)
+      </li>
+      <li>
+        Typed Access API is based on XML Schema Datatype: typing system very 
+        similar to Java type system, but not identical. Thus, Typed Access API 
+        will work better with other systems based on XML Schema Datatype than 
+        using basic JDK parsing/decoding methods. This improves 
+        interoperability.
+      </li>
+      <li>
+        Typed Access API methods can be (and in case of Woodstox, are) more 
+        efficient than DIY alternative. Based on initial testing, processing 
+        throughput can increase significantly even for simplest of types (like 
+        booleans, ints): currently by up to 20 - 30
+      </li>
+      <li>
+        Code is bit more readable, since methods explicitly state what is 
+        expected
+      </li>
+    </ul>
+    <p>
+      <b>4. Next Steps</b>
+    </p>
+    <p>
+      Ok so far so good. But let's consider this a warm-up act before moving 
+      to &quot;advanced&quot; types: arrays and binary content; as well as custom 
+      decoding.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Saturday, December 06, 2008 9:33 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_118.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_118.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_118.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header"> </h2>
+
+<div class="entry" id="post-119">
+			<h3 class="entry-header">Silly performance musings: x.toString() vs (String)x</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Here is something I have been wondering occasionally:
+    </p>
+    <blockquote>
+      <i>given an Object that I know to be of type String, is it more 
+      efficient to cast it to String, or to call .toString() on it?</i>
+    </blockquote>
+    <p>
+      Now, if you have C/C++ background, the question may not initially make 
+      any sense: isn't cast just syntactic sugar -- compile-time adjustment to 
+      offsets -- whereas toString() a virtual method call, relatively quite 
+      expensive? Well, no, casts in Java can actually be more complicated 
+      lookups through inheritance hierarchy, especially if casting to 
+      interfaces (although not as complicated as if Java had Multiple 
+      Inheritance). So in that sense, it could be that the method dispatch 
+      might be smaller cast. Further, since String.toString() just does 
+      'return this', there is distinct chance it might over all be faster 
+      approach.
+    </p>
+    <p>
+      Now: I am sure that it is hard to find a case where possible performance 
+      difference would matter a lot -- both methods ought to be fast enough -- 
+      so this is an academic question. But it is easy enough to write code to 
+      test it out, so I did just that. If they ever make Trivial Pursuit: the 
+      Java micro benchmark edition, I will be so ready...
+    </p>
+    <p>
+      In thend end, results are surprisingly clear: <b>it is at least twice as 
+      fast to cast Object to String than to call Object.toString(</b>). So 
+      there you have it. No point in calling toString() if you truly know the 
+      type to be String (calling toString() is still useful if it's either 
+      String, or some object that renders as String, such as StringBuilder or 
+      StringBuffer). C/C++ intuition would have given the right answer, even 
+      if not for right reasons.
+    </p>
+    <p>
+      One interesting sidenote is that this is one case where JDK 1.6 does 
+      some funky thingamagic to casts: code is about twice as fast as under 
+      1.4 or 1.5 (especially so for casts, but also for tiString()). Quite 
+      neat, whatever it does.
+    </p>
+    <p>
+      Oh, and the source code: this is extremely ugly; view at your discretion 
+      etc. But here goes:
+    </p>
+    <hr>
+    
+
+    <pre>public final class Test
+{
+    final static int ROUNDS = 999999;
+
+    void test(Object[] args) throws Exception
+    {
+        boolean foo = false;
+
+        while (true) {
+            long now = System.currentTimeMillis();
+            String desc;
+            int result;
+
+            if (foo) {
+                desc = &quot;.toString()&quot;;
+                result = testToString(args);
+            } else {
+                desc = &quot;(String)&quot;;
+                result = testCast(args);
+            }
+            foo = !foo;
+
+            now = System.currentTimeMillis() - now;
+            System.out.println(&quot;Type: &quot;+desc+&quot;; time: &quot;+now+&quot; (result &quot;+result+&quot;)&quot;);
+            Thread.sleep(100L);
+        }
+    }
+
+    int testToString(Object[] args)
+    {
+        int len = args.length;
+        String str = &quot;&quot;;
+        for (int r = 0; r  ROUNDS; ++r) {
+            for (int i = 0; i  len; ++i) {
+                str = args[i].toString();
+            }
+        }
+        return str.hashCode();
+    }
+
+    int testCast(Object[] args)
+    {
+        int len = args.length;
+        String str = &quot;&quot;;
+        for (int r = 0; r  ROUNDS; ++r) {
+            for (int i = 0; i  len; ++i) {
+                str = (String) args[i];
+            }
+        }
+        return str.hashCode();
+    }
+
+    public static void main(String[] args) throws Exception
+    {
+        if (args.length  1) {
+            throw new Exception(&quot;Need Args!&quot;);
+        }
+        Object[] args2 = new Object[args.length];
+        System.arraycopy(args, 0, args2, 0, args.length);
+        new Test().test(args2);
+    }
+}
+
+</pre></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Saturday, December 06, 2008 12:04 AM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_119.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_119.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_119.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, December 04, 2008 </h2>
+
+<div class="entry" id="post-106">
+			<h3 class="entry-header">How to alleviate the infamous "Xml Invalid Character" problem with Woodstox </h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+  <b>1. The Problem</b>
+</p>
+<p>
+  Have you ever hit a problem manifesting itself like so:
+</p>
+<pre>  Error: com.ctc.wstx.exc.WstxUnexpectedCharException: Illegal character 
+  ((CTRL-CHAR, code 12))</pre>
+<p>
+  when parsing XML? There is a good chance you have, if you regularly 
+  process xml.
+</p>
+<p>
+  So how and why does it occur? For common use cases, where one controls 
+  both data source (stuff that gets written as xml) and reading side, 
+  problems seldom occur. Few people feel the urge to add such weird 
+  characters in the first place. It is usually only when a legacy data 
+  source is used for populating/constructing xml content; or when using a 
+  data source with very loose validation. Former often comes as a (c)rusty 
+  old Oracle data dump, and latter simplistic system where user data (from 
+  web form or such) is shoved straight into crusty old Oracle, to create 
+  the data compost (which eventually becomes legacy data). Either way, 
+  characters that cause problems are more often than not supposed to even 
+  be there.
+</p>
+<p>
+  But as importantly, while characters such as &quot;vertical tab&quot; or &quot;form 
+  feed&quot; are usually of little use nowdays (the are left-overs from days of 
+  past when one hand to use in-band signaling use crude mechanisms), they 
+  are also often non-problematic: web browsers, for example, mostly 
+  convert these to other harmless character codes (such as plain space) 
+  before displaying. So, they are colorless and tasteless. Expert for xml 
+  parsers, which are mandated by law (well, ok not quite, just by xml 
+  specs...) to report such irregularities.
+</p>
+<p>
+  So here's the catch: xml specification explicitly forbids using such 
+  character: as per XML specification, these characters can not be 
+  included in xml content, anywhere. Not in CDATA sections, not as 
+  attribute values, not in processing instructions (not with the mouse, 
+  not in the house, Sam... but I digress) With XML 1.1, you could actually 
+  use character entities to escape them. Too bad no one uses XML 1.1, and 
+  chances are few ever will (and this is due to, well, XML 1.1 sucking bad 
+  in many other respects -- one step fore, two back -- but I rantgress 
+  here).
+</p>
+<p>
+  <b>2. Woodstox to Rescue</b>
+</p>
+<p>
+  So what is one to do? Most developers intuitively reach for 
+  &quot;how-do-I-disable-this-nasty-validation&quot; button. Not so fast: while that 
+  is a possible work-around, it is not really a good solution. After all, 
+  broken &quot;xml&quot; content is still broken, you are just trying to sweep this 
+  inconvenient fact under the carpet.
+</p>
+<p>
+  Instead, one should try to rectify the problem at source. Now: although 
+  sometimes producer is not under your control (when you are being sent 
+  alleged &quot;xml&quot; content by someone not familiar with concepts like, say, 
+  xml...), quite often you do have control. If so, the first thing you 
+  should do is to verify that you never produce such pseudo-xml content 
+  with these evil characters. If not, you should pester the producer to 
+  read this blog entry. :-)
+</p>
+<p>
+  And this is where Woodstox 4.0.0 comes in [fanfare!]. Here is a new 
+  feature you might want to use to squash those pesky vertical tabs and 
+  their brethren:
+</p>
+<pre>  XMLOutputFactory f = new WstxOutputFactory();
+  f.setProperty(WstxOutputProperties.P_OUTPUT_INVALID_CHAR_HANDLER,<br>    new InvalidCharHandler.ReplacingHandler(' '));
+  XMLStreamWriter sw = f.createXMLStreamWriter(...);</pre>
+<p>
+  So what does it do? If you didn't guess it, setting this property will 
+  make stream writer silently replace all Java characters that are not 
+  valid xml characters with given replacement character. This means that 
+  following unit test should pass:
+</p>
+<pre>
+  StringWriter w = new StringWriter(); sw.writeStartElement(&quot;a&quot;); 
+  sw.writeCharacters(&quot;Evil:\u000c!&quot;); sw.writeEndElement(); sw.close(); 
+  assertEquals(&quot;<a>Evil: </a>&quot;);
+</pre>
+<p>
+  That works quite nicely: I just started using it myself, for a simple 
+  DB-to-xml data dumper (and yes, an address had a form feed in it).
+</p>
+<p>
+  So if you are in the business of producing xml content, consider this a 
+  new tool for Greener data production. Woodstox to the rescue -- so that 
+  we can all breathe a little easier! (disclaimer: air pollution reduction 
+  not scientifically proven)
+</p>
+<p>
+  <b>3. Small Print</b>
+</p>
+<p>
+  Woodstox 4.0 is still in its pre-release phase, so while the latest 
+  release (3.9.9-1) has all the features detailed above funcioning 
+  correctly, the official release has not yet been cut. Use at your own 
+  risk. D(r)ink responsibly. But most of all -- have fun!
+</p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, December 04, 2008 9:58 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_106.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_106.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_106.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Wednesday, December 03, 2008 </h2>
+
+<div class="entry" id="post-104">
+			<h3 class="entry-header">Optimizing Advertisements using Evolutionary Techniques</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      I have always been interest in different areas of Information Retrieval 
+      (lately mostly related to automatic classification, and fact 
+      extraction), and so <a href="http://www.techcrunch.com/2008/11/25/snapads-survival-of-the-fittest-meets-madison-avenue/
+">this entry</a> which talks about what a start-up called SnapAds does is 
+      quite interesting. Although the basic idea is quite straight-forward 
+      (try out variations of the ad, see which ones perform the best, evolve 
+      those; also avoids repetition which may reduce click-through), the devil 
+      is in details: and pay-off for good implementation could be huge. One 
+      needs to sift through lots of data to really learn; but with the scale 
+      of the web, smaller and smaller companies could try to do something 
+      similar. Very interesting!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, December 03, 2008 6:51 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_104.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_104.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_104.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Tuesday, December 02, 2008 </h2>
+
+<div class="entry" id="post-101">
+			<h3 class="entry-header">Belated Thanks to Sun Open Source Folks!  </h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      I feel bad for it taking this long to write a simple &quot;Thank You&quot; blog 
+      entry, but better late than never. So: Thank You dear Sun Microsystems, 
+      for the nice <a href="http://wiki.glassfish.java.net/Wiki.jsp?page=GapTop">GlassFish 
+      Awards Program</a> (GAP)! Special thanks to the folks who pushed through 
+      to get GAP itself approved; among many other worthy candidate projects.
+    </p>
+    <p>
+      In addition to liking the idea of such awards in general, I am of course 
+      somewhat biased (or at least, extra thankful?) by the fact that I was 
+      fortunate enough to be among the <a href="ttp://blogs.sun.com/theaquarium/entry/notd_recent_gap_blog_entries">lucky</a> 
+      <a href="http://wikis.sun.com/display/GAP/GAP+Winners">winners</a> -- 
+      Pardon my bias (I am especially proud of <a href="http://weblogs.java.net/blog/jitu/archive/2008/10/metro_gap_winne.html">this 
+      mention</a>!). Participation was based on submitting a few SJSXP bug 
+      reports, some accompanied by patches (and as I have mentioned earlier, 
+      one getting released as part of JDK 1.6 updates).
+    </p>
+    <p>
+      It is nice to get something back for doing things inder category &quot;I 
+      would have done it anyway, things that I keep on doing even-more-so, 
+      because of this serendipitous (sp?) awards program&quot;. :-)
+    </p>
+    <p>
+      I think this also underlines one of lesser-known rules of using money as 
+      motivational tool: it should not be used as the motivator for getting 
+      work done (&quot;if you do X, I pay you Y&quot;) -- that is actually 
+      counter-productive, as thoroughly proven over the years (it essentially 
+      removes motivation to do X, UNLESS Y is paid: even if originally no such 
+      motivator was needed!) -- but rather, to reward things that one wants to 
+      see more of. This hopefully has the benefit of boosting morale without 
+      accidentally assigning a &quot;price tag&quot; for voluntary work.
+    </p>
+    <p>
+      At any rate: thank you Sun, let's do this again some time!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, December 02, 2008 9:56 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_101.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_101.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_101.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_126.html">Gravity of Java Generics: Type Erasure Sucks</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_122.html">Tequila: Not Just For Breakfast Anymore!</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_121.html"> Jackson 0.9.5: Now With Bean Serialization! </a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_120.html">XStream 1.3.1 released: performance improvements</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_118.html">Typed Access API tutorial, part I </a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

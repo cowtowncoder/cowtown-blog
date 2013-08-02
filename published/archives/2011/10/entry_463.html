@@ -1,0 +1,859 @@
+<html lang="en">
+<head>
+<title>Jackson 1.9 new feature overview</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<!-- HaloScan comments: -->
+<script type="text/javascript" src="http://www.haloscan.com/load/cowtowncoder">
+</script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+     <div id="container">
+          <div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+     <div id="banner-inner" class="pkg">
+          <h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+          <h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+     </div>
+</div>
+               <div id="pagebody">
+                    <div id="pagebody-inner" class="pkg">
+                         <div id="alpha">
+                              <div id="alpha-inner" class="pkg">
+<!-- entry -->
+
+
+   
+   
+
+     <h2 class="date-header">Tuesday, October 11, 2011 </h2>
+
+<div class="entry" id="post-463">
+<h3 class="entry-header">Jackson 1.9 new feature overview</h3>
+     <div class="entry-content">
+          <div class="entry-body">
+          
+               <p><p>
+      Jackson 1.9 was just released. As usual, it can downloaded from the <a href="http://wiki.fasterxml.com/JacksonDownload">Download 
+      page</a>, and detailed release information can be found from <a href="http://wiki.fasterxml.com/JacksonRelease19">1.9 
+      release page</a>.
+    </p>
+    <p>
+      Let's have a look into contents of this release.
+    </p>
+    <p>
+      <b>1. Overview</b>
+    </p>
+    <p>
+      One of focus areas on this release was once again to tackle oldest 
+      significant issues and improvement ideas; and two of major new features 
+      are long-standing issues (ability to inline/unwrap JSON values; unify 
+      annotation handling for getters/setters/fields). Another big goal was to 
+      improve ergonomics: to simplify configuration, shorten commonly used 
+      usage patterns and so on. And finally there was also intent to try to 
+      &quot;2.0 proof&quot; things, by trying to figure out things that need to be 
+      deprecated to allow removal of obsolete methods as well as indicate 
+      cases where improved functionality is available.
+    </p>
+    <p>
+      <b>2. Major features</b>
+    </p>
+    <p>
+      (note: classification of features into major, medium and minor 
+      categories is not exact science, and different users might consider 
+      different things more important than others -- here we simply use 
+      categorization that the release page uses)
+    </p>
+    <p>
+      Major features included in 1.9 are:
+    </p>
+    <ul>
+      <li>
+        Allow inlining/unwrapping of child objects using @JsonUnwrapped
+      </li>
+      <li>
+        Rewrite property introspection part of framework to combine 
+        getter/setter/field annotations
+      </li>
+      <li>
+        Allow injection of values during deserialization
+      </li>
+      <li>
+        Support for 'external type id' by adding 
+        @JsonTypeInfo.As.EXTERNAL_PROPERTY
+      </li>
+      <li>
+        Allow registering instantiators (ValueInstantiator) for types
+      </li>
+    </ul>
+    <p>
+      <b>2.1 @JsonUnwrapped</b>
+    </p>
+    <p>
+      Ability to map JSON like
+    </p>
+    <pre>  {
+    &quot;name&quot; : &quot;home&quot;,
+    &quot;latitude&quot; : 127,
+    &quot;longitude&quot; : 345
+  }</pre>
+    <p>
+      to classes defined as:
+    </p>
+    <pre>  class Place {
+    public String name;<br><br>    @JsonUnwrapped
+    public Location location;
+  }
+<br>  class Location {
+   public int latitude, longitude;
+  }</pre>
+    <p>
+      has been on many users' wish list for a while now; and with addition of 
+      @JsonUnwrapped (used as shown above) this simple structural 
+      transformation can now be achieved without custom handling
+    </p>
+    <p>
+      <b>2.2 &quot;Unified&quot; properties, merging (&quot;sharing&quot;) of annotations of 
+      getters/setters/fields</b>
+    </p>
+    <p>
+      Another long-standing issue has been that of isolation between 
+      annotations used by getters, setters and fields. Basically annotation 
+      added to a getter was only ever used for serialization, and would never 
+      have any effect on deserialization; similarly setter never affected 
+      deserialization. While this is not a problem for many annotation use 
+      cases, it would make following use case work quite different from what 
+      users intuitively expect:
+    </p>
+    <pre>  class Point {<br>    @JsonProperty(&quot;width&quot;)<br>    public int getW();<br>    public void setW(int w); // must be separately renamed<br>  }</pre>
+    <p>
+      which would actually lead to there being two separate properties: 
+      &quot;width&quot; that is written out during serialization; and &quot;w&quot; that is 
+      expected to be received when deserializing. Many users would intuitively 
+      expect annotation to be &quot;shared&quot; between two parts of logically related 
+      accessors. Same issue also affects annotations like @JsonIgnore and 
+      @JsonTypeInfo, requiring use of seemingly redundant annotations.
+    </p>
+    <p>
+      Jackson 1.9 solves this by adding new internal representation of logical 
+      property, and merging resulting annotations using expected priorities 
+      (meaning that annotations on a getter have precedence over setter when 
+      serializing, and vice versa).
+    </p>
+    <p>
+      There are also other more subtle changes, related to these changes. For 
+      example, class like:
+    </p>
+    <pre>  class ValueBean {
+    private int value;
+
+    public int getValue() { return value; }
+  }</pre>
+    <p>
+      can now be deserialized succesfully, even without field &quot;value&quot; being 
+      visible or annotated: since it is joined with getter (&quot;getValue()&quot;), and 
+      getter is explicitly annotated, field is included as the accessor to use 
+      for assigning value for the property.
+    </p>
+    <p>
+      The last important benefit of this feature is that now handling of 
+      Jackson and JAXB annotations is much more similar, which should make 
+      JAXB annotations works better as a result (code was simplified 
+      significantly) -- this because JAXB had always considered annotations to 
+      be shared in this way.
+    </p>
+    <p>
+      <b>2.3 Value Injection for Deserialization</b>
+    </p>
+    <p>
+      Value injection here means ability to insert (&quot;inject&quot;) values into 
+      POJOs outside of general data binding: that is, values that do not come 
+      from JSON input. Instead, values to inject are specified during 
+      configuration of ObjectMapper or ObjectReader used for data binding.
+    </p>
+    <p>
+      Why is this needed? Some Java types require additional context 
+      information to be able to construct POJO instances, for example. And in 
+      other cases, you may want to pre-populate values of some fields; and 
+      while there are other mechanims (for example, you can pass an existing 
+      POJO instance for &quot;updateValue()&quot;) method) they are quite limited.
+    </p>
+    <p>
+      Only two things are needed for value injection:
+    </p>
+    <ol>
+      <li>
+        Means to indicate properties for which values are to be injected, and
+      </li>
+      <li>
+        Definition of values to inject
+      </li>
+    </ol>
+    <p>
+      Default mechanism is to handle first part by using new annotation, <i>@JacksonInject</i>, 
+      so that we could have:
+    </p>
+    <pre>  public class InjectableBean
+  {
+    @JacksonInject(&quot;seq&quot;) private int sequenceNumber;
+    public String name;
+  }</pre>
+    <p>
+      and second part is handled by allowing configuration of ObjectMapper or 
+      ObjectWriter instance with <i>InjectableValues</i>, object that can find 
+      values to inject given value id. Value ids can be specified as either 
+      Strings, or as Classes; if Class is used, Class.getName() is used to get 
+      actual String id to use. For above POJO, we could handle deserialization 
+      as follows:
+    </p>
+    <pre>  ObjectMapper mapper = new ObjectMapper();
+  Integer sequenceNumber = SequenceGenerator.next(); // or whatever
+  InjectableValues inject = new InjectableValues.Std()
+   .addValue(&quot;seq&quot;, id)
+  final String json = &quot;{\&quot;name\&quot;:\&quot;Lucifer\&quot;}&quot;;
+  InjectableBean value = mapper.reader(InjectableBean.class).withInjectableValues(inject).readValue(json);</pre>
+    <p>
+      For more on this feature, check out FasterXML Wiki's entry on <a href="http://wiki.fasterxml.com/JacksonFeatureValueInjection">Value 
+      Injection</a>.
+    </p>
+    <p>
+      <b>2.4 External Type Id</b>
+    </p>
+    <p>
+      Jackson has had support for full polymorphic type handling since 1.5, 
+      allowing configuration of both type identifier in use (usually either a 
+      class name, or logical type name) and type inclusion mechanism (as 
+      property, as wrapper array, as single-element wrapper object).<br>This 
+      covers wide range of usage scenarios, but there is one inclusion 
+      mechanism that is sometimes used but could not be supported by Jackson: 
+      that of using &quot;external type identifier&quot;. This style of type inclusion 
+      is used by some data formats, most notably geoJSON.
+    </p>
+    <p>
+      By external type identifier we mean case such as this:
+    </p>
+    <pre> {
+  &quot;type&quot; : &quot;rectangle&quot;,
+  &quot;shape&quot; :  {
+   &quot;width&quot;: 20.0,
+   &quot;height&quot; : 40.0
+  }
+ }</pre>
+    <p>
+      where type is included as a property (&quot;type&quot;) that is outside of JSON 
+      Object being typed.
+    </p>
+    <p>
+      With 1.9 we can support such use case by using @JsonTypeInfo with a new 
+      inclusion value:
+    </p>
+    <pre>  public class ShapeContainer
+  {
+    @JsonTypeInfo(use=Id.NAME, include=As.EXTERNAL_PROPERTY, property=&quot;type&quot;)
+    public Shape shape;    
+  }
+ <br>  static class Shape { }
+<br>  @JsonTypeName(&quot;rectangle&quot;) // or rely on class name, Rectangle
+  static class Rectangle extends Shape {
+    public double width, height;
+  }</pre>
+    <p>
+      One thing to note here is that this inclusion mechanism should only be 
+      used with properties; annotating classes with @JsonTypeInfo that 
+      indicates external type identifiers can cause conflicts.
+    </p>
+    <p>
+      <b>2.5 Value instantiators</b>
+    </p>
+    <p>
+      And last but not least, 1.9 also allows much more control over mechanism 
+      used to create actual POJO value instances. While Jackson 1.2 added 
+      support for @JsonCreator annotation, there has not been a way to add 
+      custom creator objects.
+    </p>
+    <p>
+      With 1.9, we get following pieces:
+    </p>
+    <ul>
+      <li>
+        <i>ValueInstantiator</i> (abstract class), extended by objects used to 
+        create value instances
+      </li>
+      <li>
+        <i>ValueInstantiators</i> (interface), provider for per-type 
+        ValueInstantor instances (as well as ValueInstantiators.Base abstract 
+        class for actual implementations)
+      </li>
+      <li>
+        <i>Module.setupContext</i> method <i>addValueInstantiators</i>(); as 
+        well as <i>SimpleModule</i> method <i>addValueInstantiator</i>(), for 
+        adding provider(s), so modules can easily provide instantiators for 
+        types they support
+      </li>
+      <li>
+        <i>@JsonValueInstantiator</i> annotation that can be used as an 
+        alternative to specify instantiator used for annotated type.
+      </li>
+    </ul>
+    <p>
+      Above pieces are basically enough to support all three modes of 
+      construction @JsonCreator allows (so basically @JsonCreator could be 
+      implemented as module, if we wanted!):
+    </p>
+    <ol>
+      <li>
+        &quot;Default&quot; construction that takes no arguments and uses no-argument 
+        constructor or factory method
+      </li>
+      <li>
+        &quot;Delegate-based&quot; construction, in which JSON value is first bound to 
+        an intermediate type (such as java.util.Map or Jackson JsonNode), and 
+        this instance is passed to single-argument creator method
+      </li>
+      <li>
+        &quot;Property-based&quot; construction, in which one or more named values (JSON 
+        properties) are bound to specified types that match creator arguments, 
+        and these are passed to creator method.
+      </li>
+    </ol>
+    <p>
+      Mapping of above construction methods to ValueInstantiator methods is 
+      fairly straight-forward:
+    </p>
+    <ol>
+      <li>
+        Simple no-arguments construction (<i>ValueInstantiator.createUsingDefault()</i>): 
+        used if the other construction mechanisms are not available: consumes 
+        no JSON properties.
+      </li>
+      <li>
+        Delegate-based construction (<i>ValueInstantiator.createUsingDelegate</i>(Object)): 
+        similar to annotating a single-argument constructor or factory method 
+        with @JsonCreator, but NOT specifying argument name with 
+        @JsonProperty. If specified (i.e. value instantiator indicates it 
+        supports this), JSON value for property is first bound into 
+        intermediate (delegate) type, and then this value is passed to 
+        delegate creator method. Jackson mapper will handle all the details of 
+        initial binding, passing delegate object as the argument.
+      </li>
+      <li>
+        Property-based construction (<i>ValueInstantiator.createFromObjectWith</i>(Object[] 
+        args)): similar to using @JsonCreator with arguments that all have 
+        @JsonProperty annotation to specify JSON property name to bind.
+      </li>
+    </ol>
+    <p>
+      It is worth noting that order in which availability of different modes 
+      is checked is reverse of above: first a check is made to see if 
+      property-based method is available; if not, then delegate-based, and 
+      finally default construction.
+    </p>
+    <p>
+      Since this is possibly the most complicated new feature, I will need to 
+      defer a full example to another blog post. But let's consider a very 
+      simple ValueInstantiator implementation that just supports the default 
+      (no-argument) instantiation:
+    </p>
+    <pre>  class SimpleInstantiator extends ValueInstantiator
+  {
+    @Override public String getValueTypeDesc() { // only needed for error messages
+      return MyType.class.getName();
+    }
+
+    @Override // yes, this creation method is available
+    public boolean canCreateUsingDefault() { return true; }
+
+    @Override
+    public MyType createUsingDefault() {
+      return new MyType(true);
+    }
+  }</pre>
+    <p>
+      and similarly you can add support for delegate- or property-based 
+      methods.
+    </p>
+    <p>
+      <b>3. Other notable features</b>
+    </p>
+    <p>
+      Aside from above-mentioned major features, there are many other useful 
+      improvements:
+    </p>
+    <ul>
+      <li>
+        &quot;mini-core&quot; jar (jackson-mini-1.9.0.jar)
+      </li>
+      <li>
+        <i>DeserializationConfig.Feature.UNWRAP_ROOT_VALUE</i>
+      </li>
+      <li>
+        @JsonView for JAX-RS methods to return a specific <i>JsonView</i>
+      </li>
+      <li>
+        Terse(r) Visibility: <i>ObjectMapper.setVisibility()</i>, <i>VisibilityChecker.with(Visibility)</i>
+      </li>
+      <li>
+        Add standard naming-strategy implementation(s)
+      </li>
+      <li>
+        Add <i>JsonTypeInfo.defaultSubType</i> property to indicate type to 
+        use if class id/name missing
+      </li>
+      <li>
+        Add <i>SimpleFilterProvider.setFailOnUnknownId()</i> to disable 
+        throwing exception on missing filter id
+      </li>
+    </ul>
+    <p>
+      &quot;Mini core&quot;: as name suggests, there is now a new jar 
+      (jackson-mini-1.9.0.jar) that is about 40% smaller than the default one 
+      -- about 136kB or so. Size reduction is achieved by leaving out text 
+      files (LICENSE), as well as annotations, but otherwise functionality is 
+      equivalent to standard core package, i.e. supports streaming API 
+      (JsonParser/JsonGenerator, JsonFactory).
+    </p>
+    <p>
+      <i>DeserializationConfig.Feature.UNWRAP_ROOT_VALUE</i> is counterpart to <i>SerializationConfig.Feature.WRAP_ROOT_VALUE</i>; 
+      and there is also now a new annotation -- <i>@JsonRootName </i>-- that 
+      can be used to use custom wrapper name instead of the simple class name. 
+      This is useful with interoperability, as some frameworks insist on 
+      adding such wrappers.
+    </p>
+    <p>
+      One of few improvements to JAX-RS provider is that now you can add 
+      @JsonView annotation to JAX-RS resource methods, and if one is found, it 
+      will be set as the active Serialization View during serialization of the 
+      result value.
+    </p>
+    <p>
+      One nice ergonomic improvement is the ability to use much more compact 
+      configuration methods for changing default introspection visibility 
+      levels.<br>For example, you can use:
+    </p>
+    <pre>  objectMapper.setVisibility(JsonMethod.FIELD, JsonAutoDetect.Visibility.ANY);</pre>
+    <p>
+      to make all fields auto-detectable, regardless of their visibility. Or, 
+      to prevent all auto-detection, you could use:
+    </p>
+    <pre>  objectMapper.setVisibilityChecker(m.getVisibilityChecker()
+  	.with(JsonAutoDetect.Visibility.NONE));</pre>
+    <p>
+      An improvement to naming strategy support is inclusion of one &quot;standard&quot; 
+      naming strategy -- CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES -- which 
+      converts between standard Java Bean names (that setters and getters 
+      use), and C-style names (like used by Twitter). You can enable this 
+      converter by:
+    </p>
+    <pre>  mapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);</pre>
+    <p>
+      and from there on, can consume JSON like:
+    </p>
+    <pre> { &quot;first_name&quot; : &quot;Joe&quot; }<br></pre>
+    <p>
+      to bind to class like:
+    </p>
+    <p>
+      public class Name { public String firstName; }
+    </p>
+    <p>
+      without having to use @JsonProperty to fix name mismatch.
+    </p>
+    <p>
+      As to sub-typing, you can now use new @JsonTypeInfo property 
+      defaultSubType to indicate, as name suggests, default sub-type to use in 
+      case where type name was missing or could not be resolved: use it like:
+    </p>
+    <pre>  @JsonSubType(use=Id.NAME, include=As.PROPERTY, defaultSubType=GenericImpl.class)
+  public abstract class BaseType { }</pre>
+    <p>
+      And finally, one improvement to Json Filter functionality is ability to 
+      specify that it is ok to use a filter id that does not refer to an 
+      actual filter (i.e. can not be resolved by the currently configured 
+      filter provider) -- use 'SimpleFilterProvider.setFailOnUnknownId(false)' 
+      to make this the default behavior. Missing filter is then assumed to 
+      mean &quot;no filtering&quot;, that is, serialization is handled as if no filter 
+      was specified.
+    </p></p>
+
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, October 11, 2011 8:21 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/10/entry_463.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/10/entry_463.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/10/entry_463.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+
+
+   
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /**
+    * var disqus_identifier; [Optional but recommended: Define a unique identifier (e.g. post id or slug) for this thread] 
+    */
+  (function() {
+   var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+   dsq.src = 'http://cowtalk.disqus.com/embed.js';
+   (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>(enable JavaScript to view the <a href="http://disqus.com/?ref_noscript=cowtalk">comments powered by Disqus)</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  </div>
+</div>
+<div id="beta">
+  <div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+
+<!-- /SiteSearch Google -->
+<hr />
+</div>
+
+     <div class="module-archives module">   
+          <h2 class="module-header">Last posts</h2>
+          <div class="module-content">
+               <ul class="module-list">
+                <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/10/entry_463.html">Jackson 1.9 new feature overview</a></li>
+               </ul>
+          </div>
+     </div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+
+     <div class="module-categories module">
+          <h2 class="module-header">Categories</h2>
+          <div class="module-content">
+        <ul>
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+          
+        </ul>
+          </div>
+     </div>
+<div class="module-syndicate module">
+     <div class="module-content">
+          <a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+          [<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+     </div>
+
+</div>
+
+<div class="module-about module">
+  <h2 class="module-header">Sponsored By</h2>
+  <div class="module-content">
+  </div>
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+<hr />
+
+     <h2 class="module-header">Related Blogs</h2>
+          <div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+
+<div class="module-powered module">
+     <h2 class="module-header">Powered By</h2>
+
+     <div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a> and
+     </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>

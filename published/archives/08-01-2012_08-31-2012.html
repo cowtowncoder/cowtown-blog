@@ -1,0 +1,904 @@
+<html lang="en">
+<head>
+<title>August 2012</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Saturday, August 18, 2012 </h2>
+
+<div class="entry" id="post-477">
+			<h3 class="entry-header">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      <b>1. Background</b>
+    </p>
+    <p>
+      The default Java serialization provided by JDK is a two-edged sword: on 
+      one hand, it is a simple, convenient way to &quot;freeze and thaw&quot; Objects 
+      you have, handling about any kind of Java object graphs. It is possibly 
+      the most powerful serialization mechanism on Java platform, bar none.
+    </p>
+    <p>
+      But on the other hand, its shortcomings are well-document (and I hope, 
+      well-known) at this point. Problems include:
+    </p>
+    <ul>
+      <li>
+        Poor space-efficiency (especially for small data), due to inclusion of 
+        all class metadata: that is, size of output can be huge, larger than 
+        about any alternative, including XML
+      </li>
+      <li>
+        Poor performance (especially for small data), partly due to size 
+        inefficiency
+      </li>
+      <li>
+        Brittleness: smallest changes to class definitions may break 
+        compatibility, preventing deserialization. This makes it a poor choice 
+        for both data exchange between (Java) systems as well as long-term 
+        storage
+      </li>
+    </ul>
+    <p>
+      Still, the convenience factor has led to many systems using JDK 
+      serialization to be the default serialization method to use.
+    </p>
+    <p>
+      Is there anything we could do to address downsides listed above? Plenty, 
+      actually. Although there is no way to do much more for the default 
+      implementation (JDK serialization implementation is in fact ridiculously 
+      well optimized for what it tries to achieve -- it's just that the goal 
+      is very ambitious), one can customize what gets used by making objects 
+      implement j<b>ava.io.Externalizable</b> interface. If so, JDK will 
+      happily use alternate implementation under the hood.
+    </p>
+    <p>
+      Now: although writing custom serializers may be fun sometimes -- and for 
+      specific case, you can actually write very efficient solution as well, 
+      given enough time -- it would be nice if you could use an existing 
+      component to address listed short-comings.
+    </p>
+    <p>
+      And that's what we'll do! Here's one possible way to improve on all 
+      problems listed above:
+    </p>
+    <ol>
+      <li>
+        Use an efficient Jackson serializer (to produce either JSON, or 
+        perhaps more interestingly, <a href="http://wiki.fasterxml.com/SmileFormat">Smile</a> 
+        binary data)
+      </li>
+      <li>
+        Wrap it in nice java.io.Externalizable, to make it transparent to code 
+        using JDK serialization (albeit not transparent for maintainers of the 
+        class -- but we will try minimizing amount of intrusive code)
+      </li>
+    </ol>
+    <p>
+      <b>2. Challenges with java.io.Externalizable</b>
+    </p>
+    <p>
+      First things first: while conceptually simple, there are couple of 
+      rather odd design decisions that make use of java.io.Externalizable bit 
+      tricky:
+    </p>
+    <ol>
+      <li>
+        Instead of passing instances of <b>java.io.InputStream</b>, <b>java.io.OutputStream</b>, 
+        instead <b>java.io.ObjectOutput</b> and <b>java.io.ObjectInput</b> are 
+        used; and they do NOT extend stream versions (even though they define 
+        mostly same methods!). This means additional wrapping is needed
+      </li>
+      <li>
+        <b>Externalizable.readExternal()</b> requires updating of the object 
+        itself, not that of constructing new instances: most serialization 
+        frameworks do not support such operation
+      </li>
+      <li>
+        How to access external serialization library, as no context is passed 
+        to either of methods?
+      </li>
+    </ol>
+    <p>
+      These are not fundamental problems for Jackson: first one requires use 
+      of adapter classes (see below), second that we need to use &quot;updating 
+      reader&quot; approach that Jackson was supported for a while (yay!). And to 
+      solve the third part, we have at least two choices: use of ThreadLocal 
+      for passing an ObjectMapper; or, use of a static helper class (approach 
+      shown below)
+    </p>
+    <div>
+      
+    </div>
+    <div>
+      So here are the helper classes we need:
+    </div>
+    <div>
+      <hr>
+      
+    </div>
+    <pre>final static class ExternalizableInput extends InputStream
+{
+  private final ObjectInput in;
+
+  public ExternalizableInput(ObjectInput in) {
+   this.in = in;
+  }
+
+  @Override
+  public int available() throws IOException {
+    return in.available();
+  }
+
+  @Override
+  public void close() throws IOException {
+    in.close();
+  }
+
+  @Override
+  public boolean  markSupported() {
+    return false;
+  }
+
+  @Override
+  public int read() throws IOException {
+   return in.read();
+  }
+
+  @Override
+  public int read(byte[] buffer) throws IOException {
+    return in.read(buffer);
+  }
+
+  @Override
+  public int read(byte[] buffer, int offset, int len) throws IOException {
+    return in.read(buffer, offset, len);
+  }
+
+  @Override
+  public long skip(long n) throws IOException {
+   return in.skip(n);
+  }
+}<br><br>final static class ExternalizableOutput extends OutputStream
+{
+  private final ObjectOutput out;
+
+  public ExternalizableOutput(ObjectOutput out) {
+   this.out = out;
+  }
+
+@Override
+public void flush() throws IOException {
+out.flush();
+}
+
+@Override
+public void close() throws IOException {
+out.close();
+}
+
+@Override
+public void write(int ch) throws IOException {
+out.write(ch);
+}
+
+@Override
+public void write(byte[] data) throws IOException {
+out.write(data);
+}
+
+@Override
+public void write(byte[] data, int offset, int len) throws IOException {
+out.write(data, offset, len);
+}
+}<br><br>/* Use of helper class here is unfortunate, but necessary; alternative would<br> * be to use ThreadLocal, and set instance before calling serialization.<br> * Benefit of that approach would be dynamic configuration; however, this<br> * approach is easier to demonstrate.<br> */<br>class MapperHolder {
+  private final ObjectMapper mapper = new ObjectMapper();
+  private final static MapperHolder instance = new MapperHolder();
+  public static ObjectMapper mapper() { return instance.mapper; }
+}<br></pre>
+    <hr>
+    
+
+    <p>
+      and given these classes, we can implement 
+      Jackson-for-default-serialization solution.
+    </p>
+    <p>
+      <b>3. Let's Do a Serialization!</b>
+    </p>
+    <p>
+      So with that, here's a class that is serializable using Jackson JSON 
+      serializer:
+    </p>
+    <hr>
+    
+
+    <pre>  static class MyPojo implements Externalizable
+  {
+        public int id;
+        public String name;
+        public int[] values;
+
+        public MyPojo() { } // for deserialization
+        public MyPojo(int id, String name, int[] values)
+        {
+            this.id = id;
+            this.name = name;
+            this.values = values;
+        }
+
+        public void readExternal(ObjectInput in) throws IOException {
+            MapperHolder.mapper().readerForUpdating(this).readValue(new ExternalizableInput(in));<br>        }
+        public void writeExternal(ObjectOutput oo) throws IOException {
+            MapperHolder.mapper().writeValue(new ExternalizableOutput(oo), this);
+        }<br>  }
+</pre>
+    <hr>
+    
+
+    <p>
+      to use that class, use JDK serialization normally:
+    </p>
+    <div>
+      <hr>
+      
+    </div>
+    <pre>  // serialize as bytes (to demonstrate):<br>  MyPojo input = new MyPojo(13, &quot;Foobar&quot;, new int[] { 1, 2, 3 } );
+  ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+  ObjectOutputStream obs = new ObjectOutputStream(bytes);
+  obs.writeObject(input);
+  obs.close();
+  byte[] ser = bytes.toByteArray();<br><br>  // and to get it back:<br>  ObjectInputStream ins = new ObjectInputStream(new ByteArrayInputStream(ser));
+  MyPojo output = (MyPojo) ins.readObject();<br>  ins.close();</pre>
+    <hr>
+    
+
+    <p>
+      And that's it.
+    </p>
+    <p>
+      <b>4. So what's the benefit?</b>
+    </p>
+    <p>
+      At this point, you may be wondering if and how this would actually help 
+      you. Since JDK serialization is using binary format; and since 
+      (allegedly!) textual formats are generally more verbose than binary 
+      formats, how could this possibly help with size of performance?
+    </p>
+    <p>
+      Turns out that if you test out code above and compare it with the case 
+      where class does NOT implement Externalizable, sizes are:
+    </p>
+    <ul>
+      <li>
+        Default JDK serialization: 186 bytes
+      </li>
+      <li>
+        Serialization as embedded JSON: 130 bytes
+      </li>
+    </ul>
+    <p>
+      Whoa! Quite unexpected result? JSON-based alternative <i>30% SMALLER</i> 
+      than JDK serialization!
+    </p>
+    <p>
+      Actually, not really. The problem with JDK serialization is not the way 
+      data is stored, but rather the fact that in addition to (compact) data, 
+      much of Class definition metadata is included. This metadata is needed 
+      to guard against Class incompatibilities (which it can do pretty well), 
+      but it comes with a cost. And that cost is particularly high for small 
+      data.
+    </p>
+    <p>
+      Similarly, performance typically follows data size: while I don't have 
+      publishable results (I may do that for a future post), I expect 
+      embedded-JSON to also perform significantly better for single-object 
+      serialization use cases.
+    </p>
+    <p>
+      <b>5. Further ideas: Smile!</b>
+    </p>
+    <p>
+      But perhaps you think we should be able to do better, size-wise (and 
+      perhaps performance) than using JSON?
+    </p>
+    <p>
+      Absolutely. Since the results are not exactly readable (to use 
+      Externalizable, bit of binary data will be used to indicate class name, 
+      and little bit of stream metadata), we probably do not greatly care what 
+      the actual underlying format is.<br>With this, an obvious choice would 
+      be to use <a href="http://wiki.fasterxml.com/SmileFormat">Smile data 
+      format</a>, binary counterpart to JSON, a format that Jackson supports 
+      100% with <a href="https://github.com/FasterXML/jackson-dataformat-smile">Smile 
+      Module</a>.
+    </p>
+    <p>
+      The only change that is needed is to replace the first line from 
+      &quot;MapperHolder&quot; to read:
+    </p>
+    <p>
+       <i> private final ObjectMapper mapper = new ObjectMapper(new 
+      SmileFactory());</i>
+    </p>
+    <p>
+      and we will see even reduced size, as well as faster reading and writing 
+      -- Smile is typically 30-40% smaller in size, and 30-50% faster to 
+      process than JSON.
+    </p>
+    <p>
+      <b>6. Even More compact? Consider Jackson 2.1, &quot;POJO as array!&quot;</b>
+    </p>
+    <p>
+      But wait! In very near future, we may be able to do EVEN BETTER! Jackson 
+      2.1 (see the <a href="https://github.com/FasterXML/jackson-docs/wiki/Presentation-Jackson-2.1-Preview">Sneak 
+      Peek</a>) will introduce one interesting feature that will further 
+      reduce size of JSON/Smile Object serialization. By using following 
+      annotation:
+    </p>
+    <p>
+        <i>@JsonFormat(shape=JsonFormat.Shape.OBJECT)   </i>
+    </p>
+    <p>
+      you can further reduce the size: this occurs as the property names are 
+      excluded from serialization (think of output similar to CSV, just using 
+      JSON Arrays).
+    </p>
+    <p>
+      For our toy use case, size is reduced further from 130 bytes to 109; 
+      further reduction of almost 20%. But wait! It gets better -- same will 
+      be true for Smile as well, since while it can reduce space in general, 
+      it still has to retain some amount of name information normally; but 
+      with POJO-as-Arrays it will use same exclusion!
+    </p>
+    <p>
+      <b>7. But how about actual real-life results?</b>
+    </p>
+    <p>
+      At this point I am actually planning on doing something based on code I 
+      showed above. But planning is in early stages so I do not yet have 
+      results from &quot;real data&quot;; meaning objects of more realistic sizes. But I 
+      hope to get that soon: the use case is that of storing entities (data 
+      for which is read from DB) in memcache. Existing system is getting 
+      CPU-bound both from basic serialization/deserialization activity, but 
+      especially from higher number of GCs. I fully expect the new approach to 
+      help with this; and most importantly, be quite easy to deploy: this 
+      because I do not have to change any of code that actually 
+      serializes/deserializes Beans -- I just have to modify Beans themselves 
+      a bit.
+    </p>
+    <p>
+      
+    </p>
+    <p>
+      
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Saturday, August 18, 2012 4:26 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header"> </h2>
+
+<div class="entry" id="post-476">
+			<h3 class="entry-header">Forcing escaping of HTML characters (less-than, ampersand) in JSON using Jackson</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      <b>1. The problem</b>
+    </p>
+    <p>
+      <a href="http://wiki.fasterxml.com/JacksonHome">Jackson</a> handles 
+      escaping of JSON String values in minimal way using escaping where 
+      absolutely necessary: it escapes two characters by default -- double 
+      quotes and backslash -- as well as non-visible control characters. But 
+      it does not escape other characters, since this is not required for 
+      producing valid JSON documents.
+    </p>
+    <p>
+      There are systems, however, that may run into problems with some 
+      characters that are valid in JSON documents. There are also use cases 
+      where you might prefer to add more escaping. For example, if you are to 
+      enclose a JSON fragment in XML attribute (or Javascript code), you might 
+      want to use apostrophe (') as quote character in XML, and force escaping 
+      of all apostrophes in JSON content; this allows you to simple embed 
+      encoded JSON value without other transformations.
+    </p>
+    <p>
+      Another specific use case is that of escaping &quot;HTML funny characters&quot;, 
+      like less-than, greater-than, ampersand and apostrophe characters 
+      (double-quote are escaped by default).
+    </p>
+    <p>
+      Let's see how you can do that with Jackson.
+    </p>
+    <p>
+      <b>2. Not as easy to change as you might think</b>
+    </p>
+    <p>
+      Your first thought may be that of &quot;I'll just do it myself&quot;. The problem 
+      is two-fold:
+    </p>
+    <ol>
+      <li>
+        When using API via data-binding, or regular Streaming generator, you 
+        must pass unescaped String, and it will get escaped using Jackson's 
+        escaping mechanism -- you can not pre-process it (*)
+      </li>
+      <li>
+        If you decide to post-process content after JSON gets written, you 
+        need to be careful with replacements, and this will have negative 
+        impact on performance (i.e. it is likely to double time serialization 
+        takes)
+      </li>
+    </ol>
+    <p>
+      (*) actually, there is method 'JsonGenerator.writeRaw(...)' which you 
+      can use to force exact details, but its use is cumbersome and you can 
+      easily break things if you are not careful. Plus it is only applicable 
+      via Streaming API
+    </p>
+    <p>
+      <b>3. Jackson (1.8) has you covered</b>
+    </p>
+    <p>
+      Luckily, there is no need for you to write custom post-processing code 
+      to change details of content escaping.
+    </p>
+    <p>
+      Version 1.8 of Jackson added a feature to let users customize details of 
+      escaping of characters in JSON String values.<br>This is done by 
+      defining a <b>CharacterEscapes</b> object to be used by <b>JsonGenerator</b>; 
+      it is registered on <b>JsonFactory</b>. If you use data-binding, you can 
+      set this by using <b>ObjectMapper.getJsonFactory()</b> first, then 
+      define CharacterEscapes to use.
+    </p>
+    <p>
+      Functionality is handled at low-level, during writing of JSON String 
+      values; and CharacterEscapes abstract class is designed in a way to 
+      minimize performance overhead.<br>While there is some performance 
+      overhead (little bit of additional processing is required), it should 
+      not have significant impact unless significant portion of content 
+      requires escaping.<br>As usual, if you care a lot about performance, you 
+      may want to measure impact of the change with test data.
+    </p>
+    <p>
+      <b>4. The Code</b>
+    </p>
+    <p>
+      Here is a way to force escaping of HTML &quot;funny characters&quot;, using 
+      functionality Jackson 1.8 (and above) have.
+    </p>
+    <hr>
+    
+
+    <pre>import org.codehaus.jackson.SerializableString;
+import org.codehaus.jackson.io.CharacterEscapes;
+<br>// First, definition of what to escape
+public class HTMLCharacterEscapes extends CharacterEscapes
+{
+    private final int[] asciiEscapes;
+    
+    public HTMLCharacterEscapes()
+    {<br>        // start with set of characters known to require escaping (double-quote, backslash etc)
+        int[] esc = CharacterEscapes.standardAsciiEscapesForJSON();<br>        // and force escaping of a few others:
+        esc['&lt;'] = CharacterEscapes.ESCAPE_STANDARD;
+        esc['&gt;'] = CharacterEscapes.ESCAPE_STANDARD;
+        esc['&amp;'] = CharacterEscapes.ESCAPE_STANDARD;
+        esc['\''] = CharacterEscapes.ESCAPE_STANDARD;
+        asciiEscapes = esc;
+    }<br>    // this method gets called for character codes 0 - 127
+    @Override public int[] getEscapeCodesForAscii() {
+        return asciiEscapes;
+    }<br>    // and this for others; we don't need anything special here
+    @Override public SerializableString getEscapeSequence(int ch) {
+        // no further escaping (beyond ASCII chars) needed:
+        return null;
+    }
+}<br><br>// and then an example of how to apply it<br>public ObjectMapper getEscapingMapper() {<br>    ObjectMapper mapper = new ObjectMapper();<br>    mapper.getJsonFactory().setCharacterEscapes(new HTMLCharacterEscapes());<br>    return mapper;<br>}<br><br>// so we could do:<br>public byte[] serializeWithEscapes(Object ob) throws IOException<br>{<br>    return getEscapingMapper().writeValueAsBytes(ob);<br>}<br><br></pre>
+    <hr>
+    
+
+    <p>
+      And that's it.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Saturday, August 18, 2012 3:14 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_476.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_476.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_476.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_476.html">Forcing escaping of HTML characters (less-than, ampersand) in JSON using Jackson</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

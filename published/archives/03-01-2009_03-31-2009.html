@@ -1,0 +1,1002 @@
+<html lang="en">
+<head>
+<title>March 2009</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Monday, March 16, 2009 </h2>
+
+<div class="entry" id="post-215">
+			<h3 class="entry-header">Using Woodstox via SAX API</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p resolver="NamedStyle:default {font-style=,name=default,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],font-size=3,font-weight=normal,font-family=Tahoma,}" margin-top="0">
+      One of less well-known features of <a href="http://woodstox.codehaus.org">Woodstox</a> 
+      is that it implements <a href="http://www.saxproject.org/">SAX API</a> 
+      as well as Stax API (and has since version 3.2). The reason this is not 
+      widely known is probably due to Woodstox starting as just a Stax 
+      implementation. But by now Woodstox has had enough time to mature as a 
+      SAX implementation, and it should be ready for serious use.
+    </p>
+    <p resolver="NamedStyle:default {font-style=,name=default,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],font-size=3,font-weight=normal,font-family=Tahoma,}" margin-top="0">
+      <b>Why use SAX (instead of Stax)?</b>
+    </p>
+    <p resolver="NamedStyle:default {font-style=,name=default,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],font-size=3,font-weight=normal,font-family=Tahoma,}" margin-top="0">
+      In my opinion, there are 2 main reason to choose to use SAX API instead 
+      of Stax:
+    </p>
+    <ul>
+      <li resolver="NamedStyle:default {font-style=,name=default,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],font-size=3,font-weight=normal,font-family=Tahoma,}" margin-top="0">
+        Interoperability: maybe the tool you need (like, say, XSLT processor 
+        or Schema validator) only supports XML content via SAX API (often 
+        since it predates Stax API).
+      </li>
+      <li>
+        Chainability/pipelining: Event/callback-based approach SAX is a 
+        natural fit for processing pipelines; more so than Stax pull parsing. 
+        So although Stax is arguably more convenient to use if your 
+        application is in full and complete control of XML processing, it is 
+        less convenient if processing has to be done in a pipelined fashion.
+      </li>
+    </ul>
+    <p resolver="NamedStyle:default {font-style=,name=default,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],font-size=3,font-weight=normal,font-family=Tahoma,}" margin-top="0">
+       I have used SAX for XSLT processing: while some processors like Saxon 
+      do offer Stax support, it is often still labelled as experimental, and 
+      not considered quite equal with SAX as the input source.
+    </p>
+    <p resolver="NamedStyle:default {font-style=,name=default,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],font-size=3,font-weight=normal,font-family=Tahoma,}" margin-top="0">
+      <b>Why use Woodstox as the SAX parser?</b>
+    </p>
+    <p resolver="NamedStyle:default {font-style=,name=default,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],font-size=3,font-weight=normal,font-family=Tahoma,}" margin-top="0">
+      But even if you choose to use SAX API, isn't there already <a href="http://xerces.apache.org/xerces2-j/">another 
+      mature full-featured Java XML parser</a> available? So why use Woodstox 
+      over the incumbent SAX candidate?
+    </p>
+    <p resolver="NamedStyle:default {font-style=,name=default,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],font-size=3,font-weight=normal,font-family=Tahoma,}" margin-top="0">
+      As the author of Woodstox I may be biased here, but I think there are 
+      couple of things that favor &quot;Woodstox the SAX Parser&quot;:
+    </p>
+    <ul>
+      <li resolver="NamedStyle:default {font-style=,name=default,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],font-size=3,font-weight=normal,font-family=Tahoma,}" margin-top="0">
+        Features: Woodstox does offer some configurability other processors do 
+        not, such as the ability to <a href="http://www.cowtowncoder.com/blog/archives/2008/04/entry_66.html">process 
+        XML content in &quot;fragment&quot; or &quot;multi-document&quot; mode</a>
+      </li>
+      <li>
+        Good error reporting: as unpleasant as it is to get errors reported to 
+        you, at least Woodstox tries to do that discretely, timely and 
+        accurately. In fact, a lot of effort has gone to keep all information 
+        (like location, exact cause of problem) accurate and available. One 
+        area where this is obvious is handling of DTD problems.
+      </li>
+      <li>
+        Performance: Woodstox has been consistently tested to be the fastest 
+        Open Source Java XML parser, independent of API used for parsing (Stax 
+        or SAX).
+      </li>
+    </ul>
+    <p resolver="NamedStyle:default {font-style=,name=default,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],font-size=3,font-weight=normal,font-family=Tahoma,}" margin-top="0">
+      <b>How to use Woodstox as a SAX parser?</b>
+    </p>
+    <p resolver="NamedStyle:default {font-style=,name=default,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],font-size=3,font-weight=normal,font-family=Tahoma,}" margin-top="0">
+      As with other SAX implementations, there are multiple ways to construct 
+      a Woodstox-flavor SAX parser instance, but probably the most commonly 
+      used way nowadays is to use JDK-bundled (since 1.4) Java Api for Xml 
+      Processing, JAXP (<b>javax.xml.parsers.*</b>). Woodstox class <b>com.ctc.wstx.sax.WstxSAXParserFactory</b> 
+      implements <b>javax.xml.parsers.SAXParserFactory</b>. And to construct 
+      an instance, there are two main possibilities:
+    </p>
+    <ol>
+      <li resolver="NamedStyle:default {font-style=,name=default,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],font-size=3,font-weight=normal,font-family=Tahoma,}" margin-top="0">
+        construct it directly, or
+      </li>
+      <li>
+        set appropriate system property (named not-so-surprisingly, 
+        &quot;javax.xml.parsers.SAXParserFactory&quot;) to point to implementation 
+        class, and then call SAXParserFactory.newInstance()
+      </li>
+    </ol>
+    <p>
+      (for more details, check out Javadocs for SAXParserFactory).
+    </p>
+    <p>
+      So, for example:
+    </p>
+    <pre>  SAXParserFactory spf = new WstxSAXParserFactory();</pre>
+    <p>
+      after which you construct a parser (content handler) as usual, doing 
+      something like:
+    </p>
+    <pre>  spf.setNamespaceAware(true); // yes, better enable namespaces
+  SAXParser sp = spf.newSAXParser();
+  MyHandler h = new MyHandler();
+  sp.parse(new File(&quot;data.xml&quot;, h);</pre>
+    <p>
+      And that's about it. If you know how to use Xerces/SAX, you know how to 
+      use Woodstox/SAX. And I hope that if you do, please give feedback on the 
+      Woodstox user list.
+    </p>
+    <p>
+      <b>More to Come!</b>
+    </p>
+    <p>
+      I should have more to write, regarding the performance aspects of using 
+      Woodstox: as part of &quot;StaxBind&quot; performance benchmark test suite, I have 
+      written and run a few performance tests to measure XSLT performance 
+      (both with Xalan and Saxon, 2 main Java XSLT processors, both of which 
+      work just fine with Woodstox, Xerces and Aalto).<br>Results look 
+      promising (if not earth-shattering) for Woodstox. But I still need to 
+      spend a bit more time in ensuring that tests are fair, and results 
+      readable, so they will need to be part of a later entry. Stay tuned!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, March 16, 2009 11:08 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_215.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_215.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_215.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, March 12, 2009 </h2>
+
+<div class="entry" id="post-231">
+			<h3 class="entry-header">StaxMate 2.0: another Big Leap towards convenient, efficient xml processing</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      <a href="http://staxmate.codehaus.org/Download">StaxMate 2.0.0</a> is 
+      now out, to augment your favorite Stax XML parser (like <a href="http://woodstox.codehaus.org">Woodstox</a> 
+      or <a href="http://www.cowtowncoder.com/hatchery/aalto/index.html">Aalto</a>).<br>(for 
+      introduction to StaxMate, check out this <a href="http://staxmate.codehaus.org/Tutorial">tutorial</a>).
+    </p>
+    <p>
+      Improvements for this release are focused in 3 main areas:
+    </p>
+    <ul>
+      <li>
+        Convenient AND efficient access to typed content. With a little bit of 
+        help from a new version of <a href="http://woodstox.codehaus.org/Stax2">Stax2</a> 
+        extension API (version 3.0), it is now possibly to efficiently read 
+        and write values of numeric (int, long, double), boolean and 
+        enumerated (Java enums) types.<br>In future, more methods will be 
+        added to allow similar access to numeric arrays and base64-encoded 
+        binary content.
+      </li>
+      <li>
+        More convenience methods:
+
+        <ul>
+          <li>
+            <b>SMinputCursor.advance()</b> to allow chaining, for example: <code>int 
+            value = cursor.childElementCursor().advance().getElemIntValue()</code>
+          </li>
+          <li>
+            <b>SMInputCursor.asEvent()</b> to construct <code>XMLEvent</code>s 
+            for the current event.
+          </li>
+          <li>
+            Ability to pre-declare namespaces on output (using <b>SMOutputElement.predeclareNamespace()</b>) 
+            to minimize number of namespace declarations (not usually needed, 
+            sometimes is)
+          </li>
+          <li>
+            <b>SMOutputElement.addElementWithCharacters()</b> for a convenient 
+            short-cut.
+          </li>
+        </ul>
+      </li>
+      <li>
+        Interoperability improvements:
+
+        <ul>
+          <li>
+            DOMBuilder for building DOM documents out of XMLStreamReaders, and 
+            serializing DOM documents and elements using XMLStreamWriter.
+          </li>
+          <li>
+            StaxMate jar is now a fully functioning OSGi bundle
+          </li>
+        </ul>
+      </li>
+    </ul>
+    <p>
+      One reason for the major version bump is that this version requires 
+      implementation of Stax2 version 3.0, natively implemented by Woodstox 
+      and Aalto, and emulated for others (like <a href="http://sjsxp.dev.java.net">Sjsxp</a>) 
+      using Stax2 reference implementation. This version upgrade will offer 
+      wider range of functionality for future, and similar upgrade should not 
+      be needed in near future.
+    </p>
+    <p>
+      
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, March 12, 2009 10:21 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_231.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_231.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_231.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Saturday, March 07, 2009 </h2>
+
+<div class="entry" id="post-230">
+			<h3 class="entry-header">Costs and Benefits of Unit Testing</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Unit testing is someting that brings most value for well-modularized, 
+      reusable (and most imporantly, <i>actually reused</i>!) components, such 
+      as libraries. Say, xml or json parsers or data binders. :-)<br>And less 
+      (IMO) for higher-level non-reusable things such as business applications 
+      and their user interfaces.
+    </p>
+    <p>
+      Because of this, I have grown to both do much extensive unit testing 
+      with <a href="http://woodstox.codehaus.org">Woodstox</a> and <a href="http://jackson.codehaus.org">Jackson</a> 
+      over time, and like the results. In fact, unit testing is one of 2 
+      primary reasons for implementation quality of these packages (the other 
+      is having active user base that finds and reports problems). So whereas 
+      initially I mainly just added unit tests to verify bug fixes (and guard 
+      against regression) -- and this I still rigorously do -- nowadays I 
+      verify new features as well. For example, Woodstox 4.0 Typed Access API 
+      implementation has extensive unit test suite
+    </p>
+    <p>
+      <b>1. Benefits</b>
+    </p>
+    <p>
+      This level of unit testing has produced many benefits: consider for 
+      example the fact that so far no bugs have been reported by users against 
+      the Typed Access API implementation (to be fair, its usage has probably 
+      been limited so far as well). All bugs reported against Woodstox 4.0 so 
+      far have occured in non-tested (like Maven deployment) or lightly-tested 
+      (W3C Schema validation) areas.<br>And with Jackson, most issues reported 
+      concern missing features, or non-intuitive bevahior (&quot;broken as 
+      designed&quot;): very few are related to actual implementation flaws.
+    </p>
+    <p>
+      <b>2. Where's your beef?</b>
+    </p>
+    <p>
+      So if life is so good, what's with the pickle face? Just this: unit 
+      tests don't come free. In fact, for the most part I now seem to spend 
+      more time writing unit tests than writing code. And especially so for 
+      bug fixes. While this is not based on strict measurements (it would be 
+      useful to quantify it of course; but yet another time drain), I have 
+      checked out time usage occasionally during development -- when you only 
+      have an hour to use on a project on a day, it is good to know where time 
+      goes. In general amount of effort required for unit testing is not 
+      really linear to amount of code written, but rather amount of code for 
+      the feature tested. That explains why bug fixes (which often touch a 
+      rather small portion of code) are more test-writing intensive tasks, in 
+      cases where no unit tests covered the functionality. I guess you can 
+      think of it as paying for test code after-the-fact, when needed (i.e. 
+      when a user reports an issue).
+    </p>
+    <p>
+      <b>3. Is it worth it?</b>
+    </p>
+    <p>
+      So far I am still ok with the costs, even if speed of progress is 
+      probably cut in half (compared to the &quot;devil-may-care&quot; approach). 
+      Although I could just take a chance with bug fixes (and in most cases 
+      that would actually work ok, based on past experience) and save my own 
+      time, that would come at cost for users who would essentially beta-test 
+      the product and report (if not completely fed up) bugs. This initial 
+      lower quality would be detrimental to perception of project, probably 
+      reducing or slowing adoption and indirectly then reducing actual testing.
+    </p>
+    <p>
+      But another important aspect is that on longer term unit test suite 
+      becomes indispensable tool supporting refactoring efforts: you can 
+      actually make drastic internal spring cleaning to the codebase, with 
+      reasonable confidence that if your changes actually do break something, 
+      you will know it via unit test failures. And this is probably the 
+      biggest overall benefit for long-lived projects: it helps code stay 
+      alive, as no part of code becomes &quot;untouchable&quot;
+    </p>
+    <p>
+      <b>4. How about &quot;bread-n-butter&quot; code?</b>
+    </p>
+    <p>
+      One more interesting thing to consider is this: while I maintain that 
+      usually unit testing is of less value for your typical day-in day-out 
+      corporate code -- at least on sort term -- perhaps it may still valuable 
+      for long term. That is, if (and only if!) it is expected that the system 
+      in question should become a long-living thing, a strong test suite 
+      should be built over time: especially to avoid brittleness that comes 
+      with lack of automated testing. And conversely, shorter-lived things 
+      just do not warrant big investment for extensive test suite. Less unit 
+      testing will be enough, with perhaps added external (QA) testing.
+    </p>
+    <p>
+      The real trick is of course predicting which kind of a life-cycle a 
+      system in development will have. And that is actually a hard problem. :-)
+    </p>
+    <p>
+      
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Saturday, March 07, 2009 11:10 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_230.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_230.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_230.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Tuesday, March 03, 2009 </h2>
+
+<div class="entry" id="post-229">
+			<h3 class="entry-header">Saving Software Developers from Franken-JSON</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      <b>1. The Setup</b>
+    </p>
+    <p>
+      When it comes to using <a href="http://json.org">JSON</a> for 
+      communication, developers often get bait-and-switched by existing 
+      frameworks, most of which are designed to use xml as the underlying data 
+      interchange format. Spiel usually goes along these lines:
+    </p>
+    <ul>
+      <li>
+        Want to use JSON?
+      </li>
+      <li>
+        We can help with that!
+      </li>
+      <li>
+        Just need to use a little thing called convention
+      </li>
+      <li>
+        which allows us to use our existing system as is
+      </li>
+      <li>
+        and things will work just fine
+      </li>
+      <li>
+        don't you worry little coder
+      </li>
+    </ul>
+    <p>
+      Well, except that the &quot;little thing&quot; turns out to be this ugly 
+      contraption that mangles clean Json into something that is technically 
+      still Json content, but just barely so: in reality it's just a bit of 
+      spit and polish to mask underlying xml structure. Sort of like those 
+      human masks on lizards on that ancient TV show (&quot;V&quot;). And such systems 
+      likewise require similar bastardization as input.
+    </p>
+    <p>
+      For one example of such convention, consider <a href="http://badgerfish.ning.com/">Badgerfish</a> 
+      (which is not the only choice; there are other variants such as 
+      &quot;mapped&quot;).<br>Resulting Json content is generally along the 
+      lines of &quot;only-mother-could-love&quot; ugliness: for example let's consider 
+      how a simple Bean would get transformed to &quot;JSON&quot; using this convention.<br>Given 
+      a bean like:
+    </p>
+    <pre>class Person {<br>  int getAge();<br>  String getName();<br>}</pre>
+    <p>
+      we would get xml like:
+    </p>
+    <pre>&lt;person&gt;<br> &lt;age&gt;37&lt;/age&gt;<br> &lt;name&gt;Joe Blow&lt;/name&gt;<br>&lt;/person&gt;<br></pre>
+    <p>
+      which would be ok as xml, but would then be mapped to &quot;Json&quot; that looks 
+      something like:
+    </p>
+    <pre>{<br> &quot;person&quot; : {<br>   &quot;age&quot; : {<br>     &quot;$&quot; : &quot;37&quot;<br>   },<br>   &quot;name&quot; : {<br>     &quot;$&quot; : &quot;Joe Blow&quot;<br>   }<br> }<br>}<br></pre>
+    <p>
+      Yikes!
+    </p>
+    <p>
+      Or, with &quot;mapped&quot; variant, xml could translate to this:
+    </p>
+    <pre>{<br>  &quot;person&quot; : {<br>     &quot;age&quot; : 37,<br>     &quot;name&quot; : &quot;Joe Blow&quot; <br>  }<br>}</pre>
+    <p>
+      (if you are lucky -- number may or may not look like one; and String 
+      that looks too much like a number may become one... after all, XML 
+      content usually has no such type information)
+    </p>
+    <p>
+      instead of what you might expect:
+    </p>
+    <pre>{
+ &quot;age&quot; : 37,<br> &quot;name&quot; : &quot;Joe Blow&quot;<br>}</pre>
+    <p>
+      Like it? Me neither. And it gets even worse if you plan to use things 
+      like Lists, and some combinations are just illegal (Lists of Lists).<br>
+    </p>
+    <p>
+      <b>2. Why oh why?</b>
+    </p>
+    <p>
+      Now: there are legitimate reasons to use such mapping conventions: 
+      sometimes one has to do convert things into other uglier things for 
+      interoperability reasons. Legacy systems may be practically 
+      unmodifiable, and require certain kinds of butt ugly inputs. There are 
+      also plenty many XML-based systems, frameworks and protocols in 
+      existence.<br>So it is natural to consider easy ways to make use of this 
+      existing infrastructure. And finally, most JSON tools up until fairly 
+      recently seem to be have been made by Santa's elves, and 
+      professional-grade tools are somewhat of a recent development.
+    </p>
+    <p>
+      But the fundamental problem is this: if you need and/or want to use XML, 
+      use it. And if you do use XML, what purpose would JSON serve in the mix? 
+      It's like connecting a Porsche engine to a Jugo transmission system, all 
+      enclosed in a Ford Pinto chassis. Or, brains of mr. Ab Normal within 
+      poor old Frankenstein's skull.<br>And even within Javascript execution 
+      environment, DOM-based xml trees have been available almost since dawn 
+      of the Interweb -- you can already use XML easily. So to have some 
+      actual benefits, JSON should be accessed natively, au naturel. Not as a 
+      round peg slammed through the square hole.
+    </p>
+    <p>
+      <b>3. Solution</b>
+    </p>
+    <p>
+      But why all these ugly workarounds? Perhaps framework builders do not 
+      see much need for JSON, and just want to be buzzword compliant? Or 
+      perhaps they have been turned off by earlier crop of toy JSON tools.<br>Whatever 
+      the underlying reason is, most seem to just offer the backhanded 
+      convention-ridden route.
+    </p>
+    <p>
+      But here is some good news. <a href="http://jackson.codehaus.org">Jackson</a> 
+      project can help JSON-craving developers; now with a Content conversion 
+      provider that is designed to work with any compliant JAX-RS 
+      implementation: <a href="https://svn.codehaus.org/jackson/trunk/src/jaxrs/java/org/codehaus/jackson/jaxrs/JacksonJsonProvider.java">JacksonJsonProvider</a> 
+      is the thing you need to hook up to your <a href="http://jcp.org/en/jsr/detail?id=311">JAX-RS</a> 
+      implementation (tested with <a href="http://jersey.dev.java.net">Jersey</a>, 
+      as well as <a href="http://jboss.org/resteasy">RESTEasy</a>). You can 
+      download the jar <a href="http://jackson.codehaus.org/Download">here</a> 
+      (look for &quot;jax-rs&quot; jar; uses core and mapper jars).
+    </p>
+    <p>
+      So what is this mysterious provider? It is the thing that JAX-RS needs 
+      to know how to convert from Json to POJOs and back. And as long as you 
+      hook this up as a resource you only need to indicate input and output as 
+      being Json (with @Consumes and @Produces resource annotations, or by 
+      client provided MIME headers that indicate the same) and it will all 
+      actually work out, and quite as you would expect it to.
+    </p>
+    <p>
+      The only remaining detail is that of hooking things up. One way is to 
+      write a simple servlet: here's one way to do that:
+    </p>
+    <pre>    
+import java.util.*;
+import javax.ws.rs.core.*;<br>import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
+
+public final class RestApplication
+    extends Application
+{<br>    // Best to register as a singleton to allow reuse of ObjectMapper:
+    public Set&lt;Object&gt; getSingletons()
+    {
+        HashSet&lt;Object&gt; singletons = new HashSet&lt;Object&gt;();
+        singletons.add(new JacksonJsonProvider());
+        return singletons;
+    }
+}</pre>
+    <p>
+      For production servlet, you would also want to register actual 
+      resources; but just to get the provider hooked up this should be enough.
+    </p>
+    <p>
+      <b>4. Disclaimer</b>
+    </p>
+    <p>
+      The provider class is part of just released version of Jackson 0.9.9. It 
+      has been tested only lightly, so there may be rough edges.
+    </p>
+    <p>
+      Code responsibly!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, March 03, 2009 10:54 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_229.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_229.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_229.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Sunday, March 01, 2009 </h2>
+
+<div class="entry" id="post-225">
+			<h3 class="entry-header">Dubya: Hands Off my Martini!</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      No, not that &quot;W&quot;. The <a href="http://www.starwoodhotels.com/whotels/index.html">other 
+      one</a>, the hotel chain.
+    </p>
+    <p>
+      I recently had opportunity to attend a free (as in, paid for by entity 
+      other than myself or my family) evening event at the posh W hotel in 
+      Seattle. My previous (and only) experience with said establishment was a 
+      brief stay 4 years ago, sponsored by a large on-time retailer. That was 
+      a good experience resulting in 2 good things, one being my employment at 
+      the sponsoring company. The room was positively futuristic, ambiance 
+      good: all in all a nice stay.
+    </p>
+    <p>
+      So I had reasonably high expectations regarding libations to be offered 
+      at this company-sponsored event.
+    </p>
+    <p>
+      Unfortunately, execution was solidly sub-standard (unless there is a 
+      city ordinance that mandating company parties being required to consist 
+      of bland food and improperly prepared drinks? I may have missed a memo). 
+      Food was slightly below standard conference grub, which I find lacking 
+      for an evening event, especially for hotel chain of this caliber. But I 
+      can swallow that, with proper liquid accompaniment.
+    </p>
+    <p>
+      Which takes us to the real pain point: they killed my favorite drink, <a href="http://en.wikipedia.org/wiki/Martini_(cocktail)">Martini</a>. 
+      Not in a way of, say, stabbing it, or by brutal neglect, but by drugging 
+      and manhandling it; poisoned and shook to death. I'd call Booze 
+      Protective Services if such an agency existed (maybe in Vegas?).<br>
+    </p>
+    <p>
+      The first offense was using vodka instead of gin, without asking me. 
+      There may be situations where this substitution needs to be done: who 
+      knows, maybe the desert island you were marooned on just has no gin to 
+      be found. But before committing this faux-pas, please be so kind as to 
+      ask me first. I would probably rather enjoy one of many vodka-based 
+      drinks, some of which can compete favorably with gin-based ones.
+    </p>
+    <p>
+      The second one, the more serious of mistakes (and I argue worth &quot;2 
+      strikes&quot;, enough for 3 strikes + out verdict) was the brutal handling of 
+      the resulting combination. I mean, loading vermouth, vodka and ice in a 
+      shaker is one thing; but vigorously shaking it is akin to shaking your 
+      baby, causing brain damage. What the poor shot of Grey Goose vodka had 
+      done we may never know, but punishment can't fit the crime. I felt like 
+      grabbing the shaker from perp when this was happening. It may be that 
+      you can't shake vodka to spoil it -- perhaps that's the excuse -- but it 
+      would be pathetic if a professional bartender thought James Bond quip 
+      about &quot;shaking not stirring&quot; has relevance to martini making. No, it's a 
+      joke. Subtle one, but one nonetheless.
+    </p>
+    <p>
+      So, from now on: W, back off, slowly, and hand me that shaker. And hand 
+      me your cocktail-concocting badge, and leave martini-making to others. 
+      Call me a snob, but there are certain things professional are not to do. 
+      What next? Put ice on red wine glasses?
+    </p>
+    <p>
+      ps. I recently learnt that experts recommend <a href="http://plymouthgin.com/">Plymouth</a> 
+      as the gin for martini, followed by <a href="http://en.wikipedia.org/wiki/Noilly_Prat">Noilly 
+      Prat</a> for vermouth. After tasting these, I concur. It does taste like 
+      the ultimate combination. And this although I thought I liked Bombay 
+      Sapphire the best. You live and learn -- while others will do too 
+      (martini is a somewhat robust drink after all), you might as well try 
+      the best; price for these is no higher than for most quality 
+      alternatives. And for locals, yes, Washington State Liquor Stores carry 
+      both.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Sunday, March 01, 2009 12:08 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_225.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_225.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_225.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_215.html">Using Woodstox via SAX API</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_231.html">StaxMate 2.0: another Big Leap towards convenient, efficient xml processing</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_230.html">Costs and Benefits of Unit Testing</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_229.html">Saving Software Developers from Franken-JSON</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/03/entry_225.html">Dubya: Hands Off my Martini!</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

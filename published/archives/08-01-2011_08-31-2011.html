@@ -1,0 +1,855 @@
+<html lang="en">
+<head>
+<title>August 2011</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Friday, August 12, 2011 </h2>
+
+<div class="entry" id="post-460">
+			<h3 class="entry-header">Traversing JSON trees with Jackson</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      <b>1. Three models to rule the...</b>
+    </p>
+    <p>
+      One of <a href="/blog/archives/2009/01/entry_131.html">three canonical 
+      JSON processing models</a>, tree model, may look a bit like a red-headed 
+      stepchild. The amount of effort so far spent on both developing and 
+      documenting Jackson data-binding functionality is an order of magnitude 
+      higher than all the work for tree model functionality. And considering 
+      how much more effort using stream-based processing takes, surprisingly 
+      many developers choose it over tree handling.
+    </p>
+    <p>
+      <b>2. Why I never really liked tree model that much</b>
+    </p>
+    <p>
+      I confess to having slight aversion to using JSON trees as well; but I 
+      have a reasonable excuse: I grow to hate tree-based models with XML. 
+      Having survived bad experiences of XML DOM processing (which is both 
+      cumbersome and inefficient at same time) tends to inoculate one against 
+      further infections. I know this is bit of unjustified bias, considering 
+      that most problems with DOM had nothing to do with the basic idea of an 
+      in-memory tree model (and not all even due to it being XML...)
+    </p>
+    <p>
+      <b>3. ... even though I perhaps should have</b>
+    </p>
+    <p>
+      But Jackson actually does provide reasonable support for JSON trees with 
+      its JsonNode based model, and many brave developers have put it to good 
+      use. And due to Jackson's extensive support for efficient conversions 
+      between models (that is, ability to both combine approaches and to 
+      convert data as needed), you don't have to pick and choose just one 
+      model but can combine strengths of each model. Tree model's expressive 
+      power is actually very useful when doing pre- or post-processing of data 
+      binding; or when building quick prototype systems.
+    </p>
+    <p>
+      <b>4. Basics</b>
+    </p>
+    <p>
+      A &quot;JSON tree&quot; is defined by one simple thing: <b><i>org.codehaus.jackson.JsonNode</i></b> 
+      object that acts as the tree of the logical tree. The root node is 
+      usually of type 'ObjectNode' (and represents JSON Object), but most 
+      operations (all read-operations, specifically) are exposed through basic 
+      JsonNode interface.
+    </p>
+    <p>
+      There are three basic options for creating a JSON tree instance, all 
+      accessible via ObjectMapper:
+    </p>
+    <ol>
+      <li>
+        Parse from a JSON source: <b>JsonNode root = mapper.readTree(json);</b>
+      </li>
+      <li>
+        Convert from a POJO: <b>JsonNode root = mapper.valueToTree(pojo);</b> 
+        // special case of 'ObjectMapper.convertValue()'
+      </li>
+      <li>
+        Construct from scratch: <b>ObjectNode root = mapper.createObjectNode();</b>
+      </li>
+    </ol>
+    <p>
+      The choice largely depends on use case, that is, what do you have to 
+      work with; whether you generating new tree from scratch, or modify an 
+      existing JSON structure.
+    </p>
+    <p>
+      After you have the root node you can traverse it modify structure, and 
+      convert to other representations (serialize as JSON, convert to a POJO).
+    </p>
+    <p>
+      <b>5. Back &amp; Forth</b>
+    </p>
+    <p>
+      Aside from the ability to convert a POJO to a tree, you can easily do 
+      the reverse using &quot;ObjectMapper.treeToValue()&quot;. Or, if you happen to 
+      need a <i>JsonParser</i>, use &quot;ObjectMapper.treeAsTokens()&quot;. And to 
+      create actual textual JSON, the regular &quot;ObjectMapper.writeValue()&quot; 
+      works as expected.
+    </p>
+    <p>
+      In fact, from ObjectMapper's perspective, JsonNode is just another Java 
+      type and is handled using serializers, deserializers which can be 
+      overridden if you want to customize handling. You can even replace <i>JsonNodeFactory</i> 
+      that <i>ObjectMapper</i> uses, if you want to provide custom JsonNode 
+      implementation classes!
+    </p>
+    <p>
+      <b>6. More convenient traversal</b>
+    </p>
+    <p>
+      One of things that has quietly improved over time has been traversal. 
+      Earliest Jackson versions just supported basic traversal like so:
+    </p>
+    <pre>  JsonNode root = mapper.readTree(&quot;{\&quot;address\&quot;:{\&quot;zip\&quot;:98040, \&quot;city\&quot;:\&quot;Mercer Island\&quot;}}&quot;);
+  JsonNode address = root.get(&quot;address&quot;);
+  if (address != null &amp;&amp; address.has(&quot;zip&quot;)) {
+    int zip = address.get(&quot;zip&quot;).getIntValue();
+  }</pre>
+    <p>
+      but it soon became apparent that null checks are a worthless hassle, so 
+      alternative access, &quot;path()&quot; was quickly added. It allows for traversing 
+      over virtual paths, without worrying whether a node exists: if one does 
+      not exist, it will just be evaluate as &quot;missing node&quot; when trying to 
+      access actual leaf value:
+    </p>
+    <pre>  JsonNode root = ...;
+  int zip = root.path(&quot;address&quot;).path(&quot;zip&quot;).getValueAsInt(); // if no such path, returns 0
+  // could also do:
+  JsonNode zipNode = root.path(&quot;address&quot;).path(&quot;zip&quot;);
+  if (zipNode.isMissingNode()) { // true if no such path exists
+  }</pre>
+    <p>
+      This is fine and dandy for read-only use cases, but it does not help 
+      when trying to add things -- while you can traverse path that does not 
+      really exist, you can not add anything to it. To address this 
+      shortcoming, Jackson 1.8 comes equipped with &quot;with()&quot; method, which will 
+      actually create the path if it does not exist. So you can finally write 
+      something like this:
+    </p>
+    <pre>  JsonNode root = ObjectMapper.createObjectNode();
+  // note: JsonNode.with() returns 'JsonNode'; but ObjectNode.with() 'ObjectNode' -- go contra-variance!
+  root.with(&quot;address&quot;).put(&quot;zip&quot;, 98040);</pre>
+    <p>
+      which actually makes Jackson Tree usage almost as convenient as I would 
+      like it to be. It is especially useful when materializing full trees 
+      from scratch: you can implicitly build the tree structure just by 
+      traversing it!
+    </p>
+    <p>
+      <b>7. More?</b>
+    </p>
+    <p>
+      Jackson tree model is still somewhat spartan, especially compared to 
+      features galore of data binding. Going forward it would be nice to add 
+      support for things like:
+    </p>
+    <ul>
+      <li>
+        Simple path language (JsonPath, JsonQuery?) support, to be able to 
+        evaluate expressions to locate nodes.
+      </li>
+      <li>
+        Filtering during construction, to create trimmed/pruned trees, 
+        sub-trees
+      </li>
+      <li>
+        More advanced find methods? There already exists a few &quot;findXxx()&quot; 
+        methods in JsonNode, but more would make sense, esp. with configurable 
+        matchers or filters
+      </li>
+      <li>
+        Method names are bit too verbose (mostly due to historical reasons -- 
+        I didn't realize early enough that long method names can hurt when 
+        chained calls are used)
+      </li>
+    </ul>
+    <p>
+      But as usual, much of Jackson development work is feedback-driven -- 
+      features that get used also get more likely further improved. So if you 
+      do find Tree Model useful, let development team know that!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Friday, August 12, 2011 10:55 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/08/entry_460.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/08/entry_460.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/08/entry_460.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, August 11, 2011 </h2>
+
+<div class="entry" id="post-459">
+			<h3 class="entry-header">One of coolest, least well-known Jackson features: Mr Bean, aka "abstract type materialization"</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      <b>1. Quest for simplest JSON processing, eliminating monkey code: 
+      &quot;struct classes&quot;</b>
+    </p>
+    <p>
+      I have found myself using &quot;Java structs&quot; quite often, when accessing 
+      JSON services from Java. By this I mean simple public-field-only classes 
+      like:
+    </p>
+    <hr>
+    
+
+    <pre>public class RequestDTO {
+ public long requestId;
+ public String callerId;
+}</pre>
+    <hr>
+    
+
+    <p>
+      While many Java newbies think there is something wrong in using public 
+      fields, there is actually very little harm in using such classes for 
+      simple data transfer, if no actual business logic is needed for classes 
+      themselves.
+    </p>
+    <p>
+      <b>2. But sometimes &quot;real&quot; classes would be nice</b>
+    </p>
+    <p>
+      Then again, sometimes it would be nice to use more full-featured 
+      Bean(-like) POJOs. Perhaps we want to add some input validation for 
+      setters; or add convenience accessors, or even just occasional 
+      'toString()' implementation.
+    </p>
+    <p>
+      For above example, we might want to get something like:
+    </p>
+    <hr>
+    
+
+    <pre>public class RequestImpl<br>{
+  private long requestId;
+  private String callerId;
+
+  public RequstImpl() { }
+
+  public long getRequestId() { return requestId; }
+  public String getCallerId() { return callerId; }
+
+  public void setRequestId(long l) { requestId = l;
+  public void setCallerId(String s) { callerId = s; }
+
+  @Override
+  public String toString() { return String.format(&quot;[request: id %d, caller %s]&quot;, requestId, callerId); }
+}</pre>
+    <hr>
+    
+
+    <p>
+      But ideally we would usually just define something like
+    </p>
+    <hr>
+    
+
+    <pre>public interface Request {
+  public long getRequestId();
+  public String getCallerId();
+
+  public void setRequestId(long l);
+  public void setCallerId(String s);
+}</pre>
+    <hr>
+    
+
+    <p>
+      and somehow get an implementation; alas, that usually means writing 
+      boiler-plate implementation for that interface (and if we are 
+      masochists, sometimes even intermediate abstract classes...)
+    </p>
+    <p>
+      So what's the problem here? I don't particular like writing monkey code 
+      to declare basic setters, getters, and fields; especially when there is 
+      nothing interesting going on there, just mechanical typing. And while 
+      one can use IDEs to generate sources, this only helps with 
+      bootstrapping: you still get more source code to maintain, which 
+      translates to more place where bugs may hide when definitions are 
+      edited. Similarly various annotation-based post-processors seem alien to 
+      me if they just produce more source code to compile.
+    </p>
+    <p>
+      <b>3. So why not just like... get implementations &quot;materialize&quot;?</b>
+    </p>
+    <p>
+      But while I don't like the idea of getting yet more source code 
+      generated to be compiled, maintained, I do like the idea of getting 
+      actual implementation classes dynamically.
+    </p>
+    <p>
+      And this is where entry #6 of &quot;<a href="/blog/archives/2010/11/entry_434.html">7 
+      Jackson killer features</a>&quot; comes in: enter mr. Bean! When enabled, it 
+      can actually materialize concrete implementations as needed.
+    </p>
+    <p>
+      <b>4. Mr Bean: basics</b>
+    </p>
+    <p>
+      (from FasterXML <a href="http://wiki.fasterxml.com/JacksonFeatureMaterializedBeans">Mr 
+      Bean Wiki page</a>)
+    </p>
+    <p>
+      Basic usage is simple: you need jackson mrbean jar (included in Jackson 
+      distribution), and need to enable functionality with:
+    </p>
+    <hr>
+    
+
+    <pre>  ObjectMapper mapper = new ObjectMapper();
+  mapper.registerModule(new MrBeanModule());</pre>
+    <hr>
+    
+
+    <p>
+      and then just watch interfaces appear: for example, with above example:
+    </p>
+    <hr>
+    
+
+    <pre>  Request request = objectMapper.readValue(jsonInput, Request.class); // where Request is an interface</pre>
+    <hr>
+    
+
+    <p>
+      What happens here is that mr Bean extension hooks with ObjectMapper, and 
+      whenever an abstract type is encountered and there is no concrete class 
+      available (no abstract type mapping; no annotation to indicate concrete 
+      type; no @JsonTypeInfo to provide subtype information), it is asked to 
+      &quot;materialize&quot; concrete type.
+    </p>
+    <p>
+      Materialization simply means generating bytecode using ASM, based on 
+      getters and/or setters; adding necessary internal fields, loading class 
+      and returning it to caller. After this, core Jackson mapper can 
+      introspect all information it needs, and what you get is an instance of 
+      this implementation. Implementations are cached for later use, and 
+      performance-wise they behave similarly to manually implemented ones 
+      would.
+    </p>
+    <p>
+      <b>5. Mr Bean: but wait! There's more!</b>
+    </p>
+    <p>
+      Ok: so we can get monkey code materialized: getters and setters are 
+      implemented, and internal fields added to store values. But this is just 
+      the beginning.
+    </p>
+    <p>
+      First: if you do not need to use setters yourself you can freely omit 
+      them from interface definition.<br>Mr Bean is smart enough to figure out 
+      that setters are typically needed to set values (or public fields) if 
+      there are getters materialized.<br>So you can simplify your 
+      interfaces/abstract classes to look something like:
+    </p>
+    <hr>
+    
+
+    <pre>  public interface RequestWithoutSetters {
+    public long getRequestId();
+    public String getCallerId();
+  }</pre>
+    <hr>
+    
+
+    <p>
+      and things will still work just fine; you can't access setters (which 
+      actually may be a good thing), but Jackson data binder can populate 
+      values just fine (internally either setters get generated; or public 
+      fields added to implementation, this is an implementation detail).
+    </p>
+    <p>
+      Aside from simplistic get/set Bean it is more commont to want a partial 
+      implementation; an abstract class where you provide some methods and/or 
+      fields, but can leave implementation of trivial properties to Mr Bean. 
+      This it can do just fine: mr Bean can materialize abstract classes, just 
+      &quot;filling in the blanks&quot;.
+    </p>
+    <p>
+      So you can ask for a class like:
+    </p>
+    <hr>
+    
+
+    <pre>  public abstract class RequestBase {
+    public long getRequestId();
+    public String getCallerId();
+    
+    @Override public String toString() {
+      return String.format(&quot;[request: id %d, caller %s]&quot;, requestId, callerId); }
+    }
+  }</pre>
+    <hr>
+    
+
+    <p>
+      and things work, well, as expected. Note, too, that you can implement 
+      setters and getters, not just &quot;other&quot; methods.
+    </p>
+    <p>
+      And finally: you can use annotations normally as well, adding them to 
+      your interface/abstract class definition. Thanks to Jackson's powerful 
+      and versatile annotation handling (including annotation &quot;inheritance&quot; 
+      for methods), you can do something like:
+    </p>
+    <hr>
+    
+
+    <pre>  // JSON we get has weird names; need to annotate
+  public abstract class RequestBase {
+    @JsonProperty(&quot;REQID&quot;)
+    public long getRequestId();
+    @JsonProperty(&quot;CALLERID&quot;)
+    public String getCallerId();
+  }</pre>
+    <hr>
+    
+
+    <p>
+      and get things configured as per annotations.
+    </p>
+    <p>
+      <b>6. Known issues?</b>
+    </p>
+    <p>
+      Mr Bean seems to work to degree I need it to work. But there are some 
+      potential concerns you may need to be aware of:
+    </p>
+    <ul>
+      <li>
+        Jackson has multiple ways of dealing with abstract types: do you want 
+        bean materialized or not? As mentioned above, mr Bean does not try to 
+        materialize abstract types that seem to expect different kind of 
+        handling; for example, if interface has @JsonTypeInfo annotation, 
+        assumption is that polymorphic handling can figure out actual type. 
+        But it is possible that there are corner cases (esp. when using 
+        &quot;default typing&quot;) there might be conflicts. So polymorphic types may 
+        not mix well with mr Bean materialization
+      </li>
+      <li>
+        Generic signatures may not be added as expected. Although you can 
+        declared generic types for abstract methods just fine, and Jackson 
+        mapper should fine declarations, there are some issues due to 
+        complexities in getting generic declarations work with ASM. You may 
+        need to use additional annotations (@JsonDeserialize(contentAs=...)) 
+        in some cases.
+      </li>
+    </ul>
+    <p>
+      Above is just a list of potential concerns -- as far as I know, they 
+      haven't been found to be much of a problem in actual use so far.
+    </p>
+    <p>
+      <b>7. What Next?</b>
+    </p>
+    <p>
+      Usage, usage, usage! It would be great to get more Jackson users use 
+      this potentially hugely work-saving feature. And if you find the feature 
+      useful, make sure to let your friends know! (if you hate it, just let me 
+      know :-) ).
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, August 11, 2011 7:07 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/08/entry_459.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/08/entry_459.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/08/entry_459.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/08/entry_460.html">Traversing JSON trees with Jackson</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/08/entry_459.html">One of coolest, least well-known Jackson features: Mr Bean, aka "abstract type materialization"</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

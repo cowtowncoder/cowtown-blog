@@ -1,0 +1,1067 @@
+<html lang="en">
+<head>
+<title>October 2006</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Monday, October 23, 2006 </h2>
+
+<div class="entry" id="post-28">
+			<h3 class="entry-header">StaxMate based web service (UUID generator), part IV (Output details)</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      (continuing the story of StaxMate based simple web service, part 4)
+    </p>
+    <p>
+      After having a closer look at the input side, it is now time to do the 
+      same for the output side (the source code is still available from <a href="http://docs.codehaus.org/display/WSTX/StaxMateSampleWebService">http://docs.codehaus.org/display/WSTX/StaxMateSampleWebService</a>).
+    </p>
+    <p>
+      <b>1. Handling output</b>
+    </p>
+    <p>
+      After processing the input, there are two kinds of output that may need 
+      to be output, both in xml: error messages for input or processing 
+      problems, and result messages for succesful generation of requested 
+      uuids. Sequence of calls made is similar between the two: error case is 
+      handled by method <b>reportProblem()</b> (lines 180 - 214), and the 
+      success case by <b>writeResponse() </b>(lines 146 - 165), so let's just 
+      go over writeResponse() (and <b>writeDocWithRoot()</b> that is called by 
+      it):
+    </p>
+    <hr>
+    
+
+    <pre>void writeResponse(HttpServletResponse resp, List&lt;UUID&gt; uuids,
+                  int totalRequested)
+  throws IOException, XMLStreamException
+{
+  resp.setContentType(&quot;text/xml&quot;);
+  OutputStream out = resp.getOutputStream();
+  SMOutputElement rootElem = writeDocWithRoot(out, &quot;response&quot;);
+  for (UUID uuid : uuids) {
+    rootElem.addElement(&quot;uuid&quot;).addCharacters(uuid.toString());
+  }
+  if (totalRequested &gt; uuids.size()) { // truncated?
+    rootElem.addComment(&quot;had to truncate &quot;+(totalRequested - uuids.size())
++&quot; uuids; will only generate up to &quot;+MAX_UUIDS_PER_REQUEST+&quot; UUIDs per call&quot;);
+  }
+  // Need to close the root, to ensure all elements closed, flushed
+  ((SMOutputDocument)rootElem.getParent()).closeRoot();
+  out.flush();
+}
+
+SMOutputElement writeDocWithRoot(OutputStream out, String nonnsRootName)
+  throws XMLStreamException
+{
+  SMOutputDocument doc = 
+  SMOutputFactory.createOutputDocument(SMOutputFactory.getGlobalXMLOutputFactory().createXMLStreamWriter(
+out, &quot;UTF-8&quot;), &quot;1.0&quot;, &quot;UTF-8&quot;, true);
+  // Let's indent for debugging purposes (not for production)
+  // These settings give linefeed, plus 2 spaces per level
+  doc.setIndentation(&quot;\n &quot;, 1, 2);
+  return doc.addElement(nonnsRootName);
+}</pre>
+    <hr>
+    
+
+    <p>
+      First couple of lines get the output stream to use (as you may recall, 
+      it is generally preferable to pass <b>OutputStream</b>s instead of <b>Writer</b>s, 
+      to Stax and StaxMate components).
+    </p>
+    <p>
+      Writing of the root element is separated as a helper method, since it is 
+      needed from multiple places (helper method could also deal with 
+      OutputStream generation in this case). Creation of StaxMate output 
+      document (which acts as the container for root-level entities, most 
+      important of which is the root element) is done in style similar to that 
+      of creating the root cursor.
+    </p>
+    <p>
+      The last thing done before adding the root element is to enable 
+      indentation -- although it is not really needed for production systems, 
+      it may be nice for debugging purposes, or when generating human editable 
+      xml documents.
+    </p>
+    <p>
+      Generating actual output is, well, trivial: since the root element 
+      directly contains &lt;uuid&gt; elements, code just loops over the list, 
+      creates the enclosing element, and adds textual serialization of the 
+      uuid to the element. Quoting of special characters ('&lt;', '&amp;', ...) is 
+      done if and as needed by the underlying stream writer. One minor 
+      addition over plain vanilla output is that if number of uuids generated 
+      was truncated (since service caps max number to 100 per request), an xml 
+      comment is added after elements.
+    </p>
+    <p>
+      The only unusual method call that is needed is call to <b>SMOutputDocument.closeRoot()</b>: 
+      this is needed so that all possibly open start elements are closed. 
+      Since code at this point does not have direct reference to the output 
+      document, we will just refer to it via parent reference (the alternative 
+      would have been to hold on to the document reference -- that would have 
+      saved us from having to upcast the parent reference).
+    </p>
+    <p>
+      <b>2. Benefits over Plain Old Stax?</b>
+    </p>
+    <p>
+      As with input handling, this simple service would be quite simple to 
+      implement using any xml output technology. But there are some areas 
+      where StaxMate aims to improve productivity of developers, over using 
+      Stax API directly. For example:
+    </p>
+    <ul>
+      <li>
+        You don't have to worry about closing all of those start elements: as 
+        soon as you add a new sibling, previous one gets closed, recursively. 
+        You will never end up with unmatched tags.
+      </li>
+      <li>
+        It is easy to pass these output scopes to other methods (or even 
+        sub-systems): pass an <b>SMOutputElement</b> to a method, and it will 
+        only be able to add entries within the implied sub-tree.
+      </li>
+      <li>
+        Output calls can be easily chained (for deep single-branched 
+        sub-trees), resulting in compact code.
+      </li>
+      <li>
+        Namespace binding is fully automatic, very efficient, safe (never miss 
+        a namespace declaration again), and easy to use .While the example 
+        didn't use namespaces, many other use cases do, as most xml standard 
+        nowadays use namespaces for modularization. Using namespaces with 
+        StaxMate is a breeze.
+      </li>
+      <li>
+        Output indentation is easy to enable (and disable, on per sub-tree 
+        basis if necessary). While it is one of most commonly requested 
+        features for Stax, it is not implemented currently by any Stax 
+        processor (there are however other stax helper libraries available 
+        that do implement it externally).
+      </li>
+      <li>
+        It is possible to use limited amount of memory buffering to do 
+        out-of-order outputting: for example, it is possible to &quot;freeze&quot; 
+        output of a sub-tree for as long as necessary, to be able to add 
+        attributes to the root element of the sub-tree, and &quot;release&quot; buffered 
+        sub-tree as soon as attribute or attributes are added.
+      </li>
+    </ul>
+    <p>
+      Many of potential benefits listed above are similar to the ones that 
+      exist on the input side. This is not a coincidence: StaxMate tries to 
+      use similar concepts on both sides, where applicable.
+    </p>
+    <p>
+      <b>3. Further Improvements on the Output Side</b>
+    </p>
+    <p>
+      One thing that could be further simplified is the construction of the 
+      root output context. It should not be necessary to have to use raw Stax 
+      API for creating the underlying <b>XMLStreamReader</b>: the details 
+      could (and should) be encapsulated within <b>SMOutputFactory</b>
+    </p>
+    <p>
+      <b>4. Next Steps</b>
+    </p>
+    <p>
+      Now that we have covered the actual service, it will be time to focus on 
+      the client side, and show how service can be used. It may also be 
+      interesting to know what kind of throughput is to be expected from a 
+      simple service like this.
+    </p>
+    <p>
+      To be continued...
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, October 23, 2006 9:54 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_28.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_28.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_28.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Sunday, October 22, 2006 </h2>
+
+<div class="entry" id="post-27">
+			<h3 class="entry-header">StaxMate based web service (UUID generator), part III (Input details)</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      (continuing the story of StaxMate based simple web service, part 3)
+    </p>
+    <p>
+      The previous entry outlined expected inputs and output of the web 
+      service. So let's now have a look at how this functionality is 
+      implemented (and as a reminder, source code is available from <a href="http://docs.codehaus.org/display/WSTX/StaxMateSampleWebService">http://docs.codehaus.org/display/WSTX/StaxMateSampleWebService</a>)
+    </p>
+    <p>
+      <b>1. Handling input</b>
+    </p>
+    <p>
+      Handling of GET and POST requests is different, since the input is in 
+      different form. For anyone interested in details of GET request input 
+      processing, have a look at <b>doGet()</b> method (lines 76 - 95) of <b>sample.UuidServlet</b> 
+      class (due to simplicity of the service, all functionality implemented 
+      in just one class).
+    </p>
+    <p>
+      But since we are more interested in how xml input is processed, let us 
+      have a look at <b>doPost()</b> method (lines 97 - 144). doPost() method 
+      is called by the Servlet base class, when a POST request is sent to the 
+      server. The core input handling starts on line 102, and continues 
+      through line 137 (comments are removed or modified to keep sample 
+      compact; code structure is unchanged):
+    </p>
+    <hr>
+    
+
+    <pre>InputStream in = httpRequest.getInputStream();
+SMInputCursor rootc = SMInputFactory.rootElementCursor(SMInputFactory.getGlobalXMLInputFactory().createXMLStreamReader(in));
+rootc.getNext(); // well-formed docs have single root
+if (!&quot;request&quot;.equals(rootc.getLocalName())) {
+  reportProblem(resp, &quot;Root element not &lt;request&gt;, as expected, but &lt;&quot;+rootc.getLocalName()+&quot;&gt;&quot;, null);
+  return;
+}
+// Request has no attributes, but has 0+ methods (batches)
+SMInputCursor requests = rootc.childElementCursor();
+int totalReq = 0;
+
+List&lt;UUID&gt; uuids = new ArrayList&lt;UUID&gt;();
+while (requests.getNext() != null) { // ignore or signal error? latter
+  if (!&quot;generate-uuid&quot;.equals(requests.getLocalName())) {
+reportProblem(resp, &quot;Unrecognized element '&quot;+requests.getLocalName()+&quot;', expected &lt;generate-uuid&gt;&quot;, null);
+return;
+  }
+  UUIDMethod method = determineMethod(requests.getAttrValue(&quot;method&quot;));
+  int count = determineCount(requests.getAttrValue(&quot;count&quot;));
+  String name = requests.getAttrValue(&quot;name&quot;);
+  checkParameters(method, count, name);
+  // (removed code for restricting max. uuids per request)
+  uuids.addAll(generateUuids(method, count, name));
+}
+// Proceed to write output</pre>
+    <hr>
+    
+
+    <p>
+      First couple of lines create the root-level cursor: this is just needed 
+      to match the root element, since we don't care about comments or 
+      processing instructions outside of the root element. The root element is 
+      checked to verify it is of the expected type; and if not, an error 
+      message is output (details of that output will be explained in the next 
+      entry -- for now, we'll skip it).
+    </p>
+    <p>
+      The main handling loop is done with the help of a child cursor: it will 
+      traverse over (immediate) child elements of &lt;request&gt;, ignoring all 
+      other node types, like white space that may be used for indentation, 
+      comments and processing instructions. As with the root element, we will 
+      verify that elements have the expected name. If so, necessary attributes 
+      are accessed, verified (with the help of a separate method, which need 
+      not parse any xml), and finally UUIDs are constructed and added to the 
+      result list. Nothing very complicated.
+    </p>
+    <p>
+      <b>2. Benefits over Plain Old Stax?</b>
+    </p>
+    <p>
+      Example above was simple, but mostly due to the service being quite 
+      simple. The equivalent pure Stax solution would be quite simple as well. 
+      However, even this simple example shows some areas where StaxMate does 
+      or can help:
+    </p>
+    <ul>
+      <li>
+        Skipping over non-relevant xml events can be automatic. White space 
+        used for indentation is seldom of interest, so why require it to be 
+        explicitly skipped? Input cursors can use filtering (implemented using 
+        SMCursor interface): in the example case, all but START_ELEMENT events 
+        are automatically filtered out. Such filtering is optional -- you can 
+        traverse over any and all events you want to see.
+      </li>
+      <li>
+        It is easier to delegate handling of sub-trees to helper methods. For 
+        example, if &lt;generate-uuid&gt; elements could have child elements (to 
+        contain more complicated arguments), it would be easy to create a 
+        separate method that takes a child iterator as argument, and only 
+        handle that sub-tree. One of chief benefits of the delegation is that 
+        the called method can not inadvertently skip more end elements than it 
+        should: it is restricted to just the sub-tree that the cursor 
+        traverses over. Think of it as simple xml tree scoping: code only 
+        needs to concern itself with the scope it is responsible over.
+      </li>
+      <li>
+        Skipping over sub-trees is automatic. While there are no ignorable 
+        elements in this example, it is quite common for other tasks to have 
+        sub-trees that can and need to be ignored (such as annotation or 
+        comment sections of many xml vocabularies). With Stax, one has to keep 
+        track of number of open start and elements: with StaxMate, one just 
+        moves cursor past the START_ELEMENT that is root of the sub-tree, and 
+        all enclosed events are ignored as well.
+      </li>
+      <li>
+        Collecting textual content that an element contains is trivial: just 
+        call <b>cursor.collectDescendantText()</b> and you will get a String 
+        containing contents of all text nodes under element the cursor 
+        currently points to.
+      </li>
+    </ul>
+    <p>
+      There are other more advanced (element tracking, to effectively store 
+      partial sub-tree information in memory) or less often useful features 
+      (node and element indexes): but for now above should suffice as teasers 
+      to get you interested in learning more.
+    </p>
+    <p>
+      <b>3. Further Improvements on Input Side</b>
+    </p>
+    <p>
+      Although the code as shown is quite simple, I realized during writing 
+      this entry that it could be further simplified.
+    </p>
+    <p>
+      For example:
+    </p>
+    <ul>
+      <li>
+        It seems unnecessary that application needs to create <b>XMLStreamReader</b> 
+        instance separately: instead, StaxMate could abstract away these 
+        details within its own <b>SMInputFactory</b>, and completely hide 
+        these low-level details. This could also simplify configuring of the 
+        input factories; task that Stax does not make particularly simple or 
+        type-safe.
+      </li>
+      <li>
+        In addition to basic event type based filtering, it would seem 
+        reasonable to have standard filters that allow skipping not only all 
+        non-element events, but also elements with names except for specified 
+        ones. Specifically, perhaps the child cursor should only return 
+        &lt;generate-uuid&gt; events, and ignore any others (if such exist). This 
+        would further simplify checking; if no strict validation is needed.
+      </li>
+    </ul>
+    <p>
+      There is a good chance that such features will be added into the first 
+      &quot;official&quot; StaxMate major release, 1.0.
+    </p>
+    <p>
+      <b>4. To be Continued...</b>
+    </p>
+    <p>
+      So much for the input side: the next entry will deal with the output 
+      side.
+    </p>
+    <p>
+      Stay tuned!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Sunday, October 22, 2006 10:14 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_27.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_27.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_27.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Wednesday, October 18, 2006 </h2>
+
+<div class="entry" id="post-26">
+			<h3 class="entry-header">StaxMate based web service (UUID generator), part II (GI/GO)</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      (continuing the story of StaxMate based simple web service, part 2)
+    </p>
+    <p>
+      <b>1. Platform</b>
+    </p>
+    <p>
+      Although the web service can be deployed on any servlet container, the 
+      bundled download archive comes with embedded <a href="http://jetty.mortbay.org/">Jetty 
+      6 container</a>. I highly recommend Jetty for tasks like this -- it is a 
+      mean clean servlet container. In fact, for this particular use case, I 
+      could have made even more light-weight version that need not use Servlet 
+      API, just Jetty's &quot;raw&quot; interface. But just in case someone wants to try 
+      it out on Tomcat or something, I decided to do it the standard way.
+    </p>
+    <p>
+      <b>2. Garbage In</b>
+    </p>
+    <p>
+      As I said earlier, the web service takes request in two forms: simple 
+      GET requests, in which all argument come in as part of request URL (as 
+      query parameters); and xml-based POST requests, in which client will 
+      send request xml document that contains same information. To demonstrate 
+      potential benefits of the latter approach (as well as to get to use 
+      StaxMate), POST requests allow slightly more complicated requests to be 
+      made: namely, one can request multiple batches of <a href="http://en.wikipedia.org/w/index.php?title=Universally_Unique_Identifier">UUID</a>s 
+      to be generated using just a single request. While it would be possible 
+      to do this with query parameters, it would require hacks with query 
+      parameter naming, and soon become unmaintainable if new orthogonal 
+      features were to be added.
+    </p>
+    <p>
+      Instead of documenting in detail everything one needs to know about GET 
+      URLs, here is an example of URL you could use to contact a locally 
+      running server (just pound it in your favourite browser and see the 
+      results), assuming default server port from the downloadable package was 
+      used:
+    </p>
+    <p>
+      <a href="http://localhost:7272/uuid-server/generate-uuid?method=RANDOM&count=3">http://localhost:7272/uuid-server/generate-uuid?method=RANDOM&amp;count=3</a>
+    </p>
+    <p>
+      This would generate 3 UUIDs, using the Random number based generation 
+      method (version 4).
+    </p>
+    <p>
+      Likewise, a sample POST request could look like:
+    </p>
+    <pre>  &lt;request&gt;
+   &lt;generate-uuid method=&quot;random&quot; /&gt;
+   &lt;generate-uuid method=&quot;location&quot; count=&quot;3&quot; /&gt;
+   &lt;generate-uuid method=&quot;name&quot;&gt;http://www.cowtowncoder.com/foo&lt;/generate-uuid&gt;
+  &lt;/request&gt;</pre>
+    <p>
+      and would create 5 UUIDs all in all, using all 3 different generation 
+      methods (last of which requires an argument). This one is trickier to 
+      invoke using browser, and would generally be invoked using a special 
+      client, be that written in Java, Perl, C# or Javascript.
+    </p>
+    <p>
+      <b>3. Garbage Out</b>
+    </p>
+    <p>
+      Although there are 2 different ways to send a request, the output will 
+      always be in same format, a simple xml document, of type 'text/xml'. So, 
+      for example, the first request would return result document like:
+    </p>
+    <pre>  &lt;response&gt;
+   &lt;uuid&gt;733365c3-2d44-4f93-accd-43cb39b0cedf&lt;/uuid&gt;
+   &lt;uuid&gt;249df610-c658-491f-bf58-d21bcee110cb&lt;/uuid&gt;
+   &lt;uuid&gt;a93a3ecf-2636-4f1c-8d14-d63bc84f2d67&lt;/uuid&gt;
+  &lt;/response&gt;</pre>
+    <p>
+      About the only additional thing to note is that the servlet will cap 
+      maximum number of UUIDs generated per request to 100: if total requested 
+      (including all batches, for POST request) is more, only 100 will be 
+      returned, and the resulting xml document will contain a comment 
+      indicating this restriction, after all the uuid entries.
+    </p>
+    <p>
+      <b>4. To be Continued...</b>
+    </p>
+    <p>
+      So far so good. In the next episode, dark secrets of the underlying code 
+      (Java on server side, and just a teeny weeny dose of Javascript on 
+      client side) will be exposed. Stay tuned!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, October 18, 2006 10:20 PM </span>
+<br />	Categories: <a href=""></a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_26.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_26.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_26.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Tuesday, October 17, 2006 </h2>
+
+<div class="entry" id="post-24">
+			<h3 class="entry-header">StaxMate based web service (UUID generator), part I</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      <b>1. Problem to Solve</b>
+    </p>
+    <p>
+      First challenge in writing a sample web application to showcase StaxMate 
+      is that of finding a simple (but hopefully non-trivial) problem to 
+      solve. This task is made difficult by the fact that many highly useful 
+      services have already been implemented: the problem of returning 
+      cheerful &quot;Hello World&quot; greetings has been adequately solved; likewise 
+      for the ever-so-useful &quot;Echo the string I send&quot; use case. And even 
+      highly complicated tasks such as calculating sum of two integer numbers 
+      have been automated as highly scalable web services.
+    </p>
+    <p>
+      And finally, anything that involves actual storing and retrieving of 
+      data is immensely boring, and besides it is something I already get paid 
+      to work on during daytime. I am not getting paid enough to also work on 
+      that during my free time (no, not even if my advertising revenue was 
+      skyrocketing!).
+    </p>
+    <p>
+      So what is there left to automate?
+    </p>
+    <p>
+      <b>2. Very Funny... But What Are You Really Going to Write?</b>
+    </p>
+    <p>
+      Given above constraints, I decided I should just recycle something I 
+      have already written earlier. And to this end, I just happen to be the 
+      author of the nifty <a href="http://jug.safehaus.org">Java Uuid Generator</a> 
+      (JUG) library... so, how about just writing a web service that allows 
+      one to ask server to generate bunch of UUIDs? Yup, that oughta do it. 
+      Couple that with an invocation to Echo service, and perhaps add 128-bit 
+      UUID numbers, and we should have a fully functional insta-code SOA 
+      system, just add some hot gas!
+    </p>
+    <p>
+      (as a sidenote, in case you wonder what UUIDs are, feel free to consult <a href="http://en.wikipedia.org/wiki/UUID">Wikipedia</a>)
+    </p>
+    <p>
+      <b>3. Approach</b>
+    </p>
+    <p>
+      Although by far the simplest way to implement such a web service would 
+      be to maybe just fire off a cgi script (after all, uuidgen exists for 
+      enough platforms), that wouldn't have much use of <a href="http://woodstox.codehaus.org/StaxMate">StaxMate</a>. 
+      On the other hand, I could go for full Soap implementation, and either 
+      write 1000 lines of code to implement bare bones soap handler, or with 
+      the help of great automation toolkits that save me from writing 100 
+      lines of code, write perhaps 5000 lines of code. :-)<br>But that would 
+      mostly showcase these helper toolkits (or soap handling in general). And 
+      great as they are, I'd like to have at least maybe 5% of code do actual 
+      xml tasks for which StaxMate was written. And since that code is maybe 5 
+      lines all in all, it seems like I better hand write about 100 lines of 
+      glue code around xml handling.
+    </p>
+    <p>
+      Thus, I will write a simplish &quot;REST&quot; (aka Plain Old Xml, POX, over Http) 
+      web service. To make it slightly easier to demo, as well as access using 
+      but a browser, I will make it accept both GET and POST requests. Latter 
+      is mostly there to give an excuse to use StaxMate parsing: but in both 
+      cases, output will be xml written using StaxMate. The main difference is 
+      then that with GET, all arguments come as query parameters, whereas with 
+      POST, request is in xml. And just to show off, POST request can use 
+      batching, that is, request multiple ranges of UUIDs to be generated. GET 
+      request can only create multiple UUIDs of same type (which almost always 
+      is enough for your needs).
+    </p>
+    <p>
+      To top it off, the service as implemented will be invocable in at least 
+      3 ways:
+    </p>
+    <ul>
+      <li>
+        Typing in URL on your favourite browser, and see the xml response as 
+        it is returned
+      </li>
+      <li>
+        Using the simple but trendy html page (included in package, no 
+        batteries required), powered by some Ajax mojo, to do the same
+      </li>
+      <li>
+        Using a simple client class from your application, to encapsulate 
+        details of sending request, and parsing resulting xml
+      </li>
+    </ul>
+    <p>
+      As of now, first 2 methods have been implemented: third will be 
+      implemented in near future (as in next 2 or 3 months), depending on how 
+      high is the ad revenue for this article. :-)
+    </p>
+    <p>
+      <b>4. Sneak peek</b>
+    </p>
+    <p>
+      At this point, the service itself exist, and all the needed pieces are 
+      downloadable from StaxMate Subversion repository: links to Subversion as 
+      well as direct links can be found on <a href="http://docs.codehaus.org/display/WSTX/StaxMateSampleWebService">this 
+      page</a>. Page should explain the simple procedure to deploy the 
+      service; simple being relative term, and referring to someone who has 
+      ever deployed a servlet using a web archive (.war file).
+    </p>
+    <p>
+      Unfortunately, at this point I do not have a publicly accessible 
+      Servlet-enabled server to run the web service on, but if anyone wants to 
+      host it, I would be more than willing to link to such instance (or, if 
+      you'd rather wait to see how much it would add, I am planning to load 
+      test the service in &quot;near future&quot;, which will be after client library 
+      gets written).
+    </p>
+    <p>
+      <b>5. In the next Episode, the Ab(d)ominable CoderMan will...</b>
+    </p>
+    <p>
+      In the next blog entry, I will outline the code snippets that actually 
+      use StaxMate for input (parsing of input message, when serving POST 
+      requests) and output (when writing response message, either an error, or 
+      success message with set of generated UUIDs).
+    </p>
+    <p>
+      Stay tuned! Oh, and also, please add some feedback if you try out the 
+      web service (or just have strong opinions on the matters of xml, web 
+      services, or obscure subjects like, say, finnish pop music) -- beyond 
+      adsense numbers, it's always nice to figure out if anyone is reading 
+      your musings.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, October 17, 2006 9:42 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_24.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_24.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_24.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, October 12, 2006 </h2>
+
+<div class="entry" id="post-23">
+			<h3 class="entry-header">StaxMate - based UUID generator web service almost done...</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      But the article still needs to wait for my having enough time to wrap up 
+      odds and ends. However, the server side code is mostly done, and checked 
+      in Staxmate Subversion repository (see <a href="http://woodstox.codehaus.org/StaxMate for">StaxMate 
+      home page</a> for details) if anyone wants to have a sneak peak.
+    </p>
+    <p>
+      One other thing that I realized I need to do before documenting the 
+      sample web service is to make sure that the latest StaxMate release has 
+      all the pieces I use. To that end, I decided I should just release <b>version 
+      0.9.1 of StaxMate</b>, and use that for the service, available from <a href="http://woodstox.codehaus.org/StaxMate">StaxMate 
+      download page</a>. Changes to the API are minor, but the release does 
+      include one important fix to the way multiple input cursor are kept in 
+      sync -- big thanks to the developers who submitted the patch (you know 
+      who you are! and others can check out CREDITS file).
+    </p>
+    <p>
+      On a related note: one of the biggest things on my own wishlist for 
+      StaxMate is simple XPath capability: ability to get a cursor pointing to 
+      the first element of the resulting node set (or iterator to ordered set 
+      of cursors, one of which can be active at any given point), given an 
+      XPath expression using a &quot;streaming subset&quot; of XPath (basically anything 
+      referring to the current stack of elements). I am hoping to investigate 
+      Jaxen a bit more, to see if I could use it. I did have a look at Java 5 
+      XPath support, but was disappointed since the approach taken means I can 
+      not make it work over StaxMate (only Sun can). It does, however, seem 
+      like Jaxen might be bit easier to repurpose. If anyone is interested in 
+      seeing such features, ping me with email (cowtowncoder at yahoo dot com).
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, October 12, 2006 10:36 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_23.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_23.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_23.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_28.html">StaxMate based web service (UUID generator), part IV (Output details)</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_27.html">StaxMate based web service (UUID generator), part III (Input details)</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_26.html">StaxMate based web service (UUID generator), part II (GI/GO)</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_24.html">StaxMate based web service (UUID generator), part I</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2006/10/entry_23.html">StaxMate - based UUID generator web service almost done...</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

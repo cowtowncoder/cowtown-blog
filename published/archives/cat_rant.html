@@ -1,0 +1,1025 @@
+<html lang="en">
+<head>
+<title>Rant</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important}
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+     <div id="container">
+          <div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+     <div id="banner-inner" class="pkg">
+          <h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+          <h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+     </div>
+</div>
+               <div id="pagebody">
+                    <div id="pagebody-inner" class="pkg">
+                         <div id="alpha">
+                              <div id="alpha-inner" class="pkg">
+<!-- entry -->
+
+   
+     <h2 class="date-header">Tuesday, February 15, 2011 </h2>
+<div class="entry" id="post-445">
+     <h3 class="entry-header">Basic flaw with most binary formats: missing identifiable prefix (protobuf, Thrift, BSON, Avro, MsgPack)</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Ok: I admit that I have many reservations regarding many existing binary 
+      data formats; and this is major reason why I worked on <a href="http://wiki.fasterxml.com/SmileFormat">Smile 
+      format</a> specification -- to develop a format that tries to address 
+      various deficiencies I have observed.
+    </p>
+    <p>
+      But while the full list of grievances would be long, I realized today 
+      that there is one basic design problem that is common to pretty much all 
+      formats -- at least Thrift, protobuf, BSON and MsgPack -- that is: lack 
+      of any kind of reliable, identifiable prefix. Commonly used techniques 
+      like &quot;magic number&quot;, which is used to allow reliable type detection for 
+      things like image formats appears unknown to binary data format 
+      designers. This is a shame.
+    </p>
+    <p>
+      <b>1. The Problem</b>
+    </p>
+    <p>
+      Given a piece of data (file, web resource), one important piece of 
+      metadata is its structure. While this is often available explicitly from 
+      the context, this is not always the case; and even if it could be added 
+      there are benefits to being able to automatically detect type: this can 
+      significantly simplify systems, or to extend functionality by accepting 
+      multiple kinds of formats. Various graphics programs, for example, can 
+      operate on different image storage formats, without necessarily having 
+      any metadata available beyond just actual data.
+    </p>
+    <p>
+      So why does this matter? It helps in verifying basic correctness of 
+      interacton in many cases: if you can detect what is and what is not 
+      valid piece of data in a format, life is much easier: you have a chance 
+      to know immediately when piece of data is completely corrupt, or you are 
+      being fed data in some format than the one you expect. Or, if you 
+      support multiple formats, you can add automatic handling of differences.
+    </p>
+    <p>
+      <b>2. Textual formats do it well</b>
+    </p>
+    <p>
+      But let's go back to commonly used textual data formats: XML and JSON. 
+      Of these, XML specifies &quot;xml declaration&quot; which can be used to not only 
+      determine text encoding (UTF-8 etc) used but also the fact that data is 
+      XML. It is cleanly designed and is simple to implement. As if it was 
+      designed by people who knew what they were doing.
+    </p>
+    <p>
+      JSON does not define such a prefix, but specification does specify exact 
+      rules for detecting valid JSON, as well as encodings that can be used; 
+      so in practice JSON auto-detection is as easy to implement as that for 
+      XML.
+    </p>
+    <p>
+      <b>3. But most new binary formats don't</b>
+    </p>
+    <p>
+      Now; the task of defining unique (enough) header for binary formats 
+      would be even easier than that for textual formats, because structurally 
+      there is less variance: no need to allow variable text encoding, 
+      arbitrary white spaces, or other lexical sugar. It took me very little 
+      time to figure out the simple schema used by Smile to indicate its type 
+      (which in itself was inspired by design of PNG image format, an example 
+      of very good data format design).
+    </p>
+    <p>
+      So you might think that binary formats would excel in this area. 
+      Unfortunately, you would be wrong.
+    </p>
+    <p>
+      As far as I can see, following binary data formats have little or no 
+      support for type detection:
+    </p>
+    <ul>
+      <li>
+        <b>Thrift</b> does not seem to have type identifier at its format 
+        layer. There is actually small amount of metadata at RPC level (there 
+        is a message-start structure of some kind), but this only helps if you 
+        want/need to use Thrift's RPC layer. Another odd things is that 
+        internal API actually exposes hooks that would be used to handle any 
+        type idenfitiers; it is as if designers were at least aware of 
+        possibility of using some markers to enclose main-level data entities.
+      </li>
+      <li>
+        <b>protobuf</b> does not seem to have anything to allow type detection 
+        of a given blob of protobuf data. I guess protobuf never claimed to be 
+        useful for anything beyond tightly coupled low-level system 
+        integration (although some clueless companies are apparently using it 
+        for data storage... which just plain old Bad Idea), so maybe I could 
+        buy argument that this is just not needed, that there is never any 
+        &quot;arbitrary protobuf data&quot; around. Still... adding a tiny bit of 
+        redundancy would make sense for diagnostics purposes; and given that 
+        protobuf already has some redundancy (field ids, instead of using 
+        ordering) it would seem acceptable to use first 2 or 4 bytes for this.
+      </li>
+      <li>
+        <b>MsgPack</b> and <b>BSON</b> both just define &quot;raw&quot; encoding, 
+        without any format identifier that I can see. This is especially 
+        puzzling since unlike protobuf and Thrift, they do not require a 
+        schema to be used; that is, they have plenty of other metadata (types, 
+        names of struct members; even length prefixes). So make these data 
+        formats completely  unidentifiable?
+      </li>
+    </ul>
+    <p>
+      <b>4. But what about Avro?</b>
+    </p>
+    <p>
+      There is one exception aside from Smile, however. Avro seems to do the 
+      right thing (as far as I can read <a href="http://avro.apache.org/docs/1.4.1/spec.html">the 
+      specification</a>) -- at least when explicitly storing Avro data in a 
+      file (I assume including map/reduce use cases, stored in HDFS): there is 
+      a simple prefix to use, as well as requirement to store the schema used. 
+      This makes sense, since my biggest concern with formats like protobuf 
+      and Thrift is that being &quot;schema-ridden&quot;, data without schema is all but 
+      useless. Requiring that two are bundled -- when stored -- makes sense; 
+      optimizations can be used for transfer.
+    </p>
+    <p>
+      So Avro definitely seems better design than 4 other binary data formats 
+      listed above in this respect.
+    </p>
+    <p>
+      <b>5. Why do I care?</b>
+    </p>
+    <p>
+      As part of my on-going expansion of Jackson (&quot;the universal data 
+      processor&quot;), I am thinking of adding many more backends (to support 
+      reading and writing data in alternate data formats), to allow clean and 
+      efficient data binding to/from most any commonly used data formats. 
+      Ideally this would include binary data formats. Current plans are to 
+      include format detection functionality in such a way that new codecs can 
+      detect data they are capable of reading and writing; and this will work 
+      just fine for most existing formats that Jackson can handle (JSON, 
+      Smile, XML). I also assumed that since it would be very easy to design 
+      data formats that can be reliably detected, existing formats should be a 
+      piece of cake to detect. It is only when I started digging into details 
+      of binary data formats that the sad reality sunk in...
+    </p>
+    <p>
+      On plus side, this makes it easier to focus on adding first rate support 
+      for data formats that are easy to detect. So I will probably prioritize 
+      Avro compatibility significantly higher than others; and I will 
+      unfortunately have to downgrade my work on adding Thrift support which 
+      would otherwise be the most important &quot;alien&quot; format to support (due to 
+      existing use by infrastructure I am working on).
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, February 15, 2011 9:11 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_445.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_445.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_445.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Wednesday, June 30, 2010 </h2>
+<div class="entry" id="post-404">
+     <h3 class="entry-header">No Comments</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Ok, another minor but important change that just occured is that at 
+      present there is unfortunately no way to comment on my writing style, 
+      content, or anything else, on this blog.
+    </p>
+    <p>
+      Believe it or not this not due my sensitive skin or low self-esteem. It 
+      is actually due to surprising sticker shock I got when looking into 
+      actual cost of continuing with my formerly-free comment-extension 
+      provider. As I mentioned earlier, I am not against paying for things I 
+      use; and I can also get over immediate knee-jerk reaction to what may 
+      appear as bait-n-switch. So it is not about unwillingness to pay. But I 
+      am not willing to pay more for simple comment extension than I pay for 
+      hosting the whole thing (including shell access, plenty of storage and 
+      transfer space) -- this just does not seem like a reasonable value 
+      proposition. As a rough estimate of what I would pay, suitable price 
+      should be something similar to lowest fee one has to pay for a custom 
+      social network at Ning (20$ / year). That I would be ok with.
+    </p>
+    <p>
+      So, until I figure out suitable replacement, you will just have to bite 
+      your tongue, or send comments directly to me (both of which you are 
+      welcome to do! :-) ).<br>
+    </p>
+    <p>
+      ps. If your comment would be about a free commenting system I could use, 
+      please do send it to me -- contact info is available via link next to 
+      &quot;About me&quot;.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Wednesday, June 30, 2010 10:16 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_404.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_404.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_404.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Friday, March 26, 2010 </h2>
+<div class="entry" id="post-383">
+     <h3 class="entry-header">Welcome HP, So Long Dell (and don't let the door hit you in the ass on your way out)</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      (warning: this is another rant. Sorry!)
+    </p>
+    <p>
+      Here's another improvement in my daily life: after more than a year of 
+      space-shuttle-lift-off noise, short-but-brutish uptimes, and countless 
+      curses, family's lean old Dell XP &quot;work&quot;station is out for good. Its 
+      only agreeable attribute was its slim neat looks (and sort of neat 
+      mechanism used for case, allowing its easy opening -- too bad there's 
+      not much to do even if you can open it easily). Good riddance, music to 
+      my ears.
+    </p>
+    <p>
+      The replacement, HP Pavilion Slimline, actually looks every bit as good 
+      as its predecessor. But otherwise the two are polar opposites: new box 
+      is quiet, as reliable as expected (i.e., &quot;just works&quot;), and its only 
+      design flaw is that it comes with an OS written by a company based in 
+      Redmond. But that I can live with, since it's not my work machine. :-)<br>And 
+      even Windows seems to have improved a bit between versions (new one has 
+      Windows 7, previous one whatever preceded Vista).<br>
+    </p>
+    <p>
+      Anyway: I just thought I'll share my distaste with Dell products (maybe 
+      I should actually include &quot;not-so-good&quot; lists on my semi-professional 
+      home page?) now that I am getting rid of them.
+    </p>
+    <p>
+      It all started couple of years ago, when I decided to stop wasting my 
+      time on building my own PCs from components (which made sense after 
+      college, could save some money). I figured that with time I spent 
+      building PCs, and then troubleshooting problems with components,  it 
+      just didn't make a whole lot of sense. And so I thought I'd go with 
+      something that other customers in general had found usable: back then 
+      Dell had highest customer ratings of all PC companies; and save for one 
+      friend of mine (who had already fought with Dell's phone &quot;support&quot; 
+      people, due to problems with memory chips that were failing; and that no 
+      amount of rebooting would ever fix), I wasn't aware of huge problems 
+      with the company or its products.
+    </p>
+    <p>
+      What I found out by experience makes me suspect that the company that 
+      had gotten good reviews had been abducted by aliens, and replaced by an 
+      ersatz replica or something. Correlation between happy customers and 
+      company that produced crap I bought just is not there. I am not talking 
+      about customer support (no point calling them wrt. badly designed piece 
+      of hardware, IMO, it is not not something a script-reading underpaid 
+      remote helper can help a lot with), but rather about quality of 
+      hardware. My experience beyond PC fiasco was that their products are 
+      competitively priced, but have low quality. For example, laser printer 
+      that I bought to replace trusty old Apple writer (which, after having 
+      bought second hand, served us for 8 years; for total lifetime of 
+      probably 15 years; and would have worked well but I couldn't find new 
+      toner cartridges for reasonable prices any more!) was inexpensive, and 
+      worked fine for a while. Like, maybe a year. And then broke down. The 
+      only thing left are LCD monitors, which I have to admit were reasonably 
+      priced, and still work. In fact both are still in active use. So I guess 
+      they do produce something other than lemons.
+    </p>
+    <p>
+      Thinking about that last sentence: I guess I could put my feelings into 
+      fitting slogan: <b>Dell -- General Motors of Computers</b>.<br>Feel free 
+      to quote.
+    </p>
+    <p>
+      ps. I am happy to admit that after kicking that incompetent CEO of 
+      theirs out, HP seems to have done nice comeback. Good for them, and us.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Friday, March 26, 2010 10:37 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/03/entry_383.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/03/entry_383.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/03/entry_383.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Monday, February 22, 2010 </h2>
+<div class="entry" id="post-365">
+     <h3 class="entry-header">Fool's Gold, Standard(s)</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Here's something new: some <a href="http://www.cnn.com/2010/OPINION/02/22/frum.ron.paul.gold/index.html?hpt=Mid">good 
+      reading</a> (&quot;Ron Paul's money plan is far from golden&quot;) at CNN (sic!): 
+      this time about nostalgic folly of returning to the &quot;gold standard&quot;. It 
+      is surprising that someone whose intellectual aspirations are bit above 
+      those of his supporters (ok, granted, that's a low bar), one would be so 
+      mistaken about realities of tying national currency into amount of 
+      precious metal(s) central bank physically has. Maybe this is why central 
+      banks are generally lead by people with economic education and 
+      experience, and not physicians.
+    </p>
+    <p>
+      I mean, yes, from laymanperspective, it would seem nice if that green 
+      paper that gets printed on would actually have collateral. But 
+      impracticality of full collateralization should be obvious: you don't 
+      need much of a thought-exercise to see how and why it would fail; and 
+      from that point on, to backtrack and see why this realization (when 
+      shared by people who control flow of money) means that attempt would be 
+      a self-fulfilling failure. And if we were unlucky, slowly cooking but 
+      colossal-cluster-magnitude failure.
+    </p>
+    <p>
+      In addition to the great depression that is obviusly mentioned in the 
+      articles, proponents of &quot;strong currency&quot; managed to starve millions of 
+      people to death during late 1800s. I am most familiar with a somewhat 
+      starvations in Finland (there were 2 instances): globally speaking these 
+      were just blimps on radar (sice the whole country population was barely 
+      in millions), but death rate from starvation actually exceeded that of 
+      world wars... and all that so that central bank could protect value of 
+      currency, by not loaning money (or subsidize seeds), managing to keep 
+      central bank in black, and peasants hungry or dead. Famine was orginally 
+      triggered by weather, of course, but the catastrophe could have been 
+      averted by government action. And in similar vain, in more recent 
+      memory, depression of early 90s (in Finland) was also deepened by later 
+      crop of strong currency proponents, who tried (ultimately in vain) to 
+      keep the currency strong by trying to avoid devaluation. In the end they 
+      had to let it float anyway (causing run-off devaluation by something 
+      like 30% in a week), but so late that much of damage was already done. 
+      Fortunately no one starved to death on account of this failure, although 
+      unemployment rate tripled closer to 20%.
+    </p>
+    <p>
+      I am sure there are many more examples; and some EU countries are 
+      currently experiencing related challenges (now that they are forced to 
+      exercise certain discipline after screwing up their finances before 
+      realizing it must be done).
+    </p>
+    <p>
+      These examples are closely related to &quot;gold standard&quot; part, in that 
+      there is simplistic view of nations having to balance their check books 
+      on very short term. This is neither practical nor beneficial. And trying 
+      to force it to be done does not make it any more practical, beneficial 
+      or wise.
+    </p>
+    <p>
+      And yet -- it seems that principled fools never let facts get in a way 
+      of intuitive theories. So I am just waiting for a grand unified theory 
+      that binds together ideas of tax-cut for riches, return to the gold 
+      standard, and the idea that poor people caused depression (due to 
+      welfare costs allegedly being a major contributor to this whole meltdown 
+      -- don't ask me how the mechanism is supposed to play; apparently this 
+      claim is getting some consideration in tea bagger circles).
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Monday, February 22, 2010 11:52 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/02/entry_365.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/02/entry_365.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/02/entry_365.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Saturday, December 19, 2009 </h2>
+<div class="entry" id="post-354">
+     <h3 class="entry-header">Could you please tell me some more about athletes' marital problems, CNN?</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      It is an unfortunate fact of life that &quot;news&quot; services in US are in 
+      sorry, tepid state; and to get decent news coverage one has to use 
+      better international sources (BBC, or any european agency), or turn to 
+      non-daily/non-TV alternatives (magazines, which still offer reasonable 
+      in-depth coverage). But this on-going idiotic episode with a celebrity 
+      golf player's domestic issues takes the cake as the low point for this 
+      decade (maybe competing with media's criticless bashing of UN Iraq 
+      nuclear inspectors back in 2002 -- but I digress)<b>.</b>
+    </p>
+    <p>
+      <b>1. What could POSSIBLY be more important issue?</b>
+    </p>
+    <p>
+      But hey, there have been recent orgies of lesser relevant news (did 
+      Michael Jackson's or Ann-Nicole Smith's deaths really warrant being top 
+      news entries). Why is this any different? Aside from being even less 
+      relevant -- honestly, gossip pages, or perhaps sports section (... which 
+      is ridiculously inflated part of local newspapers and TV programmes, 
+      anyway...) would have been better placements; and for respectable 
+      publications, possibly not even those -- than anything comparable in 
+      recent history, there is the thing that there has actually been lots of 
+      newsworthy things to write about.
+    </p>
+    <p>
+      Like, say, that gathering of world leaders in Copenhagen; discussing 
+      urgent (and eventually life-and-death) matters of saving the world. And 
+      in domestic section, well, there's plenty of economic stuff to write 
+      about, or the thing about medical industry and insurance. Oh, and hey, 
+      wasn't there a war of sizable portions also going on (actually, two, but 
+      who's counting).
+    </p>
+    <p>
+      In fact, I can't think of a reason for this even ranking on page 7 of 
+      thursday edition of the local newspaper. There are tabloids, after all, 
+      that could cover this stuff. Well, except that in US, it's not 
+      &quot;newspapers vs tabloids&quot;; it's mainstream (tabloid level) and fringes 
+      (&quot;news of the world&quot;). Even mainstream sells manufactured controversies 
+      (trademark of tabloid in other countries) and social porn.
+    </p>
+    <p>
+      And yet, somehow what irritates me most is that I noticed that CNN 
+      followed up on this stupid episode like a hawk; as if it really was a 
+      major story.
+    </p>
+    <p>
+      <b>2. What did that &quot;N&quot; originally mean? </b>
+    </p>
+    <p>
+      So why pick on CNN? After all, CNN is to News what MTV is to Music -- 
+      sad, irrelevant misnomer. Ted Turner would be rolling in his grave was 
+      he not alive. I guess it has more to do with the fact that CNN is 
+      ostensibly in the news business. Newspapers and most other networks are 
+      in general &quot;media&quot; business; they are also News dilettantes, spewing 
+      some amateur-level newsy stuff. But clearly TV networks are more into 
+      general entertainment; and newspapers into advertising with some 
+      commentary columns (well, actually, they also do do some local news 
+      stuff -- useful and sometimes noteworthy -- maybe I am being too harsh 
+      --  but only local, seldom even reaching to regional level).
+    </p>
+    <p>
+      So it's that when even entities that claim to do News fail to do that, 
+      well, that's pathetic.
+    </p>
+    <p>
+      <b>3. Message to mr. Woods</b>
+    </p>
+    <p>
+      Ok; enough ranting about sad state of US media. But here's a personal 
+      message for the nominal cause of this red herring of a news: Tiger, go 
+      stuff that golf club up your ass. Sideways. I don't care about your 
+      business (personal or otherwise) -- but it appears that your messy 
+      business has suddenly become my business. Stop it. Go, disappear. And 
+      for crying out loud, don't cry out loud in public. It is so pathetically 
+      unmanly that I feel nauseous. So, grow a spine (a pair you apparently 
+      already have). Whatever else you do, do NOT cause more media events. You 
+      are rich enough to afford to do whatever that other stupid athlete did 
+      after murdering his wife (of hey, yeah, come to think of that, do not do 
+      what that guy did in the end -- just the initial part of trying to keep 
+      low profile).
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, December 19, 2009 10:57 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_354.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_354.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_354.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Thursday, December 03, 2009 </h2>
+<div class="entry" id="post-341">
+     <h3 class="entry-header">Milk of Human Madness, Jule-tide edition</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Ok, in between technical time, it's time to review some goofy stuff 
+      while we wait for Santa. Here goes...
+    </p>
+    <p>
+      <b>1. Can't manage to find time to do something useful..</b>.
+    </p>
+    <p>
+      yet have plenty of time for &quot;time management&quot;?
+    </p>
+    <p>
+      Sound silly? Have a look at <a href="http://www.pomodorotechnique.com/">Pomodoro 
+      Technique</a>. Great for giggles, as a case study for human insanity.<br>But 
+      if it starts to make some sense at any point, do not hesitate to get 
+      some professional help. Immediately.
+    </p>
+    <p>
+      But then again, there are always some co-workers who might benefit 
+      others by such techniques: by not having time to do anything, they could 
+      not make mistakes. And that's worth something too (brakes for loose 
+      cannons).
+    </p>
+    <p>
+      <b>update</b>: above comments are just related for application of said 
+      technique(s) to software development -- maybe other domains could 
+      benefit from intrusive regularly-scheduled interruptions (perhaps 
+      augmented by electrical shocks)
+    </p>
+    <p>
+      <b>2. IRC? Yes, that thing hackers use when they don't want to be 
+      overheard!</b>
+    </p>
+    <p>
+      Oh yes, you can always trust <a href="http://www.youtube.com/watch?v=O2rGTXHvPCQ">Numb3rs</a> 
+      to get technical things FUBAR. Funny stuff.
+    </p>
+    <p>
+      Now, if you will excuse me, I will have to disconnect from my blog 
+      server before connection can be traced by FBI (it's that 30 second rule 
+      you may know from movies -- must triangulate fast -- gotta go!)
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Thursday, December 03, 2009 11:08 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_341.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_341.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_341.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Thursday, July 09, 2009 </h2>
+<div class="entry" id="post-298">
+     <h3 class="entry-header">Are GAE developers a bunch of</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      ignorant, incompetent boobs... or what?
+    </p>
+    <p>
+      Usually I avoid ranting, at least on my blog entries. Thing is, negative 
+      output creates negative image: there is little positive in negativity. 
+      If you have nothing good to say, say nothing, and so on.
+    </p>
+    <p>
+      But sometimes enough is enough. This is the case with Google, and their 
+      pathetic attempts at Creating Java(-like) platforms.
+    </p>
+    <p>
+      <b>1. Past failures: Android</b>
+    </p>
+    <p>
+      In the past I have wondered at the clusterfuck known as Android: API is 
+      a mess, concoction of JDK pieces included (and mixed with arbitrary open 
+      source APIs and implementation classes) is arbitrary and incoherent. But 
+      since I don't really work much in the mobile space, I have just shook my 
+      head when observing it -- it's not really my problem. Just an eyesore.
+    </p>
+    <p>
+      But it is relevant in that it set the precedent for what to expect: 
+      despite some potentially clever ideas (regarding the lower level 
+      machinery), it all seems like a trainwreck, heading nowhere fast. And 
+      the only saving grace is that most mobile development platforms are even 
+      worse.
+    </p>
+    <p>
+      <b>2. Current problems: start with ignorance</b>
+    </p>
+    <p>
+      After this marvellous learning experience, you might expect that the big 
+      G would learn from its mistakes and get more things right second time 
+      around. No such luck: <a href="http://code.google.com/appengine/">Google 
+      App Engine</a> was a stillbirth; plagued by very similar problem as 
+      Android. Most specifically, significant portion of what SHOULD be 
+      available (given their implied goal of supporting all JDK5 pieces 
+      applicable to the context) was -- and mostly still is -- missing. And 
+      decisions again seem arbitrary and inconsistent; but probably made by 
+      different bunch of junior developers.
+    </p>
+    <p>
+      My specific case in point (or pet peeve) is the lack of <a href="http://code.google.com/p/googleappengine/issues/detail?id=1277">Stax 
+      API on GAE</a> (it is missing from white-list, which is needed to load 
+      anything within &quot;javax.&quot; packages). It seems clear that this was mostly 
+      due to good old ignorance -- they just didn't have enough expertise 
+      in-house to cover all necessary aspects of JDK. Hey, that happens: maybe 
+      they have no XML expertise within the team; or whoever had some 
+      knowledge was busy farting around doing something else. Who knows? 
+      Should be easy to fix, whatever gave.
+    </p>
+    <p>
+      <b>3. From ignorance to excuses</b>
+    </p>
+    <p>
+      Ok: omission due to ignorance would be easily solved. Just add 
+      &quot;javax.xml.stream&quot; on the white list, and be done with that. After all, 
+      what could possibly be problematic with an <i>API package</i>? (we are 
+      not talking about bundling an implementation here)
+    </p>
+    <p>
+      But this is where things get downright comical: almost all 
+      &quot;explanations&quot; center around the strawman argument of &quot;there must be 
+      some security-related issue here&quot;. I may be unfair here -- it is 
+      possible that all people peddling this excuse are non-Googlians (if so, 
+      my apologies to GAE team). But this is just very ridiculous (dare I say, 
+      retarded?) argument, because:
+    </p>
+    <ol>
+      <li>
+        Being but an API package, <b>there is no functionality</b> that could 
+        possibly have security implications (yes, l know exactly what is 
+        within those few classes -- the only actual code is for implementation 
+        discover, which was copied from SAX), and
+      </li>
+      <li>
+        If there are problems with implementations of the API (which should be 
+        irrelevant, but humor me here), <b>same problems would affect already 
+        included and sanctioned packages</b> (SAX, DOM, JAXP, bundled Xerces 
+        implementation of the same)
+      </li>
+    </ol>
+    <p>
+      Perhaps even worse, these &quot;explanations&quot; are served by people who seem 
+      to have little idea about package in question. I could as well ask about 
+      regular expression or image processing packages it seems.
+    </p>
+    <p>
+      <b>4. Misery loves company</b>
+    </p>
+    <p>
+      About the only silver lining here (beyond my not having to work on 
+      GAE...) is that there are other packages that got similarly hosed (I 
+      think JAXB may be one of those; and many open source libraries are 
+      affected indirectly, including popular packages like <a href="http://xstream.codehaus.org">XStream</a>). 
+      So hopefully there is little bit more pressure in fixing these flaws 
+      within GAE.
+    </p>
+    <p>
+      But I so hope that other big companies would consider implementing 
+      sand-boxed &quot;cloudy&quot; Java environments. Too bad competitors like 
+      Microsoft and <a href="http://amazon.com">Amazon</a> tend to focus on 
+      other approaches: both doing &quot;their own things&quot;, although those being 
+      very different from each other (Microsoft with their proprietary 
+      technology; Amazon focusing on offering low-level platform (EC2) and 
+      simple services (S3, SQS, SWF -- simple storage, queue, workflow service 
+      -- etc), but not managed runtime execution service.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Thursday, July 09, 2009 10:51 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_298.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_298.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_298.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+            </div>
+        </div>
+<div id="beta">
+  <div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+
+<!-- /SiteSearch Google -->
+<hr />
+</div>
+
+     <div class="module-archives module">
+          <h2 class="module-header">Last posts</h2>
+          <div class="module-content">
+               <ul class="module-list">
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_445.html">Basic flaw with most binary formats: missing identifiable prefix (protobuf, Thrift, BSON, Avro, MsgPack)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_404.html">No Comments</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/03/entry_383.html">Welcome HP, So Long Dell (and don't let the door hit you in the ass on your way out)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/02/entry_365.html">Fool's Gold, Standard(s)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/12/entry_354.html">Could you please tell me some more about athletes' marital problems, CNN?</a></li>
+               </ul>
+          </div>
+     </div>
+<div class="module-categories module">
+          <h2 class="module-header">Categories</h2>
+          <div class="module-content">
+        <ul>
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+          
+        </ul>
+          </div>
+</div>
+<div class="module-syndicate module">
+     <div class="module-content">
+          <a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+          [<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+     </div>
+
+</div>
+</div>
+     <div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+     </div>
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+</div>
+<div class="module-powered module">
+     <h2 class="module-header">Powered By</h2>
+
+     <div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a> and
+  Discus comments.
+     </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>

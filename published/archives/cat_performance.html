@@ -1,0 +1,2318 @@
+<html lang="en">
+<head>
+<title>Performance</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important}
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+     <div id="container">
+          <div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+     <div id="banner-inner" class="pkg">
+          <h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+          <h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+     </div>
+</div>
+               <div id="pagebody">
+                    <div id="pagebody-inner" class="pkg">
+                         <div id="alpha">
+                              <div id="alpha-inner" class="pkg">
+<!-- entry -->
+
+   
+     <h2 class="date-header">Saturday, August 18, 2012 </h2>
+<div class="entry" id="post-477">
+     <h3 class="entry-header">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      <b>1. Background</b>
+    </p>
+    <p>
+      The default Java serialization provided by JDK is a two-edged sword: on 
+      one hand, it is a simple, convenient way to &quot;freeze and thaw&quot; Objects 
+      you have, handling about any kind of Java object graphs. It is possibly 
+      the most powerful serialization mechanism on Java platform, bar none.
+    </p>
+    <p>
+      But on the other hand, its shortcomings are well-document (and I hope, 
+      well-known) at this point. Problems include:
+    </p>
+    <ul>
+      <li>
+        Poor space-efficiency (especially for small data), due to inclusion of 
+        all class metadata: that is, size of output can be huge, larger than 
+        about any alternative, including XML
+      </li>
+      <li>
+        Poor performance (especially for small data), partly due to size 
+        inefficiency
+      </li>
+      <li>
+        Brittleness: smallest changes to class definitions may break 
+        compatibility, preventing deserialization. This makes it a poor choice 
+        for both data exchange between (Java) systems as well as long-term 
+        storage
+      </li>
+    </ul>
+    <p>
+      Still, the convenience factor has led to many systems using JDK 
+      serialization to be the default serialization method to use.
+    </p>
+    <p>
+      Is there anything we could do to address downsides listed above? Plenty, 
+      actually. Although there is no way to do much more for the default 
+      implementation (JDK serialization implementation is in fact ridiculously 
+      well optimized for what it tries to achieve -- it's just that the goal 
+      is very ambitious), one can customize what gets used by making objects 
+      implement j<b>ava.io.Externalizable</b> interface. If so, JDK will 
+      happily use alternate implementation under the hood.
+    </p>
+    <p>
+      Now: although writing custom serializers may be fun sometimes -- and for 
+      specific case, you can actually write very efficient solution as well, 
+      given enough time -- it would be nice if you could use an existing 
+      component to address listed short-comings.
+    </p>
+    <p>
+      And that's what we'll do! Here's one possible way to improve on all 
+      problems listed above:
+    </p>
+    <ol>
+      <li>
+        Use an efficient Jackson serializer (to produce either JSON, or 
+        perhaps more interestingly, <a href="http://wiki.fasterxml.com/SmileFormat">Smile</a> 
+        binary data)
+      </li>
+      <li>
+        Wrap it in nice java.io.Externalizable, to make it transparent to code 
+        using JDK serialization (albeit not transparent for maintainers of the 
+        class -- but we will try minimizing amount of intrusive code)
+      </li>
+    </ol>
+    <p>
+      <b>2. Challenges with java.io.Externalizable</b>
+    </p>
+    <p>
+      First things first: while conceptually simple, there are couple of 
+      rather odd design decisions that make use of java.io.Externalizable bit 
+      tricky:
+    </p>
+    <ol>
+      <li>
+        Instead of passing instances of <b>java.io.InputStream</b>, <b>java.io.OutputStream</b>, 
+        instead <b>java.io.ObjectOutput</b> and <b>java.io.ObjectInput</b> are 
+        used; and they do NOT extend stream versions (even though they define 
+        mostly same methods!). This means additional wrapping is needed
+      </li>
+      <li>
+        <b>Externalizable.readExternal()</b> requires updating of the object 
+        itself, not that of constructing new instances: most serialization 
+        frameworks do not support such operation
+      </li>
+      <li>
+        How to access external serialization library, as no context is passed 
+        to either of methods?
+      </li>
+    </ol>
+    <p>
+      These are not fundamental problems for Jackson: first one requires use 
+      of adapter classes (see below), second that we need to use &quot;updating 
+      reader&quot; approach that Jackson was supported for a while (yay!). And to 
+      solve the third part, we have at least two choices: use of ThreadLocal 
+      for passing an ObjectMapper; or, use of a static helper class (approach 
+      shown below)
+    </p>
+    <div>
+      
+    </div>
+    <div>
+      So here are the helper classes we need:
+    </div>
+    <div>
+      <hr>
+      
+    </div>
+    <pre>final static class ExternalizableInput extends InputStream
+{
+  private final ObjectInput in;
+
+  public ExternalizableInput(ObjectInput in) {
+   this.in = in;
+  }
+
+  @Override
+  public int available() throws IOException {
+    return in.available();
+  }
+
+  @Override
+  public void close() throws IOException {
+    in.close();
+  }
+
+  @Override
+  public boolean  markSupported() {
+    return false;
+  }
+
+  @Override
+  public int read() throws IOException {
+   return in.read();
+  }
+
+  @Override
+  public int read(byte[] buffer) throws IOException {
+    return in.read(buffer);
+  }
+
+  @Override
+  public int read(byte[] buffer, int offset, int len) throws IOException {
+    return in.read(buffer, offset, len);
+  }
+
+  @Override
+  public long skip(long n) throws IOException {
+   return in.skip(n);
+  }
+}<br><br>final static class ExternalizableOutput extends OutputStream
+{
+  private final ObjectOutput out;
+
+  public ExternalizableOutput(ObjectOutput out) {
+   this.out = out;
+  }
+
+@Override
+public void flush() throws IOException {
+out.flush();
+}
+
+@Override
+public void close() throws IOException {
+out.close();
+}
+
+@Override
+public void write(int ch) throws IOException {
+out.write(ch);
+}
+
+@Override
+public void write(byte[] data) throws IOException {
+out.write(data);
+}
+
+@Override
+public void write(byte[] data, int offset, int len) throws IOException {
+out.write(data, offset, len);
+}
+}<br><br>/* Use of helper class here is unfortunate, but necessary; alternative would<br> * be to use ThreadLocal, and set instance before calling serialization.<br> * Benefit of that approach would be dynamic configuration; however, this<br> * approach is easier to demonstrate.<br> */<br>class MapperHolder {
+  private final ObjectMapper mapper = new ObjectMapper();
+  private final static MapperHolder instance = new MapperHolder();
+  public static ObjectMapper mapper() { return instance.mapper; }
+}<br></pre>
+    <hr>
+    
+
+    <p>
+      and given these classes, we can implement 
+      Jackson-for-default-serialization solution.
+    </p>
+    <p>
+      <b>3. Let's Do a Serialization!</b>
+    </p>
+    <p>
+      So with that, here's a class that is serializable using Jackson JSON 
+      serializer:
+    </p>
+    <hr>
+    
+
+    <pre>  static class MyPojo implements Externalizable
+  {
+        public int id;
+        public String name;
+        public int[] values;
+
+        public MyPojo() { } // for deserialization
+        public MyPojo(int id, String name, int[] values)
+        {
+            this.id = id;
+            this.name = name;
+            this.values = values;
+        }
+
+        public void readExternal(ObjectInput in) throws IOException {
+            MapperHolder.mapper().readerForUpdating(this).readValue(new ExternalizableInput(in));<br>        }
+        public void writeExternal(ObjectOutput oo) throws IOException {
+            MapperHolder.mapper().writeValue(new ExternalizableOutput(oo), this);
+        }<br>  }
+</pre>
+    <hr>
+    
+
+    <p>
+      to use that class, use JDK serialization normally:
+    </p>
+    <div>
+      <hr>
+      
+    </div>
+    <pre>  // serialize as bytes (to demonstrate):<br>  MyPojo input = new MyPojo(13, &quot;Foobar&quot;, new int[] { 1, 2, 3 } );
+  ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+  ObjectOutputStream obs = new ObjectOutputStream(bytes);
+  obs.writeObject(input);
+  obs.close();
+  byte[] ser = bytes.toByteArray();<br><br>  // and to get it back:<br>  ObjectInputStream ins = new ObjectInputStream(new ByteArrayInputStream(ser));
+  MyPojo output = (MyPojo) ins.readObject();<br>  ins.close();</pre>
+    <hr>
+    
+
+    <p>
+      And that's it.
+    </p>
+    <p>
+      <b>4. So what's the benefit?</b>
+    </p>
+    <p>
+      At this point, you may be wondering if and how this would actually help 
+      you. Since JDK serialization is using binary format; and since 
+      (allegedly!) textual formats are generally more verbose than binary 
+      formats, how could this possibly help with size of performance?
+    </p>
+    <p>
+      Turns out that if you test out code above and compare it with the case 
+      where class does NOT implement Externalizable, sizes are:
+    </p>
+    <ul>
+      <li>
+        Default JDK serialization: 186 bytes
+      </li>
+      <li>
+        Serialization as embedded JSON: 130 bytes
+      </li>
+    </ul>
+    <p>
+      Whoa! Quite unexpected result? JSON-based alternative <i>30% SMALLER</i> 
+      than JDK serialization!
+    </p>
+    <p>
+      Actually, not really. The problem with JDK serialization is not the way 
+      data is stored, but rather the fact that in addition to (compact) data, 
+      much of Class definition metadata is included. This metadata is needed 
+      to guard against Class incompatibilities (which it can do pretty well), 
+      but it comes with a cost. And that cost is particularly high for small 
+      data.
+    </p>
+    <p>
+      Similarly, performance typically follows data size: while I don't have 
+      publishable results (I may do that for a future post), I expect 
+      embedded-JSON to also perform significantly better for single-object 
+      serialization use cases.
+    </p>
+    <p>
+      <b>5. Further ideas: Smile!</b>
+    </p>
+    <p>
+      But perhaps you think we should be able to do better, size-wise (and 
+      perhaps performance) than using JSON?
+    </p>
+    <p>
+      Absolutely. Since the results are not exactly readable (to use 
+      Externalizable, bit of binary data will be used to indicate class name, 
+      and little bit of stream metadata), we probably do not greatly care what 
+      the actual underlying format is.<br>With this, an obvious choice would 
+      be to use <a href="http://wiki.fasterxml.com/SmileFormat">Smile data 
+      format</a>, binary counterpart to JSON, a format that Jackson supports 
+      100% with <a href="https://github.com/FasterXML/jackson-dataformat-smile">Smile 
+      Module</a>.
+    </p>
+    <p>
+      The only change that is needed is to replace the first line from 
+      &quot;MapperHolder&quot; to read:
+    </p>
+    <p>
+       <i> private final ObjectMapper mapper = new ObjectMapper(new 
+      SmileFactory());</i>
+    </p>
+    <p>
+      and we will see even reduced size, as well as faster reading and writing 
+      -- Smile is typically 30-40% smaller in size, and 30-50% faster to 
+      process than JSON.
+    </p>
+    <p>
+      <b>6. Even More compact? Consider Jackson 2.1, &quot;POJO as array!&quot;</b>
+    </p>
+    <p>
+      But wait! In very near future, we may be able to do EVEN BETTER! Jackson 
+      2.1 (see the <a href="https://github.com/FasterXML/jackson-docs/wiki/Presentation-Jackson-2.1-Preview">Sneak 
+      Peek</a>) will introduce one interesting feature that will further 
+      reduce size of JSON/Smile Object serialization. By using following 
+      annotation:
+    </p>
+    <p>
+        <i>@JsonFormat(shape=JsonFormat.Shape.OBJECT)   </i>
+    </p>
+    <p>
+      you can further reduce the size: this occurs as the property names are 
+      excluded from serialization (think of output similar to CSV, just using 
+      JSON Arrays).
+    </p>
+    <p>
+      For our toy use case, size is reduced further from 130 bytes to 109; 
+      further reduction of almost 20%. But wait! It gets better -- same will 
+      be true for Smile as well, since while it can reduce space in general, 
+      it still has to retain some amount of name information normally; but 
+      with POJO-as-Arrays it will use same exclusion!
+    </p>
+    <p>
+      <b>7. But how about actual real-life results?</b>
+    </p>
+    <p>
+      At this point I am actually planning on doing something based on code I 
+      showed above. But planning is in early stages so I do not yet have 
+      results from &quot;real data&quot;; meaning objects of more realistic sizes. But I 
+      hope to get that soon: the use case is that of storing entities (data 
+      for which is read from DB) in memcache. Existing system is getting 
+      CPU-bound both from basic serialization/deserialization activity, but 
+      especially from higher number of GCs. I fully expect the new approach to 
+      help with this; and most importantly, be quite easy to deploy: this 
+      because I do not have to change any of code that actually 
+      serializes/deserializes Beans -- I just have to modify Beans themselves 
+      a bit.
+    </p>
+    <p>
+      
+    </p>
+    <p>
+      
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, August 18, 2012 4:26 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Thursday, May 24, 2012 </h2>
+<div class="entry" id="post-475">
+     <h3 class="entry-header">Doing actual non-blocking, incremental HTTP access with async-http-client</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      <a href="https://github.com/sonatype/async-http-client">Async-http-client</a> 
+      library, originally developed at Ning (by Jean-Francois, Tom, Brian and 
+      maybe others and since then by quite a few others) has been around for a 
+      while now.<br>Its main selling point is the claim for better scalability 
+      compared to alternatives like <a href="http://hc.apache.org/">Jakarta 
+      HTTP Client</a> (this is not the only selling points: its API also seems 
+      more intuitive).
+    </p>
+    <p>
+      But although library itself is capable of working well in non-blocking 
+      mode, most examples (and probably most users) use it in plain old 
+      blocking mode; or at most use Future to simply defer handling of 
+      respoonses, but without handling content incrementally when it becomes 
+      available.
+    </p>
+    <p>
+      While this lack of documentation is bit unfortunate just in itself, the 
+      bigger problem is that most usage as done by sample code requires 
+      reading the whole response in memory.<br>This may not be a big deal for 
+      small responses, but in cases where response size is in megabytes, this 
+      often becomes problematic.
+    </p>
+    <p>
+      <b>1. Blocking, fully in-memory usage</b>
+    </p>
+    <p>
+      The usual (and potentially problematic) usage pattern is something like:
+    </p>
+    <pre>  AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
+  Future&lt;Response&gt; f = asyncHttpClient.prepareGet(&quot;http://www.ning.com/ &quot;).execute();
+  Response r = f.get();<br>  byte[] contents = r.getResponseBodyAsBytes();</pre>
+    <p>
+      which gets the whole response as a byte array; no surprises there.
+    </p>
+    <p>
+      <b>2. Use InputStream to avoid buffering the whole entity?</b>
+    </p>
+    <p>
+      The first obvious work around attempt is to have a look at Response 
+      object, and notice that there is method &quot;<i>getResponseBodyAsStream()</i>&quot;. 
+      This would seemingly allow one to read response, piece by piece, and 
+      process it incrementally, by (for example) writing it to a file.
+    </p>
+    <p>
+      Unfortunately, this method is just a facade, implemented like so:
+    </p>
+    <pre> public InputStream getResponseBodyAsStream() {<br>   return new ByteArrayInputStream(getResponseBodyAsBytes());<br> }</pre>
+    <p>
+      which actually is no more efficient than accessing the whole content as 
+      a byte array. :-/
+    </p>
+    <p>
+      (why is it implemented that way? Mostly because underlying non-blocking 
+      I/O library, like Netty or Grizzly, provides content using &quot;push&quot; style 
+      interface, which makes it very hard to support &quot;pull&quot; style abstractions 
+      like java.io.InputStream -- so it is not really AHC's fault, but rather 
+      a consequence of NIO/async style of I/O processing)
+    </p>
+    <p>
+      <b>3. Go fully async</b>
+    </p>
+    <p>
+      So what can we do to actually process large response payloads (or large 
+      PUT/POST request payloads, for that matter)?
+    </p>
+    <p>
+      To do that, it is necessary to use following callback abstractions:
+    </p>
+    <ol>
+      <li>
+        To handle response payloads (for HTTP GETs), we need to implement <b><i>AsyncCompletionHandler</i></b> 
+        interface.
+      </li>
+      <li>
+        To handle PUT/POST request payloads, we need to implement <b><i>BodyGenerator</i></b> 
+        (which is used for creating a Body instance, abstraction for feeding 
+        content)
+      </li>
+    </ol>
+    <p>
+      Let's have a look at what is needed for the first case.
+    </p>
+    <p>
+      (note: there are existing default implementations for some of the pieces 
+      -- but here I will show how to do it from ground up) 
+    </p>
+    <p>
+      <b>4. A simple download-a-file example</b>
+    </p>
+    <p>
+      Let's start with a simple case of downloading a large file into a file, 
+      without keeping more than a small chunk in memory at any given time. 
+      This can be done as follows:
+    </p>
+    <hr>
+    
+
+    <pre>public class SimpleFileHandler implements AsyncHandler&lt;File&gt;
+{
+ private File file;
+ private final FileOutputStream out;
+ private boolean failed = false;
+
+ public SimpleFileHandler(File f) throws IOException {
+  file = f;
+  out = new FileOutputStream(f);
+ }
+
+ public com.ning.http.client.AsyncHandler.STATE onBodyPartReceived(HttpResponseBodyPart part)
+   throws IOException
+ {
+  if (!failed) {
+   part.writeTo(out);
+  }
+  return STATE.CONTINUE;
+ }
+
+ public File onCompleted() throws IOException {
+  out.close();
+  if (failed) {
+   file.delete();
+   return null;
+  }
+  return file;
+ }
+
+ public com.ning.http.client.AsyncHandler.STATE onHeadersReceived(HttpResponseHeaders h) {
+  // nothing to check here as of yet
+  return STATE.CONTINUE;
+ }
+
+ public com.ning.http.client.AsyncHandler.STATE onStatusReceived(HttpResponseStatus status) {
+  failed = (status.getStatusCode() != 200);
+  return failed ?  STATE.ABORT : STATE.CONTINUE;
+ }
+
+ public void onThrowable(Throwable t) {
+  failed = true;
+ }
+}</pre>
+    <hr>
+    
+
+    <p>
+      Voila. Code is not very brief (event-based code seldom is), and it could 
+      use some more handling for error cases.<br>But it should at least show 
+      the general processing flow -- nothing very complicated there, beyond 
+      basic state machine style operation.
+    </p>
+    <p>
+      <b>5. Booooring. Anything more complicated?</b>
+    </p>
+    <p>
+      Downloading a large file is something useful, but while not a contriver 
+      example, it is rather plain. So let's consider the case where we not 
+      only want to download a piece of content, but also want uncompress it, 
+      in one fell swoop. This serves as an example of additional processing we 
+      may want to do, in incremental/streaming fashion -- as an alternative to 
+      having to store an intermediate copy in a file, then uncompress to 
+      another file.
+    </p>
+    <p>
+      But before showing the code, however, it is necessary to explain why 
+      this is bit tricky.
+    </p>
+    <p>
+      First, remember that we can't really use <i>InputStream</i>-based 
+      processing here: all content we get is &quot;pushed&quot; to use (without our code 
+      ever blocking with input); whereas InputStream would want to push 
+      content itself, possibly blocking the thread.
+    </p>
+    <p>
+      Second: most decompressors present either InputStream-based abstraction, 
+      or uncompress-the-whole-thing interface: neither works for us, since we 
+      are getting incremental chunks; so to use either, we would first have to 
+      buffer the whole content. Which is what we are trying to avoid.
+    </p>
+    <p>
+      As luck would have it, however, <a href="https://github.com/ning/compress">Ning 
+      Compress</a> package (version 0.9.4, specifically) just happens to have 
+      a push-style uncompressor interface (aptly named as &quot;<b><i>com.ning.compress.Uncompressor</i></b>&quot;); 
+      and two implementations:
+    </p>
+    <ol>
+      <li>
+        com.ning.compress.lzf.LZFUncompressor
+      </li>
+      <li>
+        com.ning.compress.gzip.GZIPUncompressor (uses JDK native zlib under 
+        the hood)
+      </li>
+    </ol>
+    <p>
+      So why is that fortunate? Because interface they expose is push style:
+    </p>
+    <pre> public abstract class Uncompressor
+ {
+  public abstract void feedCompressedData(byte[] comp, int offset, int len) throws IOException;
+  public abstract void complete() throws IOException;<br> }</pre>
+    <p>
+      and is thereby usable to our needs here. Especially when we use 
+      additional class called &quot;UncompressorOutputStream&quot;, which makes an 
+      OutputStream out of Uncompressor and target stream (which is needed for 
+      efficient access to content AHC exposes via <i>HttpResponseBodyPart</i>)
+    </p>
+    <p>
+      <b>6. Show me the code</b>
+    </p>
+    <p>
+      Here goes:
+    </p>
+    <hr>
+    
+
+    <pre>public class UncompressingFileHandler implements AsyncHandler&lt;File&gt;,
+   DataHandler // for Uncompressor
+{
+ private File file;
+ private final OutputStream out;
+ private boolean failed = false;
+ private final UncompressorOutputStream uncompressingStream;
+
+ public UncompressingFileHandler(File f) throws IOException {
+  file = f;
+  out = new FileOutputStream(f);
+ }
+
+ public com.ning.http.client.AsyncHandler.STATE onBodyPartReceived(HttpResponseBodyPart part)
+   throws IOException
+ {
+  if (!failed) {
+   // if compressed, pass through uncompressing stream
+   if (uncompressingStream != null) {
+    part.writeTo(uncompressingStream);
+   } else { // otherwise write directly
+    part.writeTo(out);
+   }
+   part.writeTo(out);
+  }
+  return STATE.CONTINUE;
+ }
+
+ public File onCompleted() throws IOException {
+  out.close();
+  if (uncompressingStream != null) {
+   uncompressingStream.close();
+  }
+  if (failed) {
+   file.delete();
+   return null;
+  }
+  return file;
+ }
+
+ public com.ning.http.client.AsyncHandler.STATE onHeadersReceived(HttpResponseHeaders h) {
+  // must verify that we are getting compressed stuff here:
+  String compression = h.getHeaders().getFirstValue(&quot;Content-Encoding&quot;);
+  if (compression != null) {
+   if (&quot;lzf&quot;.equals(compression)) {
+    uncompressingStream = new UncompressorOutputStream(new LZFUncompressor(this));
+   } else if (&quot;gzip&quot;.equals(compression)) {
+    uncompressingStream = new UncompressorOutputStream(new GZIPUncompressor(this));
+   }
+  }
+  // nothing to check here as of yet
+  return STATE.CONTINUE;
+ }
+
+ public com.ning.http.client.AsyncHandler.STATE onStatusReceived(HttpResponseStatus status) {
+  failed = (status.getStatusCode() != 200);
+  return failed ?  STATE.ABORT : STATE.CONTINUE;
+ }
+
+ public void onThrowable(Throwable t) {
+  failed = true;
+ }
+
+ // DataHandler implementation for Uncompressor; called with uncompressed content:
+ public void handleData(byte[] buffer, int offset, int len) throws IOException {
+  out.write(buffer, offset, len);
+ }
+}</pre>
+    <hr>
+    
+
+    <p>
+      Handling gets bit more complicated here, since we have to handle both 
+      case where content is compressed; and case where it is not (since server 
+      is ultimately responsible for applying compression or not).
+    </p>
+    <p>
+      And to make call, you also need to indicate capability to accept 
+      compressed data. For example, we could define a helper method like:
+    </p>
+    <hr>
+    
+
+    <pre>public File download(String url) throws Exception
+{
+ AsyncHttpClient ahc = new AsyncHttpClient();
+ Request req = ahc.prepareGet(url)
+  .addHeader(&quot;Accept-Encoding&quot;, &quot;lzf,gzip&quot;)
+  .build();
+ ListenableFuture&lt;File&gt; futurama = ahc.executeRequest(req,<br>   new UncompressingFileHandler(new File(&quot;download.txt&quot;)));
+
+ try { // wait for 30 seconds to complete
+  return futurama.get(30, TimeUnit.MILLISECONDS);
+ } catch (TimeoutException e) {
+  throw new IOException(&quot;Failed to download due to timeout&quot;);
+ }
+}  <br></pre>
+    <hr>
+    
+
+    <p>
+      which would use handler defined above.
+    </p>
+    <p>
+      <b>7. Easy enough?</b>
+    </p>
+    <p>
+      I hope above shows that while doing incremental, &quot;streaming&quot; processing 
+      is bit more work, it is not super difficult to do.
+    </p>
+    <p>
+      Not even when you have bit of pipelining to do, like uncompressing (or 
+      compressing) data on the fly.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Thursday, May 24, 2012 5:26 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Friday, April 06, 2012 </h2>
+<div class="entry" id="post-470">
+     <h3 class="entry-header">Take your JSON processing to Mach 3 with Jackson 2.0, Afterburner</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      (this is part on-going &quot;Jackson 2.0&quot; series, starting with &quot;<a href="/blog/archives/2012/03/entry_466.html">Jackson 
+      2.0 released</a>&quot;)
+    </p>
+    <p>
+      <b>1. Performance overhead of databinding</b>
+    </p>
+    <p>
+      When using automatic data-binding Jackson offers, there is some amount 
+      of overhead compared to manually writing equivalent code that would use 
+      Jackson streaming/incremental parser and generator. But how overhead is 
+      there? The answer depends on multiple factors, including exactly how 
+      good is your hand-written code (there are a few non-obvious ways to 
+      optimize things, compared to data-binding where there is little 
+      configurability wrt performance).
+    </p>
+    <p>
+      But looking at benchmarks such as <a href="https://github.com/eishay/jvm-serializers/wiki">jvm-serializers</a>, 
+      one could estimate that it may take anywhere between 35% and 50% more 
+      time to serialize and deserialize POJOs, compared to highly tuned 
+      hand-written alternative. This is usually not enough to matter a lot, 
+      considering that JSON processing overhead is typically only a small 
+      portion of all processing done.
+    </p>
+    <p>
+      <b>2. Where does overhead come?</b>
+    </p>
+    <p>
+      There are multiple things that automatic data-binding has to do that 
+      hand-written alternatives do not. But at high level, there are really 
+      two main areas:
+    </p>
+    <ol>
+      <li>
+        Configurability to produce/consume alternative representations; code 
+        that has to support multiple ways of doing things can not be as 
+        aggressively optimized by JVM and may need to keep more state around.
+      </li>
+      <li>
+        Data access to POJOs is done dynamically using Reflection, instead of 
+        directly accessing field values or calling setters/getters
+      </li>
+    </ol>
+    <p>
+      While there isn't much that can be done for former, in general sense 
+      (especially since configurability and convenience are major reasons for 
+      popularity of data-binding), latter overhead is something that could be 
+      theoretically eliminated.
+    </p>
+    <p>
+      How? By generating bytecode that does direct access to fields and calls 
+      to getters/setters (as well as for constructing new instances).
+    </p>
+    <p>
+      <b>3. Project Afterburner</b>
+    </p>
+    <p>
+      And this is where <a href="https://github.com/FasterXML/jackson-module-afterburner">Project 
+      Afterburner</a> comes in. What it does really is as simple as generating 
+      byte code, dynamically, to mostly eliminate Reflection overhead. 
+      Implementation uses well-known lightweight bytecode library called <a href="http://asm.ow2.org/">ASM</a>.
+    </p>
+    <p>
+      Byte code is generated to:
+    </p>
+    <ol>
+      <li>
+        Replace &quot;Class.newInstance()&quot; calls with equivalent call to 
+        zero-argument constructor (currently same is not done for 
+        multi-argument Creator methods)
+      </li>
+      <li>
+        Replace Reflection-based field access (Field.set() / Field.get()) with 
+        equivalent field dereferencing
+      </li>
+      <li>
+        Replace Reflection-based method calls (Method.invoke(...)) with 
+        equivalent direct calls
+      </li>
+      <li>
+        For small subset of simple types (int, long, String, boolean), further 
+        streamline handling of serializers/deserializers to avoid auto-boxing
+      </li>
+    </ol>
+    <p>
+      It is worth noting that there are certain limitations to access: for 
+      example, unlike with Reflection, it is not possible to avoid visibility 
+      checks; which means that access to private fields and methods must still 
+      be done using Reflection.
+    </p>
+    <p>
+      <b>4. Engage the Afterburner!</b>
+    </p>
+    <p>
+      Using Afterburner is about as easy as it can be: you just create and 
+      register a module, and then use databinding as usual:
+    </p>
+    <hr>
+    
+
+    <pre>Object mapper = new ObjectMapper()
+mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeValueAsString(value);<br>Value value = mapper.readValue(json, Value.class);<br></pre>
+    <div>
+      <hr>
+      absolutely nothing special there (note: for Maven dependency, downloads, 
+      go see the <a href="https://github.com/FasterXML/jackson-module-afterburner">project 
+      page</a>).
+    </div>
+    <p>
+      <b>5. How much faster?</b>
+    </p>
+    <p>
+      Earlier I mentioned that Reflection is just one of overhead areas. In 
+      addition to general complexity from configurability, there are cases 
+      where general data-binding has to be done using simple loops, whereas 
+      manual code could use linear constructs. Given this, how much overhead 
+      remains after enabling Afterburner?
+    </p>
+    <p>
+      As per jvm-serializers, more than 50% of speed difference between 
+      data-binding and manual variant are eliminated. That is, data-bind with 
+      afterburner is closer to manual variant than &quot;vanilla&quot; data-binding. 
+      There is still something like 20-25% additional time spent, compared to 
+      highest optimized cases; but results are definitely closer to optimal.
+    </p>
+    <p>
+      Given that all you really have to do is to just add the module, register 
+      it, and see what happens, it just might make sense to take Afterburner 
+      for a test ride.
+    </p>
+    <p>
+      <b>6. Disclaimer</b>
+    </p>
+    <p>
+      While Afterburner has been used by a few Jackson users, it is still not 
+      very widely used -- after all, while it has been available since 1.8, in 
+      some form, it has not been advertised to users. This article can be 
+      considered an announcement of sort.
+    </p>
+    <p>
+      Because of this, there may be rought edges; and if you are unlucky you 
+      might find one of two possible problems:
+    </p>
+    <ul>
+      <li>
+        Get no performance improvement (which is likely due to Afterburner not 
+        covering some specific code path(s)), or
+      </li>
+      <li>
+        Get a bytecode verification problem when a serializer/deserializer is 
+        being loaded
+      </li>
+    </ul>
+    <p>
+      latter case obviously being nastier. But on plus side, this should be 
+      obvious right away (and NOT after running for an hour); nor should there 
+      be a way for it to cause data losses or corruption; JVMs are rather good 
+      at verifying bytecode upon trying to load it.
+    </p>
+    <p>
+      
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Friday, April 06, 2012 7:24 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Monday, April 04, 2011 </h2>
+<div class="entry" id="post-454">
+     <h3 class="entry-header">Introducing "jvm-compressor-benchmark" project</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      I recently started one new open source project; this time being inspired 
+      by success of another OS project I had been involved in, project is &quot;<a href="https://github.com/eishay/jvm-serializers/wiki">jvm-serializers</a>&quot; 
+      benchmark originally started by Eishay and built by a community of java 
+      databinder/serializer experts. What has been great with this project has 
+      been amount of energy it seemed ot feed back to development of 
+      serializers: highly visible competition for best performance seems to 
+      have improved efficiency of libraries a lot. I only wish we had 
+      historical benchmark data to compare to see exactly how far have the 
+      fastest Java serializers come.
+    </p>
+    <p>
+      Anyway, I figured that there are other groups of libraries where high 
+      performance matters, but where there is lack of actual solid 
+      benchmarking information. So while there are a few compression 
+      performance benchmarks, they are often non-applicable for Java 
+      developers: partly because they just compare native compressor codecs, 
+      and partly because focus is more often only on space-efficiency (how 
+      much compression is achieved) with little consideration of performance 
+      of compression. The last part is particularly frustrating as in many use 
+      cases there is significant trade-off between space and time efficiency 
+      (compression rate vs time used for compression).
+    </p>
+    <p>
+      So, this is where the new project -- &quot;<a href="https://github.com/ning/jvm-compressor-benchmark">jvm-compressor-benchmark</a>&quot; 
+      -- comes from. I hope it will allow fair comparison of compression 
+      codecs available on JVM, to be used by Java and other JVM lagnuages; and 
+      also bring in some friendly competition between developers of 
+      compression codecs.
+    </p>
+    <p>
+      First version compares half a dozen of compression formats and codecs, 
+      from the venerable deflate/gzip (which offers pretty good compression 
+      ratio with decent speed) to higher-compression-but-slower-operation 
+      alternatives (bzip2) and lower-compression-but-very-fast alternatives 
+      like <a href="https://github.com/ning/compress">lzf</a>, <a href="http://www.quicklz.com/">quicklz</a> 
+      and the new kid on the block, <a href="http://code.google.com/p/snappy-java/">Snappy</a> 
+      (via JNI).
+    </p>
+    <p>
+      And although the best way to evaluate results is to run tests on your 
+      machine, using data sets you care about (which I strongly encourage!), <a href="https://github.com/ning/jvm-compressor-benchmark/wiki">Project 
+      wiki</a> does have some pretty diagrams for tests run on &quot;standard&quot; data 
+      sets gathered from the web. 
+    </p>
+    <p>
+      Anyway: please check the project out -- at the very least it should give 
+      you an idea of how many options there are above and beyond basic 
+      JDK-provided gzip. 
+    </p>
+    <p>
+      ps. Contributions are obviously also welcome -- anyone willing to tackle 
+      Java version of 7-zip's LZMA, for example, would be most welcome!
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Monday, April 04, 2011 10:48 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/04/entry_454.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/04/entry_454.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/04/entry_454.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Tuesday, January 04, 2011 </h2>
+<div class="entry" id="post-437">
+     <h3 class="entry-header">Annual Update on State of Java JSON data binding performance</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+  Yes, 'tis the season for performance measurements again: last time I 
+  covered this subject about a year ago with &quot;<a href="/blog/archives/2009/12/entry_345.html">JSON 
+  data binding performance (again!)</a>&quot;.<br>During past 12 months 
+  many of the tested libraries have released new versions; some with high 
+  hopes for performance improvements (Gson 1.6, for example, was rumored 
+  to have faster streaming parser). So it seems prudent to have another 
+  look at how performant are Java JSON data binding libraries currently 
+  available.
+</p>
+<p>
+  <b>1. Libraries tested </b>
+</p>
+<p>
+  Libraries tested are the same as last time; with versions:
+</p>
+<ol>
+  <li>
+Jackson 1.6 (was 1.2)
+  </li>
+  <li>
+Gson 1.6 (was 1.4)
+  </li>
+  <li>
+Json-tools (core, 1.7) (no change)
+  </li>
+  <li>
+Flex-json 2.1 (was 1.9.1)
+  </li>
+</ol>
+<p>
+  (for what it's worth, I was also hoping to include tests for 
+  &quot;json-marshaller&quot;, but lack of documentation coupled with seeming 
+  inability to parse directly from stream or even String suggested that 
+  it's not yet mature enough to be included)
+</p>
+<p>
+  <b>2. Test system </b>
+</p>
+<p>
+  I switched over to the light side at home (replaced my old Athlon/Linux 
+  box to a small spunky Mini-Mac, yay!), so the test box has a 2.53 GHz 
+  Intel Core 2 Duo CPU. This is somewhat box; it seems to be about 4x as 
+  fast for this particular task. Test is single-threaded, so it would be 
+  possible to roughly double the throughput with different Japex test 
+  setup; however, test threads are CPU-bound and independent so seems to 
+  be little point in adding more concurrency.
+</p>
+<p>
+  Test code is available from <a href="http://xircles.codehaus.org/projects/woodstox/repo/primary/repo">Woodstox 
+  SVN repository</a> (under &quot;staxbind&quot; folder), and runs on Japex. 
+  Converters for libraries are rather simple; data consists of 
+  medium-sized (20k) documents for anyone interested in replicating 
+  results.
+</p>
+<p>
+  <b>3. Pretty Graphs</b>
+</p>
+<p>
+  Ok, here is the main graph:
+</p>
+<p>
+  <img src="/perf/json-bind-2011-01-04/testcase0.jpg" align="left" height="550" width="750" alt="Data Binding Performance Graph" border="2">
+  
+</p>
+<p>
+  and for more data, check out the <a href="/perf/json-bind-2011-01-04/">full 
+  results</a>.
+</p>
+<p>
+  <b>4. &quot;But what does it MEAN?&quot;</b>
+</p>
+<p>
+  As with previous tests, upper part of double-graph just indicates amount 
+  of data read and/or written (which is identical for first three, but 
+  flex-json seems to insist including some additional type metadata), 
+  which can be ignored; the lower-graph indicates through-put (higher bar 
+  means faster processing) and is the interesting part.
+</p>
+<p>
+  There are three tests; read JSON (into data object(s)), write JSON (from 
+  data object(s)) and read-then-write which combines two operations. I use 
+  last result, since it gives reasonable approximation for common use with 
+  web services where requests are read, some processing done, and a 
+  response written.
+</p>
+<p>
+  From graph it looks like results have not changed a lot; here is the 
+  revised speed ratio, using the slowest implementation (Gson) as the 
+  baseline:
+</p>
+<table border="1">
+  <tr>
+<th>
+  Impl
+</th>
+<th>
+  Read (TPS)
+</th>
+<th>
+  Write (TPS)
+</th>
+<th>
+  Read+Write (TPS)
+</th>
+<th>
+  R+W, times baseline
+</th>
+  </tr>
+  <tr>
+<td>
+  Jackson (automatic)
+</td>
+<td>
+  7240.202
+</td>
+<td>
+  9161.873
+</td>
+<td>
+  4023.464
+</td>
+<td>
+  14.75
+</td>
+  </tr>
+  <tr>
+<td>
+  FlexJson
+</td>
+<td>
+  721.743
+</td>
+<td>
+  1402.848
+</td>
+<td>
+  462.594
+</td>
+<td>
+  1.69
+</td>
+  </tr>
+  <tr>
+<td>
+  Json-tools
+</td>
+<td>
+  524.119
+</td>
+<td>
+  1007.068
+</td>
+<td>
+  341.123
+</td>
+<td>
+  1.25
+</td>
+  </tr>
+  <tr>
+<td>
+  GSON
+</td>
+<td>
+  714.106
+</td>
+<td>
+  462.935
+</td>
+<td>
+  272.637
+</td>
+<td>
+  1
+</td>
+  </tr>
+</table>
+<p>
+  <b>5. Thoughts?</b>
+</p>
+<p>
+  Not much has changed; Jackson is still an order of magnitude faster than 
+  the rest, and relative ranking of the other libraries hasn't changed 
+  either.
+</p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, January 04, 2011 9:28 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/01/entry_437.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/01/entry_437.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/01/entry_437.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Friday, October 29, 2010 </h2>
+<div class="entry" id="post-432">
+     <h3 class="entry-header">Faster compression on Java platform with LZF</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      One open source project that I have worked on a bit lately is <a href="http://github.com/ning/compress">compress-lzf</a>, 
+      a simple Java library that implements block- and stream-accessible 
+      version of LZF compression algorithm. LZF algorithm itself is very 
+      simple, and mostly (only?) documented <a href="http://oldhome.schmorp.de/marc/liblzf.html">here</a>, 
+      in form of working reference implementation that doubles as 
+      documentation.
+    </p>
+    <p>
+      Our implementation is a simple rewrite of C version, and fully 
+      compatible with the reference implementation including file header and 
+      block signature (this is different from the other existing Java version 
+      that projects like H2 include). While simple implementation, it is not 
+      naive translation; and some effort has been spent on optimizing its 
+      performance.
+    </p>
+    <p>
+      And as should be the case for such low-level libraries, there are no 
+      external dependencies beyond JDK 1.5; meaning it should work on variety 
+      of platforms, including Android (in fact it could probably be compiled 
+      on any 1.x JDK)
+    </p>
+    <p>
+      <b>1. What is LZF?</b>
+    </p>
+    <p>
+      LZF compression algorithm is basic <a href="http://en.wikipedia.org/wiki/Lempel_Ziv">Lempel-Ziv</a>, 
+      with little additional processing; so one way to think of it is that it 
+      is &quot;gzip without Huffman encoding&quot; (gzip uses Deflate, which is 
+      Lempel-Ziv followed by Huffman encoding, with variable bit-length).<br>And 
+      Lempel-Ziv is just method whereby one finds repeating sub-sequences in 
+      output, replacing sequences of three or more &quot;already seen bytes&quot; with a 
+      back-reference; matches are typically stored in a hash table indexed by 
+      hash of first 3 bytes, value being offset of last instance of 
+      potentially matching sequence.
+    </p>
+    <p>
+      It is worth noting that many other similar (and sometimes similarly 
+      named) algoritms likewise use basic LZ; &quot;Fastlz&quot; for example is very 
+      similar.
+    </p>
+    <p>
+      <b>2. Gzip exists, why bother with LZF?</b>
+    </p>
+    <p>
+      But why does this matter? If gzip is this and more, why would you want 
+      to use a &quot;lesser&quot; algorithm?
+    </p>
+    <p>
+      Key benefit is that of speed: LZF can be up to twice as fast to 
+      uncompress; but where it REALLY shines is compression speed -- here it 
+      can be 2x or 3x as fast (writing a stand-alone benchmark is on my todo 
+      list, so hopefully I will get to talk a bit more about this in future). 
+      Performance difference is mostly due to relatively high overhead that 
+      deflate uses for non-byte-aligned output (which is needed for optimal 
+      Huffman-encoding of codewords) -- while it definitely helps compression, 
+      it is expensive in terms of CPU usage.
+    </p>
+    <p>
+      LZF compression rate is lower than with gzip, but compression profile is 
+      similar: things that compress well with gzip also compress well with 
+      LZF; and those that compress less do so with LZF as well. This makes 
+      sense given that most compression often comes from LZ algorithm, which 
+      is implemented similarly.
+    </p>
+    <p>
+      So it all comes down to this: gzip compression is very CPU-intensive 
+      (read: slow); so much so that you typically use 5x as long to compress 
+      things like JSON data than writing content itself. With fast networks 
+      and I/O this often becomes bottleneck.<br>LZF can be a good alternative 
+      since its CPU overhead is much more modest; and it can still compress 
+      &quot;fluffy&quot; content pretty well -- where gzip can compress something by, 
+      say, 90%, LZF usually gets to 75-80% ratio (this obviously varies by 
+      types of content; basically depends on which part of deflate algorithm 
+      is more effective)
+    </p>
+    <p>
+      <b>3. Usage</b>
+    </p>
+    <p>
+      Assuming that above sounds interesting, you can get compress-lzf library 
+      either from GitHub; or via Maven. In latter case, information is:
+    </p>
+    <ul>
+      <li>
+        &lt;groupId&gt;com.ning&lt;/groupId&gt;
+      </li>
+      <li>
+        &lt;artifactId&gt;compress-lzf&lt;/artifactId&gt;
+      </li>
+      <li>
+        current version at time of this writing is &quot;0.6.0&quot;
+      </li>
+    </ul>
+    <p>
+      And from there you can use class from <i>com.ning.compress.lzf</i> 
+      package:
+    </p>
+    <ul>
+      <li>
+        LZF is a simple command-line utility you can use for manual 
+        compression/uncompression (jar defines this class as the Main-Class so 
+        you can just invoke it with &quot;java -jar compress-lzf.jar&quot; to get usage 
+        information)
+      </li>
+      <li>
+        LZFInputStream and LZFOutputStream are compressing input (read LZF 
+        compressed data) and output (write LZF compressed data) streams, 
+        similar to JDK's GZIPInputStream and GZIPOutputStream
+      </li>
+      <li>
+        LZFEncoder and LZFDecoder are block-based codecs that can be used to 
+        encode (compress) and decode (uncompress) chunks (byte[]) of data
+      </li>
+    </ul>
+    <p>
+      Both streaming and block-based interfaces have their uses; for example, 
+      when storing BLOBs in database, block API works better; and when reading 
+      data over network or from filesystem, streams make more sense.
+    </p>
+    <p>
+      <b>3.1 Note: avoid LZFOutputStream.flush() (&quot;just let it float...&quot;)</b>
+    </p>
+    <p>
+      One note on LZFOutputStream: be careful with flush()ing -- just like 
+      other block compressors (including gzip), LZF can only do 
+      back-references within single block; and since LZFOutputStream.flush() 
+      forces closing of an open block, it can dramatically reduce compression 
+      rate. As such it is best to avoid flush()ing if at all possible, unless 
+      you actually want to create a logical boundary at some point.<br>
+    </p>
+    <p>
+      <b>4. Future plans for the library</b>
+    </p>
+    <p>
+      While there are always improvements for any Open Source projects, I 
+      think the natural scope for LZF library is quite small. Similar to <a href="http://wiki.fasterxml.com/JugHome">Java 
+      Uuid Generator</a>, it is quite possible that there won't be need for 
+      major changes to implementation or API; which means that future 
+      improvements are most likely in areas of integration; helping other 
+      projects use LZF.
+    </p>
+    <p>
+      For example, given unique CPU/io/bandwidth trade-off LZF can offer, it 
+      could make a really nice component for large-scale data transfer and 
+      processing, for example:
+    </p>
+    <ul>
+      <li>
+        Data processing with map/reduce (Hadoop)
+      </li>
+      <li>
+        Data storage (with frameworks like jDBI, Hibernate; or with NoSQL 
+        projects like Voldemort, Cassandra)
+      </li>
+      <li>
+        Data aggregation (logging, log processing, Scribe)
+      </li>
+      <li>
+        Caching: use LFZ with memcached?
+      </li>
+      <li>
+        Combination of high-performance data formats (Jackson Smile, binary 
+        JSON serialization) and compression -- can be combined with other use 
+        cases too.
+      </li>
+    </ul>
+    <p>
+      So it will be interesting to see where things go in near future.
+    </p>
+    <p>
+      <b>5. On benefits of working for a company that is comfortable with Open 
+      Source</b>
+    </p>
+    <p>
+      Unlike with many earlier Open Source projects that I have worked on, 
+      much of work that went into this open source library was done on company 
+      time. It also was a team effort (Jon wrote the streaming handling, I 
+      wrote block codec); compared to most other open source projects where I 
+      have been the main author. So I have come a long way, having worked for 
+      a semi-OS-hostile company, then a bit for a neutral (agnostic?) company; 
+      and now working for one hat is actually engaged with community (Ning). 
+      And I must admit that I really like that Ning is openly committed to 
+      working with open source projects, not just using open source artifacts 
+      others make. This is not solely meant as an ad for Ning (although we are 
+      indeed hiring...), I just think it is important to give credit where it 
+      is due.<br>
+    </p>
+    <p>
+      Beyond this, <a href="https://github.com/organizations/ning">Ning section</a> 
+      at Github already has some public projects, and there are literally a 
+      dozen more being cleaned up to be ready for publishing. Within just a 
+      few more months I think Ning will be more recognized for its 
+      contributions in Open Source space; and eventually become a signifant 
+      player. I see this as a major benefit, making it bit less difficult to 
+      hire the best developers; and especially so for a company that is still 
+      relatively small, and thus having less name recognition than the big 
+      boys.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Friday, October 29, 2010 9:53 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_432.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_432.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_432.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Thursday, October 14, 2010 </h2>
+<div class="entry" id="post-429">
+     <h3 class="entry-header">More on Java UUID Generator (JUG), a word on performance</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Ok, so Java UUID Generator version 3 is out. Beyond question of what is 
+      new with this version (which I outlined in the <a href="/blog/archives/2010/10/entry_426.html">previous 
+      entry</a>), the next asked was &quot;how is performance?&quot;.<br>My 
+      first thought was that it should be about the same as what version 2.0 
+      has; but after some more thinking I realized that this is not a very 
+      useful answer to give.
+    </p>
+    <p>
+      So I wrote a simple micro-benchmark to find out (it's in 
+      'src/main/java/perf/MeasurePerformance.java') more about performance 
+      aspects. Test uses three main generation methods (random-, time- and 
+      name-based) for JUG, and matching alternatives that <b>java.util.UUID</b> 
+      has (random- and limited named-based variant).
+    </p>
+    <p>
+      <b>1. Performance of UUID generation, general observations</b>
+    </p>
+    <p>
+      High-level summary would be:
+    </p>
+    <ol>
+      <li>
+        Performance between equivalent methods between JDK and JUG have 
+        similar performance (no surprise) -- JDK just does not provide 
+        time-based variant (one most commonly used by non-Java systems); nor 
+        ability to configure Random-based variant
+      </li>
+      <li>
+        Performance between three main generation types varies <b>a lot</b>.
+      </li>
+    </ol>
+    <p>
+      <b>2. Actual numbers</b>
+    </p>
+    <p>
+      So how big are differences? Here is actual snapshot from running the 
+      test on my MacBook: each run generates 250,000 UUIDs, and time taken 
+      (after test ran for about a minute) is reported as milliseconds:
+    </p>
+    <pre>  Test 'JDK, random' -&gt; 974 msecs
+  Test 'JDK, name' -&gt; 230 msecs
+  Test 'Jug, SecureRandom' -&gt; 971 msecs
+  Test 'Jug, java.util.Random' -&gt; 33 msecs
+  Test 'Jug, time-based' -&gt; 39 msecs 
+  Test 'Jug, name-based' -&gt; 256 msecs</pre>
+    <p>
+      Since these values fluctuate a bit, exact values are not as important as 
+      ratios. Random-based variants are slowest for both implementations 
+      (except for case of using 'java.util.Random' -- more on this in a bit); 
+      name-hash (MD5 by default; SHA-1 available with Jug too) methods are bit 
+      faster; and time/location-based variant is rather fast, close to 50% of 
+      maximum theoretical per-node generation rate.
+    </p>
+    <p>
+      So generation rates for this system would be:
+    </p>
+    <ul>
+      <li>
+        Random-based method (using SecureRandom) generates about <b>250k UUIDs 
+        per second</b>
+      </li>
+      <li>
+        Name-based variant (MD5) without namespace is almost 4 times as fast, 
+        generating about <b>1 million UUIDs per second</b>
+      </li>
+      <li>
+        Time-based variant (Ethernet address plus timestamp) is much faster -- 
+        almost <b>20 times as fast</b> as Random-based default variant -- 
+        generating about <b>5 million UUIDs per second.</b> This is also close 
+        to theoretical maximum rate for the method, which is 10 million UUIDs 
+        per second (sustained), because timestamp granularity (100 
+        nanoseconds) prevents higher throughput (to work around this, one can 
+        generate parallel generators using different Ethernet address)
+      </li>
+    </ul>
+    <p>
+      Quite a difference! It is worth noting, too, that speed of name-based 
+      method is related to both existence of namespace (this test did not use 
+      one; adding one slows things down slightly) and length of name used; 
+      latter because hash is calculated on name used. And finally, hash method 
+      used also matters (SHA-1 is slower than MD5).
+    </p>
+    <p>
+      But what is up with the random variant? And didn't I forget one 
+      impressive number from my analysis above?
+    </p>
+    <p>
+      <b>3. Why is Random-based generation so slow?</b>
+    </p>
+    <p>
+      Constructing &quot;secure&quot; pseudo-random numbers is not easy, and this is the 
+      main reason for slowness. Looking at stack traces, it looks like JDK <i>java.security.SecureRandom</i> 
+      actually uses random device provided by the underlying operating system; 
+      and this is part of the slowness (due to use of JNI). But generation 
+      itself is fundamentally slow, even if no system calls were needed. It is 
+      quite possible that faster machines might not even speed up performance 
+      significantly.
+    </p>
+    <p>
+      <b>4. Couldn't we just use 'java.util.Random' to speed things up?</b>
+    </p>
+    <p>
+      But if the &quot;secure&quot; (i.e. &quot;good&quot;, meaning one providing good level of 
+      randomness) variant is slow, couldn't we use a faster one? Like 
+      &quot;java.util.Random&quot;? In fact, didn't numbers above show using it 
+      resulting in version as fast as using time-based variant?
+    </p>
+    <p>
+      Yes, this is possible: and JUG allows you to pass any java.util.Random 
+      instance you want (it just defaults to SecureRandom).<br>But speed is 
+      not everything: the main point of UUIDs is the uniqueness, and this is 
+      why SecureRandom is used as the default by both JUG and JDK. And while 
+      the default pseudo-random number generator that java.util.Random uses is 
+      fine for many uses, I am not sure I would trust its simple algorithm for 
+      generating UUIDs; even if initialized using system clock 
+      (System.currentTimeMillis()). The underlying algorithm just does not 
+      have any actual source of randomness beyond initial seed value and I do 
+      not trust that its random number distribution, then, is good enough to 
+      give strong guarantees of uniqueness (I would love pointers to someone 
+      discussing actual measurements or research on this!).
+    </p>
+    <p>
+      So to me downgrading to using simple text-book pseudo-number algorithms 
+      does not seem tempting, even if it speeds things up by an order of 
+      magnitude.
+    </p>
+    <p>
+      <b>5. So what would make more sense?</b>
+    </p>
+    <p>
+      Well, looking at numbers, how about consider time-based variant? 
+      Name-based variant is not quite as useful; not so much due to 
+      performance aspects, but since it actually requires you to hand source 
+      of uniqueness (name to hash).
+    </p>
+    <p>
+      <b>6. Thoughts on relevance of above </b>
+    </p>
+    <p>
+      I was bit surprised by how big the difference actually is. But whether 
+      it really matters depends on use case -- oftentimes you don't need even 
+      thousands of UUIDs per second (most services can not really serve even 
+      one thousands requests per second), so the rate of a quarter million per 
+      second is just fine. After all, it only takes about four microseconds 
+      (on average) to generate one UUID.
+    </p>
+    <p>
+      But there are use cases where this matters more; especially if UUIDs are 
+      used liberally, for example using UUIDs as identifiers for all business 
+      objects generated during processing.<br>So if your use case truly 
+      depends on (or at least benefits from) fast generation of UUIDs, you 
+      probably want to use time-based generation method from Jug.
+    </p>
+    <p>
+      <b>7. How did I do that again?</b>
+    </p>
+    <p>
+      Ok; since I haven't yet gotten Javadocs set up, here is the way to 
+      generate time-based UUIDs.
+    </p>
+    <pre>  // need to pass Ethernet address; can either use real one (shown here)
+  EthernetAddress nic = EthernetAddress.fromInterface();
+  // or bogus which would be gotten with: EthernetAddress.constructMulticastAddress()
+  TimeBasedGenerator uuidGenerator = Generators.timeBasedGenerator(nic);
+  // also: we don't specify synchronizer, getting an intra-JVM syncer; there is
+  // also external file-locking-based synchronizer if multiple JVMs run JUG
+  UUID uuid = uuidGenerator.generate();</pre>
+    <p>
+      And that's it. Other variants are generated similarly, by creating 
+      generator instance with <i>Generators</i> factory.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Thursday, October 14, 2010 7:25 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_429.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_429.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_429.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Monday, June 28, 2010 </h2>
+<div class="entry" id="post-402">
+     <h3 class="entry-header">Async HTTP Client 1.0 released</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Ok, this announcement went out last week, but it is important to 
+      re-iterate: <a href="http://jfarcand.wordpress.com/2010/06/23/async-http-client-1-0-0-released/">version 
+      1.0 of Ning async HTTP Client</a> is now out!
+    </p>
+    <p>
+      This is good news for multiple reasons: obviously ability to do 
+      asynchronous (read: non-blocking, i.e. no need to use one thread for 
+      each and every open connection) HTTP communication is valuable in 
+      itself. But I also hope that this spurs some friendly competition in 
+      improving all HTTP-based communication on Java platform -- there are 
+      still features that are not implemented, and due to complexity of 
+      efficient connection handling, there should be still room for 
+      improvement with performance as well. And finally this should lead to 
+      wider adoption of this relatively new library, so that it gets properly 
+      battle-tested and proven.
+    </p>
+    <p>
+      I am actually planning on using this client for cases where regular 
+      blocking client could work, to see how well it performs and exactly how 
+      easy it is to use non-blocking API, compared to existing blocking 
+      alternatives.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Monday, June 28, 2010 7:24 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_402.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_402.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_402.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Tuesday, June 08, 2010 </h2>
+<div class="entry" id="post-401">
+     <h3 class="entry-header">Introducing My Newest Open Source project: Tr13 (that is so 1337!)</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      I have briefly mentioned that I have been working on a new little 
+      low-level data structure package, called <a href="http://github.com/ning/tr13">(Ning) 
+      Tr13</a>, started at GitHub. Now that code is getting ready and tested, 
+      it is time to &quot;formally&quot; introduce it.
+    </p>
+    <p>
+      Tr13 is an interesting project form multiple angles: for one, it is my 
+      first &quot;corporate-sponsored&quot; Open Source project (i.e. related to may 
+      day-to-day work -- although not focus of it, just a useful thing for me 
+      and hopefully my colleagues at Ning). This alone is worth celebrating; 
+      the whole process has been remarkably smooth from 15-minute end-to-end 
+      approval process (take note Amazon developer community...), tosteady if 
+      somewhat slow development itself (there is nothing groundbreaking from 
+      CS perspective -- more on this below).<br>This is also a rare case of my 
+      already having reasonably clear idea as to where I would be using this 
+      package. It may sound surprising, but truthfully most open source 
+      libraries I have written, I have not actually absolutely needed them 
+      before writing. :-)<br>(there are exceptions: Java UUID Generator is 
+      something I wrote since I needed it -- but not so for Woodstox, or even 
+      Jackson, to some degree, both of which I have extensively used after I 
+      wrote them).<br>And finally, well, it is a change from my more common 
+      data format parsing / data binding work. Although I was thinking of 
+      &quot;climbing up the stack&quot; to write something higher level, I ended up 
+      going the other way, a slight detour.
+    </p>
+    <p>
+      Anyway, I digress. So...
+    </p>
+    <p>
+      <b>What exactly is tr13?</b>
+    </p>
+    <p>
+      It is a space-efficient (&quot;compact&quot;) read-only implementation of <a href="http://en.wikipedia.org/wiki/Trie">Trie</a> 
+      data structure, with slight modification to use Patricia/Radix structure 
+      for leaves (but not for branches, since that did not seem useful for my 
+      use cases).
+    </p>
+    <p>
+      Current implementation supports two kinds of Tries:
+    </p>
+    <ol>
+      <li>
+        Byte[] key, variable integer (~= long) value
+      </li>
+      <li>
+        Byte[] key, byte[] value
+      </li>
+    </ol>
+    <p>
+      In both cases, byte[] is typically a String, but can be any other 
+      serializable thing; for example, ints and longs could be trivially 
+      converted to 4/8 byte keys. Separate variant for variable-length 
+      integers is further optimization for my initial use case, where values 
+      are generally small ints, which can fit in a single byte, but where it 
+      is convenient not to be bound by arbitrary limits (like 256).
+    </p>
+    <p>
+      Internally structure is actually just a regular byte array (or, 
+      alternatively, ByteBuffer, to allow for &quot;GC-free&quot; tries!). Data format 
+      needs to be documented, but is a rather simple implementation of basic 
+      trie ideas, nothing to write a dissertation about.
+    </p>
+    <p>
+      <b>Why does it Rock?!</b>
+    </p>
+    <p>
+      Given how good plain old JDK HashMap can be -- you could just use 
+      HashMap&lt;String,Integer&gt; for the first case -- what is so special about 
+      tr13?
+    </p>
+    <p>
+      Simply put: memory usage, or lack thereof (ditto for GC activity). This 
+      because:
+    </p>
+    <ol>
+      <li>
+        Overall memory usage is pretty tight -- for test data I have (30 
+        million entries of typically 13-byte key, small integer number == 600 
+        meg input file), trie structure actually uses less memory than its 
+        file representation (by about 35% less). And,
+      </li>
+      <li>
+        Since it is all in just TWO objects (raw byte array, wrapper Trie 
+        object), it should keep GC rather happy.
+      </li>
+    </ol>
+    <p>
+      This is not coincidental, since the use case we have is that of sizable 
+      routing tabls that should ideally be kept fully in-memory. Hence 
+      compactness of data structure, with reasonable lookup times (i.e. no 
+      linear search), was design criteria. Even other somewhat frugal data 
+      structures (like b-trees) are not anywhere as space efficient.
+    </p>
+    <p>
+      <b>Downsides?</b>
+    </p>
+    <p>
+      First obvious limitation is that it is a read-only data structure: you 
+      must have all the data at hand when building it. Data also has to be 
+      ordered, not necessarily alphabetically (although that is the usual 
+      way), but in a stable lexicographic ordering, such that build process 
+      has invariants it needs. This is not as big a limitation as it might 
+      seem, at least when merging functionality (more on this later on) is 
+      added. For now it may be necessary to re-build data structure regularly, 
+      and keep an additional &quot;short-term&quot; lookup data structure at hand for 
+      additions that are needed between re-builds.
+    </p>
+    <p>
+      As to performancem resulting data structure is not the fastest way to 
+      find things: from complexity standpoint it is a linear algorithm, 
+      compared to theoretically constant time for hash-based alternatives. 
+      This may or may not matter; it should not matter a lot with respect to 
+      key length (HashMap has to calculate hash for key and compare key bytes, 
+      unless keys can be canonicalized). Another potential performance concern 
+      is that trie data structure does not have much locality; but this too is 
+      unlikely to be much worse than for typical alternatives. In fact, due to 
+      high memory efficiency, and use of plain byte array, it is not 
+      guaranteed that HashMap has any better locality, even if a single lookup 
+      results in a match (this due Java GC's habit of &quot;shuffling&quot; object data 
+      around).
+    </p>
+    <p>
+      All in all, Tr13 does much more work when finding values, since it 
+      traverses data structure once per each key byte (except for 
+      Patricia-optimized tail, which may be multi-byte linear match). So I 
+      would not expect it to be as fast as direct hash lookups.
+    </p>
+    <p>
+      But in the end, these are speculations, and the real test would be use.
+    </p>
+    <p>
+      ... or, how about a performance test?
+    </p>
+    <p>
+      <b>Performance Testing</b>
+    </p>
+    <p>
+      Ok: the question of efficiency is something worth looking deeper into. 
+      And so I wrote a benchmark that compares VIntTrieLookup (byte[]-to-vint 
+      trie) against HashMap&lt;String,Integer&gt; (for curious, it's under 
+      'src/java/test/manual/' in source tree). Test loads all the entries in 
+      memory, and then performs randomized lookups (one lookup for every key, 
+      but order shuffled so as to be different from 'natural' ordering of 
+      trie).
+    </p>
+    <p>
+      When given a subset of the whole data file (turns out HashMap hogs so 
+      much memory that I just can't test the whole data set!) -- a 32 meg, 2 
+      million entry chunk -- here are the results:
+    </p>
+    <p>
+      Memory usage:
+    </p>
+    <ol>
+      <li>
+        Tr13: 20.6 megs (reduction of about one third)
+      </li>
+      <li>
+        HashMap&lt;String,Integer&gt;: 314 megs
+      </li>
+    </ol>
+    <p>
+      So in this case, <i><u>HashMap&lt;String,Integer&gt; uses about 15 times more 
+      memory than Tr13</u></i> (note: Integer values are canonicalized using 
+      Integer.valueOf -- without this, usage would be 360 megs).
+    </p>
+    <p>
+      And what about performance? What is the cost of compactness?
+    </p>
+    <p>
+      For 3 million lookups, time taken was:
+    </p>
+    <ol>
+      <li>
+        Tr13: about 5000 milliseconds (about 400,000 lookups per second)
+      </li>
+      <li>
+        HashMap&lt;String,Integer&gt;: about 1200 milliseconds (about 1,670,000 
+        lookups per second)
+      </li>
+    </ol>
+    <p>
+      so <i><u>HashMap is about 4 times faster than Tr13 for lookups,</u></i> 
+      on my system (2.33 ghz mini-mac, JDK 1.6), for given data set.
+    </p>
+    <p>
+      Since my first need is to be able to do lookups in memory, performance 
+      difference is not of particular importance (there might be one or two 
+      lookups per request, so anything in tens of thousands per second would 
+      work), but it is good to know rough order of magnitude difference.
+    </p>
+    <p>
+      <b>What next?</b>
+    </p>
+    <p>
+      At this point Tr13 should be ready for use, and I plan to release 
+      version 0.5 soon. The only thing I am waiting for is to get a Maven 
+      repository set up at Sonatype OSS repository (kudos to Sonatype for this 
+      free hosting!), so that Maven-based (and I assume, Ivy-based) projects 
+      can use it. This is actually what I need for my daytime use.
+    </p>
+    <p>
+      But beyond Maven deployment, there are some additional features I want 
+      to implement in near future, such as:
+    </p>
+    <ul>
+      <li>
+        Ability to traverse through entries (Map.Entry&lt;&gt; style)
+      </li>
+      <li>
+        Ability to merge two tries efficiently -- could be built quite easily 
+        given iterator functionality
+      </li>
+      <li>
+        ... document the data structure (ok ok, not a development task, but 
+        &quot;hard&quot; (read: tedious) yet necessary work) -- it is very simple, but 
+        not so simple that reading code would make it obvious.
+      </li>
+      <li>
+        Current implementations are limited to 2 gigs, due to Java byte[] and 
+        ByteBuffer limitations. But fundamentally there is nothing 
+        particularly hard about writing segmented versions where only segments 
+        would have this limitation (well, probably values too, but I don't see 
+        any need for 2gb+ values in my tries...)
+      </li>
+    </ul>
+    <p>
+      Merging functionality specifically would be useful for &quot;semi-mutable&quot; 
+      lookup data structures. For data that evolves slowly (which is the case 
+      for routing table use case I have), it is possible to keep track of 
+      needed modifications (in a, say, HashMap), and do primary lookup against 
+      that data structure, and only if no match is found, against immutable 
+      trie. And when this short-term data structure goes enough, or enough 
+      time passes, trie could be re-built with existing and new data. Repeat 
+      and rinse.
+    </p>
+    <p>
+      And perhaps it might even be possible to work some more on fundamental 
+      data structure itself, and find ways to make it mutable. Insertions (and 
+      deletion) operations would be rather costly, due to global changes 
+      needed (another downside of compactness is that changes tend to spill 
+      far). But even slow mutability would be better than no mutability; and 
+      perhaps there could be ways to trade some space (intentional unused 
+      regions within trie, to be used for insertions?) for lesser likelihood 
+      of having move all the data around.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, June 08, 2010 11:23 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_401.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_401.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_401.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Wednesday, April 28, 2010 </h2>
+<div class="entry" id="post-396">
+     <h3 class="entry-header">Making Java Reflection field access 40 times faster</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Think it can not be done? Think again!
+    </p>
+    <p>
+      Here is a useful nugget of information that should be common knowledge 
+      among performance-conscious Java developers:but based on code I've seen 
+      in the wild it might not yet be, hence this entry.
+    </p>
+    <p>
+      Basically, if you just do this:
+    </p>
+    <pre>  Field f = MyBean.class.getDeclaredField(&quot;id&quot;);
+  f.set(beanInstance, valueForField);</pre>
+    <p>
+      performance stinks -- setting value is about hundreds of times slower 
+      than direct field access. But if you add this little call:
+    </p>
+    <pre>  f.setAccessible(true);</pre>
+    <p>
+      in there, overhead is drastically reduced. In a simple micro-benchmark 
+      running on my old desktop speed difference is 40x, and while YMMV, it 
+      will be an order of magnitude or more and this ratio does not seem to 
+      improve with new JVMs (has been steady with 1.4, 1.5 and 1.6). This 
+      actually takes overhead down enough so as to make reflection-based 
+      access &quot;fast enough&quot; for most use cases: Jackson for example just uses 
+      it and does not bother with byte-code generation to create most optimal 
+      access (but who knows? maybe it will one day).
+    </p>
+    <p>
+      So what is the difference? Access checks that would be done by default 
+      are heavy-weight, as can be seen from profiler stack traces and JDK 
+      sources. And all<i> setAccessible()</i> method does is set a boolean 
+      flag that will by-pass these checks. Works for Methods and Constructors 
+      as well, although with slightly less pronounced results.
+    </p>
+    <p>
+      Anyway, thought others might find this useful.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Wednesday, April 28, 2010 10:45 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/04/entry_396.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/04/entry_396.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/04/entry_396.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+            </div>
+        </div>
+<div id="beta">
+  <div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+
+<!-- /SiteSearch Google -->
+<hr />
+</div>
+
+     <div class="module-archives module">
+          <h2 class="module-header">Last posts</h2>
+          <div class="module-content">
+               <ul class="module-list">
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html">Doing actual non-blocking, incremental HTTP access with async-http-client</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html">Take your JSON processing to Mach 3 with Jackson 2.0, Afterburner</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/04/entry_454.html">Introducing "jvm-compressor-benchmark" project</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/01/entry_437.html">Annual Update on State of Java JSON data binding performance</a></li>
+               </ul>
+          </div>
+     </div>
+<div class="module-categories module">
+          <h2 class="module-header">Categories</h2>
+          <div class="module-content">
+        <ul>
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+          
+        </ul>
+          </div>
+</div>
+<div class="module-syndicate module">
+     <div class="module-content">
+          <a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+          [<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+     </div>
+
+</div>
+</div>
+     <div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+     </div>
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+</div>
+<div class="module-powered module">
+     <h2 class="module-header">Powered By</h2>
+
+     <div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a> and
+  Discus comments.
+     </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>

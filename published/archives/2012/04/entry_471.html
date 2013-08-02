@@ -1,0 +1,637 @@
+<html lang="en">
+<head>
+<title>Java Type Erasure not a Total Loss -- use Java Classmate for resolving generic signatures</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<!-- HaloScan comments: -->
+<script type="text/javascript" src="http://www.haloscan.com/load/cowtowncoder">
+</script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+     <div id="container">
+          <div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+     <div id="banner-inner" class="pkg">
+          <h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+          <h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+     </div>
+</div>
+               <div id="pagebody">
+                    <div id="pagebody-inner" class="pkg">
+                         <div id="alpha">
+                              <div id="alpha-inner" class="pkg">
+<!-- entry -->
+
+
+   
+   
+
+     <h2 class="date-header">Saturday, April 07, 2012 </h2>
+
+<div class="entry" id="post-471">
+<h3 class="entry-header">Java Type Erasure not a Total Loss -- use Java Classmate for resolving generic signatures</h3>
+     <div class="entry-content">
+          <div class="entry-body">
+          
+               <p><p>
+      As I have written before (&quot;<a href="/blog/archives/2010/12/entry_436.html">Why 
+      'java.lang.reflect.Type' Just Does Not Cut It</a>&quot;), Java's Type Erasure 
+      can be a royal PITA.
+    </p>
+    <p>
+      But things are actually not quite as bleak as one might think. But let's 
+      start with an actual somewhat unsolvable problem; and then proceed with 
+      another important, similar, yet solvable problem.
+    </p>
+    <p>
+      <b>1. Actual Unsolvable problem: Java.util Collections</b>
+    </p>
+    <p>
+      Here is piece of code that illustrates a problem that most Java 
+      developers either understand, or think they understand:
+    </p>
+    <pre>  List&lt;String,Integer&gt; stringsToInts = new ArrayList&lt;String,Integer&gt;();<br>  List&lt;byte[],Boolean&gt; bytesToBools = new ArrayList&lt;byte[], Boolean&gt;();<br>  assertSame(stringsToInts.getclass(), bytesToBools.getClass();</pre>
+    <p>
+      The problem is that although conceptually two collections seem to act 
+      different, at source code level, they are instances of the very same 
+      class (Java does not generate new classes for genericized types, unlike 
+      C++).
+    </p>
+    <p>
+      So while compiler helps in keeping typing straight, there is little 
+      runtime help to either enforce this, or allow other code to deduce 
+      expected type; there just isn't any difference from type perspective.
+    </p>
+    <p>
+      <b>2. All Lost? Not at all</b>
+    </p>
+    <p>
+      But let's look at another example. Starting with a simple interface
+    </p>
+    <hr>
+    
+
+    <pre>public interface Callable&lt;IN, OUT&gt; {<br>  public OUT call(IN argument);<br>}</pre>
+    <hr>
+    
+
+    <p>
+      do you think following is true also?
+    </p>
+    <hr>
+    
+
+    <pre>public void compare(Callable&lt;?,?&gt; callable1, Callable&lt;?,?&gt; callable2) {<br>  assertSame(callable1.getClass(), callable2.getClass());<br>}</pre>
+    <hr>
+    
+
+    <p>
+      Nope. Not necessarilly; classes may well be different. WTH?
+    </p>
+    <p>
+      The difference here is that since Callable is an interface (and you can 
+      not instantiate an interface), instances must be of some other type; and 
+      there is a good chance they are different.
+    </p>
+    <p>
+      But more importantly, if you use <a href="https://github.com/cowtowncoder/java-classmate">Java 
+      ClassMate</a> library (more on this in just a bit), we can even figure 
+      out parameterization (unlike with earlier example, where all you could 
+      see is that parameters are &quot;a subtype of java.lang.Object&quot;), so for 
+      example we can do
+    </p>
+    <div>
+      <hr>
+      // Assume 'callable1' was of type:
+    </div>
+    <div>
+      // class MyStringToIntList implements Callable&lt;String, List&lt;Integer&gt;&gt; { 
+      ... }
+    </div>
+    <pre>  TypeResolver resolver = new TypeResolver();
+  ResolvedType type = resolver.resolve(callable1.getClass());
+  List&lt;ResolvedType&gt; params = type.typeParametersFor(Callable.class);<br>  // so we know it has 2 parameters; from above, 'String' and 'List&lt;Integer&gt;'<br>  assertEquals(2, params.size());
+  assertSame(String.class, params.get(0).getErasedType();<br>  // and second type is generic itself; in this case can directly access<br>  ResolvedType resultType = params.get(1);<br>  assertSame(List.class, resultType.getErasedType());<br>  List&lt;ResolvedType&gt; listParams = resultType.getTypeParameters();<br>  assertSame(Integer.class, listParams.get(0).getErasedType();<br>  //or, just to see types visually, try:<br>  String desc = type.getSignature(); // or 'getFullDescription'</pre>
+    <hr>
+    
+
+    <p>
+      How is THIS possible? (fun exercise: pick 5 of your favorite Java 
+      experts; ask if above is possible, observe how most of them would have 
+      said &quot;nope, not a chance&quot; :-) )
+    </p>
+    <p>
+      <b>3. Long live generics -- hidden deep, deep within</b>
+    </p>
+    <p>
+      Basically generic type information is actually stored in class 
+      definitions, in 3 places:
+    </p>
+    <ol>
+      <li>
+        When defining parent type information (&quot;super type&quot;); parameterization 
+        for base class and base interface(s) if any
+      </li>
+      <li>
+        For generic field declarations
+      </li>
+      <li>
+        For generic method declarations (return, parameter and exception types)
+      </li>
+    </ol>
+    <p>
+      It is the first place where ClassMate finds its stuff. When resolving a 
+      Class, it will traverse the inheritance hierarchy, recomposing type 
+      parameterizations. This is a rather involved process, mostly due to type 
+      aliasing, ability for interfaces to use different signatures and so on. 
+      In fact, trying to do this manually first looks feasible, but if you try 
+      it via all wildcarding, you will soon realize why having a library do it 
+      for you is a nice thing...
+    </p>
+    <p>
+      So the important thing to learn is this: <i><b>to retain run-time 
+      generic type information, you MUST pass concrete sub-types which resolve 
+      generic types via inheritance</b></i>.
+    </p>
+    <p>
+      And this is where JDK collection types bring in the problem (wrt this 
+      particular issue): concerete types like ArrayList still take generic 
+      parameters; and this is why runtime instances do not have generic type 
+      available.
+    </p>
+    <p>
+      Another way to put this is that when using a subtype, say:
+    </p>
+    <hr>
+    
+
+    <pre>  MyStringList list = new ArrayList&lt;String&gt;() { }<br>  // can use ClassMate now, a la:<br>  ResolvedType type = resolver.resolve(list.getClass());<br>  // type itself has no parameterization (concrete non-generic class); but it does implement List so:
+  List&lt;ResolvedType&gt; params = type.typeParametersFor(List.class);<br>  assertSame(String.class, params.get(0).getErasedType());  </pre>
+    <hr>
+    
+
+    <p>
+      which once again would retain usable amount of generic type information.
+    </p>
+    <p>
+      <b>4. Real world usage?</b>
+    </p>
+    <p>
+      Above might seem as an academic exercise; but it is not. When designing 
+      typed APIs, many callbacks would actually benefit from proper generic 
+      typing. And of special interest are callbacks or handlers that need to 
+      do type conversions.
+    </p>
+    <p>
+      As an example, my favorite Database access library, jDBI, makes use of 
+      this functionality (using embedded ClassMate) to figure out data-binding 
+      information without requiring extra Class argument. That is, you could 
+      pass something like (not an actual code sample):
+    </p>
+    <pre>  MyPojo value = dbThingamabob.query(queryString, handler);</pre>
+    <p>
+      instead of what would more commonly requested:
+    </p>
+    <pre>  MyPojo value = dbThingamabob.query(queryString, handler, MyPojo.class);</pre>
+    <p>
+      and framework could still figure out what kind of thing 'handler' would 
+      handle, assuming it was a generic interface caller has to implement.
+    </p>
+    <p>
+      difference may seem minute, but this can actually help a lot by 
+      simplifying some aspects of type passing, and remove one particular mode 
+      of error.
+    </p>
+    <p>
+      <b>5. More on ClassMate</b>
+    </p>
+    <p>
+      Above actually barely scratch surface of what <a href="https://github.com/cowtowncoder/java-classmate">ClassMate</a> 
+      provides. Although it is already tricky to find &quot;simple&quot; 
+      parameterization for main-level classes, there are much more trickier 
+      things. Specifically, resolving types of Fields and Methods (return 
+      types, parameters). Given classes like:
+    </p>
+    <pre>  public interface Base&lt;T&gt; {
+    public T getStuff();
+  }
+  public class ListBase&lt;T&gt; implements Base&lt;List&lt;T&gt;&gt; {<br>    protected T value;<br>    protected ListBase(T v) { value = v; }<br>    public T getstuff() { return value; }<br>  }
+  public class Actual implements ListBase&lt;String&gt; {<br>    public Actual(List&lt;String&gt; value) { super(value; }<br>  }</pre>
+    <p>
+      you might be interested in figuring out, exactly what is the type of 
+      return value of &quot;getStuff()&quot;. By eyeballing, you know it should be 
+      &quot;List&lt;String&gt;&quot;, but bytecode does not tell this -- in fact, it just 
+      tells it's &quot;T&quot;, basically.
+    </p>
+    <p>
+      But with ClassMate you can resolve it:
+    </p>
+    <pre>  // start with ResolvedType; need MemberResolver
+  ResolvedType classType = resolver.resolve(Actual.class);<br>  MemberResolver mr = new MemberResolver(resolver);<br>  ResolvedTypeWithMembers beanDesc = mr.resolve(classType, null, null);<br>  ResolvedMethod[] members = bean.getMemberMethods();<br>  ResolvedType returnType = null;<br>  for (ResolvedMethod m : members) {<br>    if (&quot;getStuff&quot;.equals(m.getName())) {<br>      returnType = m.getReturnType();<br>    }<br>  }<br>  // so, we should get<br>  assertSame(List.class, returnType.getErasedType());<br>  ResolvedType elemType = returnType.getTypeParameters().get(0);<br>  assertSame(String.class, elemType.getErasedType();<br></pre>
+    <p>
+      and get the information you need.
+    </p>
+    <p>
+      <b>6. Why so complicated for nested types? </b>
+    </p>
+    <p>
+      One thing that is obvious from code samples is that code that uses 
+      ClassMate is not as simple as one might hope. Handling of nested generic 
+      types, specifically, is bit verbose in some cases (specifically: when 
+      type we are resolving does not directly implement type we are interested 
+      in)<br>Why is that?
+    </p>
+    <p>
+      The reason is that there is a wide variety of interfaces that any class 
+      can (and often does) implement. Further, parameterizations may vary at 
+      different levels, due to co-variance (ability to override methods with 
+      more refined return types). This means that it is not practical to &quot;just 
+      resolve it all&quot; -- and even if this was done, it is not in general 
+      obvious what the &quot;main type&quot; would be. For these reasons, you need to 
+      manually request parameterization for specific generic classes and 
+      interfaces as you traverse type hierarchy: there is no other way to do 
+      it.
+    </p></p>
+
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, April 07, 2012 1:51 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+
+
+   
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /**
+    * var disqus_identifier; [Optional but recommended: Define a unique identifier (e.g. post id or slug) for this thread] 
+    */
+  (function() {
+   var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+   dsq.src = 'http://cowtalk.disqus.com/embed.js';
+   (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>(enable JavaScript to view the <a href="http://disqus.com/?ref_noscript=cowtalk">comments powered by Disqus)</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  </div>
+</div>
+<div id="beta">
+  <div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+
+<!-- /SiteSearch Google -->
+<hr />
+</div>
+
+     <div class="module-archives module">   
+          <h2 class="module-header">Last posts</h2>
+          <div class="module-content">
+               <ul class="module-list">
+                <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html">Java Type Erasure not a Total Loss -- use Java Classmate for resolving generic signatures</a></li>
+               </ul>
+          </div>
+     </div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+
+     <div class="module-categories module">
+          <h2 class="module-header">Categories</h2>
+          <div class="module-content">
+        <ul>
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+          
+        </ul>
+          </div>
+     </div>
+<div class="module-syndicate module">
+     <div class="module-content">
+          <a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+          [<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+     </div>
+
+</div>
+
+<div class="module-about module">
+  <h2 class="module-header">Sponsored By</h2>
+  <div class="module-content">
+  </div>
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+<hr />
+
+     <h2 class="module-header">Related Blogs</h2>
+          <div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+
+<div class="module-powered module">
+     <h2 class="module-header">Powered By</h2>
+
+     <div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a> and
+     </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>

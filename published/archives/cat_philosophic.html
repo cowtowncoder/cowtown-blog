@@ -1,0 +1,1507 @@
+<html lang="en">
+<head>
+<title>Philosophic</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important}
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+     <div id="container">
+          <div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+     <div id="banner-inner" class="pkg">
+          <h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+          <h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+     </div>
+</div>
+               <div id="pagebody">
+                    <div id="pagebody-inner" class="pkg">
+                         <div id="alpha">
+                              <div id="alpha-inner" class="pkg">
+<!-- entry -->
+
+   
+     <h2 class="date-header">Tuesday, February 15, 2011 </h2>
+<div class="entry" id="post-445">
+     <h3 class="entry-header">Basic flaw with most binary formats: missing identifiable prefix (protobuf, Thrift, BSON, Avro, MsgPack)</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Ok: I admit that I have many reservations regarding many existing binary 
+      data formats; and this is major reason why I worked on <a href="http://wiki.fasterxml.com/SmileFormat">Smile 
+      format</a> specification -- to develop a format that tries to address 
+      various deficiencies I have observed.
+    </p>
+    <p>
+      But while the full list of grievances would be long, I realized today 
+      that there is one basic design problem that is common to pretty much all 
+      formats -- at least Thrift, protobuf, BSON and MsgPack -- that is: lack 
+      of any kind of reliable, identifiable prefix. Commonly used techniques 
+      like &quot;magic number&quot;, which is used to allow reliable type detection for 
+      things like image formats appears unknown to binary data format 
+      designers. This is a shame.
+    </p>
+    <p>
+      <b>1. The Problem</b>
+    </p>
+    <p>
+      Given a piece of data (file, web resource), one important piece of 
+      metadata is its structure. While this is often available explicitly from 
+      the context, this is not always the case; and even if it could be added 
+      there are benefits to being able to automatically detect type: this can 
+      significantly simplify systems, or to extend functionality by accepting 
+      multiple kinds of formats. Various graphics programs, for example, can 
+      operate on different image storage formats, without necessarily having 
+      any metadata available beyond just actual data.
+    </p>
+    <p>
+      So why does this matter? It helps in verifying basic correctness of 
+      interacton in many cases: if you can detect what is and what is not 
+      valid piece of data in a format, life is much easier: you have a chance 
+      to know immediately when piece of data is completely corrupt, or you are 
+      being fed data in some format than the one you expect. Or, if you 
+      support multiple formats, you can add automatic handling of differences.
+    </p>
+    <p>
+      <b>2. Textual formats do it well</b>
+    </p>
+    <p>
+      But let's go back to commonly used textual data formats: XML and JSON. 
+      Of these, XML specifies &quot;xml declaration&quot; which can be used to not only 
+      determine text encoding (UTF-8 etc) used but also the fact that data is 
+      XML. It is cleanly designed and is simple to implement. As if it was 
+      designed by people who knew what they were doing.
+    </p>
+    <p>
+      JSON does not define such a prefix, but specification does specify exact 
+      rules for detecting valid JSON, as well as encodings that can be used; 
+      so in practice JSON auto-detection is as easy to implement as that for 
+      XML.
+    </p>
+    <p>
+      <b>3. But most new binary formats don't</b>
+    </p>
+    <p>
+      Now; the task of defining unique (enough) header for binary formats 
+      would be even easier than that for textual formats, because structurally 
+      there is less variance: no need to allow variable text encoding, 
+      arbitrary white spaces, or other lexical sugar. It took me very little 
+      time to figure out the simple schema used by Smile to indicate its type 
+      (which in itself was inspired by design of PNG image format, an example 
+      of very good data format design).
+    </p>
+    <p>
+      So you might think that binary formats would excel in this area. 
+      Unfortunately, you would be wrong.
+    </p>
+    <p>
+      As far as I can see, following binary data formats have little or no 
+      support for type detection:
+    </p>
+    <ul>
+      <li>
+        <b>Thrift</b> does not seem to have type identifier at its format 
+        layer. There is actually small amount of metadata at RPC level (there 
+        is a message-start structure of some kind), but this only helps if you 
+        want/need to use Thrift's RPC layer. Another odd things is that 
+        internal API actually exposes hooks that would be used to handle any 
+        type idenfitiers; it is as if designers were at least aware of 
+        possibility of using some markers to enclose main-level data entities.
+      </li>
+      <li>
+        <b>protobuf</b> does not seem to have anything to allow type detection 
+        of a given blob of protobuf data. I guess protobuf never claimed to be 
+        useful for anything beyond tightly coupled low-level system 
+        integration (although some clueless companies are apparently using it 
+        for data storage... which just plain old Bad Idea), so maybe I could 
+        buy argument that this is just not needed, that there is never any 
+        &quot;arbitrary protobuf data&quot; around. Still... adding a tiny bit of 
+        redundancy would make sense for diagnostics purposes; and given that 
+        protobuf already has some redundancy (field ids, instead of using 
+        ordering) it would seem acceptable to use first 2 or 4 bytes for this.
+      </li>
+      <li>
+        <b>MsgPack</b> and <b>BSON</b> both just define &quot;raw&quot; encoding, 
+        without any format identifier that I can see. This is especially 
+        puzzling since unlike protobuf and Thrift, they do not require a 
+        schema to be used; that is, they have plenty of other metadata (types, 
+        names of struct members; even length prefixes). So make these data 
+        formats completely  unidentifiable?
+      </li>
+    </ul>
+    <p>
+      <b>4. But what about Avro?</b>
+    </p>
+    <p>
+      There is one exception aside from Smile, however. Avro seems to do the 
+      right thing (as far as I can read <a href="http://avro.apache.org/docs/1.4.1/spec.html">the 
+      specification</a>) -- at least when explicitly storing Avro data in a 
+      file (I assume including map/reduce use cases, stored in HDFS): there is 
+      a simple prefix to use, as well as requirement to store the schema used. 
+      This makes sense, since my biggest concern with formats like protobuf 
+      and Thrift is that being &quot;schema-ridden&quot;, data without schema is all but 
+      useless. Requiring that two are bundled -- when stored -- makes sense; 
+      optimizations can be used for transfer.
+    </p>
+    <p>
+      So Avro definitely seems better design than 4 other binary data formats 
+      listed above in this respect.
+    </p>
+    <p>
+      <b>5. Why do I care?</b>
+    </p>
+    <p>
+      As part of my on-going expansion of Jackson (&quot;the universal data 
+      processor&quot;), I am thinking of adding many more backends (to support 
+      reading and writing data in alternate data formats), to allow clean and 
+      efficient data binding to/from most any commonly used data formats. 
+      Ideally this would include binary data formats. Current plans are to 
+      include format detection functionality in such a way that new codecs can 
+      detect data they are capable of reading and writing; and this will work 
+      just fine for most existing formats that Jackson can handle (JSON, 
+      Smile, XML). I also assumed that since it would be very easy to design 
+      data formats that can be reliably detected, existing formats should be a 
+      piece of cake to detect. It is only when I started digging into details 
+      of binary data formats that the sad reality sunk in...
+    </p>
+    <p>
+      On plus side, this makes it easier to focus on adding first rate support 
+      for data formats that are easy to detect. So I will probably prioritize 
+      Avro compatibility significantly higher than others; and I will 
+      unfortunately have to downgrade my work on adding Thrift support which 
+      would otherwise be the most important &quot;alien&quot; format to support (due to 
+      existing use by infrastructure I am working on).
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, February 15, 2011 9:11 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_445.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_445.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_445.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Sunday, February 06, 2011 </h2>
+<div class="entry" id="post-444">
+     <h3 class="entry-header">On prioritizing my Open Source projects, retrospect #2</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      (note: related to original &quot;<a href="http://www.cowtowncoder.com/blog/archives/2010/05/entry_400.html">on 
+      prioritizing OS project</a>&quot;, as well as <a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_424.html">first 
+      retrospect</a> entry)
+    </p>
+    <p>
+      <b>1. What was the plan again?</b>
+    </p>
+    <p>
+      Ok, it has been almost 4 months since my last medium-term high-level 
+      priorization overview. Planned list back then had these entries:
+    </p>
+    <ol>
+      <li>
+        Woodstox 4.1
+      </li>
+      <li>
+        Aalto 1.0 (complete async API, impl)
+      </li>
+      <li>
+        Jackson 1.7: focus on extensibility
+      </li>
+      <li>
+        ClassMate 1.0
+      </li>
+      <li>
+        Externalized Mr Bean (not dependant on Jackson)
+      </li>
+      <li>
+        StaxMate 2.1
+      </li>
+      <li>
+        Tr13 1.0
+      </li>
+    </ol>
+    <p>
+      <b>2. And how have we done?</b>
+    </p>
+    <p>
+      Looks like we got about half of it done. Point by point:
+    </p>
+    <ol>
+      <li>
+        DONE: Woodstox 4.1 (with 4.1.1 patch release)
+      </li>
+      <li>
+        Almost: Aalto 1.0 -- half-done; but significant progress, API is 
+        defined, about half of implementation work done
+      </li>
+      <li>
+        DONE: Jackson 1.7 (with 1.7.1 and 1.7.2 patch releases)
+      </li>
+      <li>
+        Almost: ClassMate 1.0 not completed; version 0.5.2 released, javadocs 
+        publisher, minor work remains
+      </li>
+      <li>
+        Deferred: Externalized Mr Bean -- no work done (only some preliminary 
+        scoping)
+      </li>
+      <li>
+        DONE? StaxMate 2.1 -- released 2.0.1 patch instead that contains fixes 
+        to found issues, but no new features, which would defined 2.1.
+      </li>
+      <li>
+        Some work done: Tr13: incremental work, but no definite 1.0 release 
+        (did release 0.2.5 patch version with cleanup)
+      </li>
+    </ol>
+    <p>
+      I guess it is less than half since only 2 things were fully completed 
+      (or 3 if StaxMate 2.0.1 counts). But then again, of remaining tasks only 
+      one did not progress at all; and many are close to being completed (in 
+      fact, I was hoping to wrap up Aalto before doing update). And ones 
+      referred were lower entries on the list.
+    </p>
+    <p>
+      On the other hand, I did work on a few things that were not on the list. 
+      For example:
+    </p>
+    <ul>
+      <li>
+        Started &quot;jackson-xml-databinding&quot; project (after Jackson 1.7.0), got 
+        first working version (0.5.0)
+      </li>
+      <li>
+        Started multiple other Jackson extension projects 
+        (jackson-module-hibernate, jackson-module-scala), with working builds 
+        and somewhat usable code; these based on code contributed by other 
+        Jackson developers
+      </li>
+      <li>
+        Started &quot;java-cachemate&quot; project, designed concept and implemented 
+        in-memory size-limited-LRU-cache (used already in a production system)
+      </li>
+    </ul>
+    <p>
+      This just underlines how non-linear open source development can be; it 
+      is often opportunistic -- but necessarily in negative way -- and heavily 
+      influenced by feedback, as well as newly discovered inter-dependencies, 
+      and -opportunities.
+    </p>
+    <p>
+      <b>3. Updated list</b>
+    </p>
+    <p>
+      Let's try guestimating what to do going forward, then, shall we. 
+      Starting with leftovers, we could get something like:
+    </p>
+    <ul>
+      <li>
+        Aalto 1.0: complete async implementation; do some marketing
+      </li>
+      <li>
+        ClassMate 1.0: relatively small amount of work (expose class 
+        annotations)
+      </li>
+      <li>
+        Java CacheMate: complete functionality, ideally release 1.0 version
+      </li>
+      <li>
+        Tr13: either complete 1.0, or augment with persistence options from 
+        cachemate (above)
+      </li>
+      <li>
+        Externalized Mr Bean? This is heavily dependant on external interest
+      </li>
+      <li>
+        Jackson 1.8: target most-wanted features (maybe external type id, 
+        multi-arg setters)
+      </li>
+      <li>
+        Jackson-xml-databinding 1.0: more testing, fix couple known issues
+      </li>
+      <li>
+        Work on Smile format; try to help with libsmile (C impl), maybe more 
+        formal specification; performance measurements, other advocacy; maybe 
+        even write a javascript codec
+      </li>
+    </ul>
+    <p>
+      Other potential work could include:
+    </p>
+    <ul>
+      <li>
+        StaxMate 2.1 with some new functionality
+      </li>
+      <li>
+        Woodstox 5.0, if there is interest (raise JDK minimum to 1.5, maybe 
+        convert to Maven build)
+      </li>
+      <li>
+        Jackson-module-scala: help drive 1.0 version, due to amount of 
+        interest in full Scala support
+      </li>
+      <li>
+        Jackson-module-csv: support data-binding to/from CSV -- perhaps 
+        surprisingly, much of &quot;big data&quot; exists as plain old CSV files...
+      </li>
+    </ul>
+    <p>
+      But chances are that above lists are also incomplete... let's check back 
+      in May, on our first &quot;anniversary&quot; retrospect.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Sunday, February 06, 2011 5:19 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_444.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_444.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_444.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Thursday, February 03, 2011 </h2>
+<div class="entry" id="post-442">
+     <h3 class="entry-header">Why do modularity, extensibility, matter?</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      After writing about <a href="/blog/archives/2011/02/entry_441.html">Jackson 
+      1.7 release</a>, I realized that while I described what and how was done 
+      to significantly improve modularity and extensibility of Jackson, I did 
+      not talk much about why I felt both were desperately needed. So let's 
+      augment that entry with bit more background, fill in the blanks.
+    </p>
+    <p>
+      Two things actually go together such that while modularity in itself is 
+      somewhat useful, it is extremely important when it is coupled with 
+      extensibility (and conversely it is hard to be extensible without being 
+      modular). So I will consider them together, as &quot;modular extensibility&quot;, 
+      in what follows.
+    </p>
+    <p>
+      <b>1. Distributed development</b>
+    </p>
+    <p>
+      The most obvious short-term benefit of better modularization, 
+      extensibility, is that it actually allows simple form of distributed 
+      development, as additional extension modules (and projects under which 
+      they are created) can be built independent from the core project. There 
+      are dependencies, of course -- modules may need certain features of the 
+      core library -- but this much looser coupling than having to actually 
+      work within same codebase, coordinating changes. This alone would be 
+      worth the effort.
+    </p>
+    <p>
+      But the need for distribution stems from the obvious challenge with 
+      Jackson's (or any smilar project's) status quo: that the core project, 
+      and its author (me) can easily become a bottleneck. This is due to 
+      coordination needed, such as code reviews, patch integration; much of 
+      which is most efficiently done with simple stop-and-wait'ish approach. 
+      While it is possible to increase concurrency within one project and 
+      codebase (with lots of additional coordination, communication, both of 
+      which are hard if activity levels of participants fluctuate), it is much 
+      easier and more efficient to do this by separate projects.
+    </p>
+    <p>
+      Not all projects can take the route we are taking, since one reason such 
+      modularity is possible is due to expansion of the project scope: 
+      extensions for new datatypes are &quot;naturally modular&quot; (conceptually at 
+      least; implementation-wise this is only now becoming true), and 
+      similarly support for non-Java JVM languages (Scala, Clojure, JRuby) and 
+      non-JSON data formats (BSON, xml, Smle). But there are many projects 
+      that could benefit from more focus on modular extensibility.
+    </p>
+    <p>
+      <b>2. Reduced coupling leads to more efficient develo[ment</b>
+    </p>
+    <p>
+      Reduced coupling between pieces of functionality in turn allows for much 
+      more efficient development. This is due to multiple factors: less need 
+      for coordination; efficiency in working on smaller pieces (bigger 
+      projects, as companies, have much more inherent overhead, lower 
+      productivity); shorter release cycles. Or, instead of canonically 
+      shorter development and release cycles, it is more accurate to talk 
+      about more optimal cycles: new, active projects can have shorter cycles, 
+      release more often, and more mature, slower moving (or ones with more 
+      established user base and hence bigger risks from regression) can choose 
+      slower pace. The key point is that each project can choose most optimal 
+      rate of releases, and only synchronize when some fundamental &quot;platform&quot; 
+      functionality is needed.
+    </p>
+    <p>
+      As an example, core Jackson project has released a significant new 
+      version every 3 - 6 months. While this is pretty respectable rate in 
+      itself, it is glacial pace compared to releases for, say, 
+      &quot;jackson-xml-databinding&quot; module, which might release new versions on 
+      weekly basis before reaching its 1.0 version.
+    </p>
+    <p>
+      <b>3. Extending and expanding community</b>
+    </p>
+    <p>
+      This improved efficiency is good just in itself, but I think it will 
+      actually make it easire to extend and expand community. Why? Because 
+      starting new projects and getting releases out faster should make it 
+      easier to join, get started and productive, and thereby lower threshold 
+      for participation. In fact I think that we are going to quickly double 
+      and quadruple number of active contributors quite soon, when everyone 
+      realizes potential for change; how easy it is to get to expand 
+      functionality in a way that everyone can share the fruits of labor. 
+      Previously best methods have been to write a blog entry about using a 
+      feature, or maybe report a bug; but now it will be trivially easy to 
+      start playing with new kinds of reusable extension functionality.
+    </p>
+    <p>
+      <b>4. Modules are the new core</b>
+    </p>
+    <p>
+      Given all the benefits of the increased modularity I am even thinking of 
+      further splitting much of existing &quot;core&quot; (meaning all components under 
+      main Jackson project; core, mapper, xc, jax-rs, mrbean, smile) as 
+      modules. All jars except for core and mapper would themselves work as 
+      modules (or similar extensions); and many features of mapper jar could 
+      be extracted out. The main reason for doing this would actually be to 
+      allow different release cycles: jax-rs component, for example, has 
+      changed relatively little since 1.0: there is no real need to release 
+      new version of it every time there is a new mapper version. In fact, of 
+      6 jars, mapper is the only one that is constantly changing; others have 
+      evolved at much slower pace.
+    </p>
+    <p>
+      But even if core components were to stay within core Jackson project, 
+      most new extension functionality to be written will be done as new 
+      modules.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Thursday, February 03, 2011 9:37 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_442.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_442.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_442.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Saturday, January 08, 2011 </h2>
+<div class="entry" id="post-438">
+     <h3 class="entry-header">On Perception of Java Verbosity</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Today many software developers consider Java to be the modern-day 
+      equivalent of Cobol. This is evident from comments comparing amount of 
+      Java code needed to do tasks that can be written as one-liners using 
+      more dynamic and expressive scripting languages such as Python or Ruby. 
+      Funny how time flies -- it wasn't all THAT long ago that Java was seen 
+      as relatively concise language compared to C, due to its in-built 
+      support for things like garbage collection and standard library that 
+      contained implementations for host of things that in C were DIY (note 
+      that I did not say &quot;due to simplicity of language itself&quot;)
+    </p>
+    <p>
+      <b>1. Java verbose?</b>
+    </p>
+    <p>
+      But while it is true that Java syntax can lead to code much more verbose 
+      than seems prudent (especially when traversing and modifying data 
+      structures), sometimes its reputation exceeds reality. I was reminded by 
+      this by a tweet I came across. The tweet asked &quot;and how many lines would 
+      this be in Java&quot;, regarding a task of downloading JSON from a URL and 
+      parsing contents to extract data; something that can be done with a 
+      single line of Python (or Ruby or Perl). Implied assumption being be 
+      that it would take many more lines of Java code.
+    </p>
+    <p>
+      <b>2. Ain't necessarily so</b>
+    </p>
+    <p>
+      This assumption is not completely baseless: if a developer was to do 
+      this as part of a service, a typical java developer might well end up 
+      with code that exceeded ten lines; and this even without code itself 
+      being badly written. I will come back to question of &quot;why&quot; in a minute.
+    </p>
+    <p>
+      But assumption is also off base, for the simple reason that it can be a 
+      one-liner even in Java; for example:
+    </p>
+    <hr>
+    
+
+    <pre>Response resp = new ObjectMapper().readValue(new URL(&quot;http://dot.com/api/?customerId=1234&quot;).openStream(),Response.class);<br>
+// or if you prefer, bind similarly as &quot;Map&lt;String,Object&gt;&quot;  </pre>
+    <hr>
+    
+
+    <p>
+      (and in fact, &quot;.openConnection()&quot; is actually unnecesary, as 
+      ObjectMapper can just take URL -- but if it didn't, one can open 
+      InputStream directly from URL, which sends request, takes response and 
+      so forth).
+    </p>
+    <p>
+      Code snippet just uses standard JDK URLConnection via URL, and a JSON 
+      library (Jackson in this case, but might as well be, GSon, flex-json, 
+      whatever); and results in request being made, contents read, parsed and 
+      bound to an object of caller's choosing, either a Plain Old Java Object, 
+      or simple Map.
+    </p>
+    <p>
+      Given that it IS that simple, why was there assumption that something 
+      more was needed?
+    </p>
+    <p>
+      <b>3. But often is</b>
+    </p>
+    <p>
+      Above use case happens to be doable in quite concise form; but there are 
+      other tasks where Java equivalent ends up being either a call to a very 
+      specific library tailored to condense usage, or is much fluffier than 
+      equivalents in modern scripting languages. But I don't think this is the 
+      main reason for the universal appearance of Java's bloatedness, i.e. it 
+      is not just case of choosing a wrong example.
+    </p>
+    <p>
+      I think it is because most Java developers would actually write piece of 
+      code that spanned more than a dozen lines of code. Why? Either because:
+    </p>
+    <ol>
+      <li>
+        They didn't know JDK or libraries, and use much more cumbersome 
+        methods (case for less experienced developers)
+      </li>
+      <li>
+        They actually understand complexities of the task, within context 
+        where task needs to be done.
+      </li>
+    </ol>
+    <p>
+      First one is easy to understand: if you don't know your tools, you can't 
+      expect a good outcome. But second point needs more explanation.
+    </p>
+    <p>
+      Let's consider the same task of sending a request to a service that 
+      returns a JSON response that we need to return as an object. What 
+      possible additional things should we cover, beyond what one-liner did? 
+      Here's sampling of possible issues:
+    </p>
+    <ul>
+      <li>
+        There is no error handling in code snippet: if there are transient 
+        problems with connection, it will just fail for good, regardless of 
+        type of problem there is
+      </li>
+      <li>
+        How about problems with service itself? Requesting unknown customer? 
+        Do we get an HTTP error response; different JSON or what?
+      </li>
+      <li>
+        Do we really want to wait for unspecified amount of time, if request 
+        can not be made (TCP will try its damnest to connect, so it there is 
+        an outage it'll be minutes before anything fails)
+      </li>
+      <li>
+        URL to connect to is fixed (and hard-coded), including parameters to 
+        send; should they really be hard-coded
+      </li>
+      <li>
+        How is caching handled? What are connection details?
+      </li>
+      <li>
+        When there are failures, who is notified and how?
+      </li>
+      <li>
+        Are we happy with the default JDK URLConnection? It may not work all 
+        that well for some use cases (i.e. shouldn't be using Apache 
+        httpclient or something)
+      </li>
+    </ul>
+    <p>
+      To cover such concerns for production systems, one probably would want 
+      much more complicated handling: possible retries for transient errors; 
+      definitely logging to indicate hard failures; way to handle error 
+      responses and indicates those to caller. Due to testing, end points 
+      being used are typically dynamically determined and passed; connection 
+      settings may need to be changed, and sometimes different parameters need 
+      to be sent. And for production systems we probably need more caching; 
+      whereas during testing we may want to disable any and all caching.
+    </p>
+    <p>
+      Since there are often many more aspects to cover, there is then tendendy 
+      to wrap all calls within helper objects or functionality; and if we did 
+      define something like &quot;fetchJSONDataFromURL()&quot;, it surely would end up 
+      being more than dozen of lines of code. Yet calling functionality might 
+      still be no longer than a single Java statement.
+    </p>
+    <p>
+      So which one should we focus on? Helper method that is, say 50 lines 
+      long; or call to use it, which may be a one-liner? Former is what can be 
+      used to &quot;prove&quot; how bloated Java code is; yet it is written just once, 
+      whereas one-liners to use it are written ideally much more often.
+    </p>
+    <p>
+      By the way, above is not meant to say that it is ALWAYS necessary to 
+      handle all kinds of obscure error modes, or to create perfect system 
+      that is as efficient as possible. It is clearly not, and Java developers 
+      seem especially prone to over-complicating and -engineering solutions. 
+      But in other cases, happy-go-lucky approach (that I would claim is more 
+      common with &quot;perl scripters&quot;) won't do. This is just a long way of 
+      saying that complexity of code should be based on actual requirements; 
+      and that those requirements vary widely.
+    </p>
+    <p>
+      <b>4. Concise Java by Composition</b>
+    </p>
+    <p>
+      I think my insight (if any) here is this: since Java, the language, 
+      offers relatively in way of writing compact code, economical source code 
+      must come from proper use of libraries, as well as design of those 
+      libraries. Furthermore, I think many Java developers have started 
+      wrongly believing that Java code must be verbose; and that this makes 
+      perception more of a self-fulfilling prophecy. This means that to write 
+      compact Java code one absolutely MUST be familiar with libraries to use 
+      for things that JDK does not support well (or at all).
+    </p>
+    <p>
+      
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, January 08, 2011 8:16 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/01/entry_438.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/01/entry_438.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/01/entry_438.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Wednesday, December 22, 2010 </h2>
+<div class="entry" id="post-417">
+     <h3 class="entry-header">Experiments with advertising, Adsense vs Adbrite, experience so far</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      It has been a while -- <a href="/blog/archives/2010/06/entry_403.html">almost 
+      6 months</a>, to be precise -- since I decided to see if there is more 
+      to on-line advertising than venerable Google AdSense. So it is time to 
+      see if I have learnt anything.
+    </p>
+    <p>
+      <b>1. Summary: gain some, lose some</b>
+    </p>
+    <p>
+      An overall verdict is pretty much inconclusive: I like some aspects 
+      (more control, less fluctuation with revenue); but from strictly 
+      monetary view point, change is mixed bag. Fortunately revenue we are 
+      talking about is in &quot;trivial&quot; range -- enough so that it does not round 
+      down to zero, but not enough to pay for hosting at current rates. So I 
+      can freely do whatever I want without risking losing any &quot;real money&quot;. I 
+      might as well just gain StackOverflow credits.
+    </p>
+    <p>
+      <b>2. Positive</b>
+    </p>
+    <p>
+      Overall the main positive aspect for me is the feeling of empowerment: 
+      AdBrite gives more control for publisher, from controlling what to 
+      display to defining minimum bids, and even allowing fallbacks 
+      (typically, to, what else but AdSense!). I like this a lot, and would 
+      assume it is a non-trivial competitive advantage as well: whereas for me 
+      control is more of a nice-to-have, I know for a fact that bigger 
+      &quot;serious&quot; publisher REALLY want to have more control. This is most 
+      important for publishers with valuable brand to take care of.
+    </p>
+    <p>
+      Another smallish positive thing is that since most advertisements are 
+      cost-per-display (aka cost-per-thousand == CPM), and NOT cost-per-click 
+      (CPC), revenue stream is steadier. With AdSense, your revenue typically 
+      fluctuates wildly, unless you get lots of direct placements.
+    </p>
+    <p>
+      <b>3. Negative</b>
+    </p>
+    <p>
+      On downside, &quot;guaranteed&quot; revenue from CPM is not particularly high. In 
+      fact, little CPM that I have seen from AdSense for others sites (not 
+      this blog) is typically in the same range as what I can get from AdBrite 
+      for majority of views (AB does have wider range of CPMs, based on viewer 
+      profiling); and even if readers are often skimpy clickers, whenever 
+      there are clicks it is typically worth more than two or three thousand 
+      CPM views. So overall it is possible that AdSense might actually pay 
+      more, over time (with caveat from above that either way, very little 
+      money will change hands :-) ).
+    </p>
+    <p>
+      <b>4. Other</b>
+    </p>
+    <p>
+      Oh. One thing I was hoping to see was wider selection of interesting ads 
+      to display; not just same old, same old. This may or may not be true: I 
+      think that overall selection may be wider (just from looking at all the 
+      ads that get displayed, via publisher management console), but selection 
+      for individual profile is still rather limited. So I don't know if it's 
+      very different from what Google would give. I guess it makes sense, in a 
+      way, that algorithms tend to over-fit ads with (IMO) too little 
+      randomity. But I really would like some more variation, personally.
+    </p>
+    <p>
+      <b>5. Conclusions</b>
+    </p>
+    <p>
+      It has been merely quite interesting ride. Perhaps I should check out 
+      potentially other choices? Too bad most alternatives seem to be just 
+      obnoxious irritating block-the-whole-page scams, or things that try to 
+      take over links, images; things that I would personally hate to see. I 
+      have no plans to introduce anything like that. But as usual, I am open 
+      to things that fit in well enough; something similar to AdSense or 
+      AdBrite ad systems, I guess.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Wednesday, December 22, 2010 11:42 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/12/entry_417.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/12/entry_417.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/12/entry_417.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Monday, December 13, 2010 </h2>
+<div class="entry" id="post-435">
+     <h3 class="entry-header">Amazon Web Service (AWS), WikiLeaks: series of unfortunate events</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      As a current Amazon Web Service customer (as well as ex-employee of 
+      Amazon) I was sad to see reports of AWS mishandling of its WikiLeaks 
+      hosting.<br>My main objection is not regarding whether AWS should host 
+      the content or not, and I understand that due to self-service nature 
+      sometimes termination need to occur after customer relationship has been 
+      initially established. But the way termination came about was a complete 
+      cluster and really makes me wonder if I want to continue using AWS or 
+      even recommend it to others.
+    </p>
+    <p>
+      As far as I understand, basic facts are that:
+    </p>
+    <ol>
+      <li>
+        WikiLeaks started hosting content with AWS
+      </li>
+      <li>
+        AWS was contacted by Posturing and Angry US politician(s) who wants to 
+        fight WikiLeaks using intimidation tactics (&quot;you are either with us, 
+        or you are with.... terrorists!&quot;). Sort of like, you know, people who 
+        use terror as a weapon to further their agenda.
+      </li>
+      <li>
+        Shortly afterwards AWS terminated hosting of said content citing 
+        &quot;probable cause for copyright infringement&quot;, without actual request 
+        for doing so (pro-actively) -- essentially claiming WikiLeaks was 
+        &quot;guilty until proven innocent&quot;, but without giving them a chance to 
+        present any proof.
+      </li>
+    </ol>
+    <p>
+      Now: the way I see it, one of two things happened to effect step 3: 
+      either Amazon agreed to do what Lieber&quot;man&quot; et al asked (but lied about 
+      not having done that); or Amazon wanted to pro-actively tackle issue 
+      they knew would become problematic (opportunistic), using some suitable 
+      weasel-word section from the contract.
+    </p>
+    <p>
+      What should have happened is simple: AWS should have done nothing before 
+      officials presented them with a court order or valid cease-and-desist 
+      letter (or whatever equivalent is done for Patriot Act requests); and if 
+      that happened, publicly announce what they did and why. This is what 
+      other companies have done (Google, Yahoo). Or in cases of copyright 
+      infringement, similar demand by (alleged) copyright holder, accompanied 
+      with court order or whatever DMCA requires. One would think this would 
+      be easy for government to do as well for content it has produced.
+    </p>
+    <p>
+      So why did this not happen? Since I have no idea what sort of 
+      backchannel communication resulted in what happened, best I can do is 
+      speculate. My two favourite suggestions are that either someone called 
+      favors; or that some mid-level manager made a panic decision.
+    </p>
+    <p>
+      Painful, very painful to watch. It's as if someone gave themselves a 
+      wedgie just to prevent bullies from doing it...
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Monday, December 13, 2010 7:26 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/12/entry_435.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/12/entry_435.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/12/entry_435.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Tuesday, October 12, 2010 </h2>
+<div class="entry" id="post-424">
+     <h3 class="entry-header">Look back on "prioritizing Open Source projects" (from May 2010)</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      It has been more than 4 months since I wrote about my experiences with <a href="/blog/archives/2010/05/entry_400.html">priorization 
+      for Open Source projects</a>, it seems like good time to see how things 
+      have been moving.
+    </p>
+    <p>
+      Looks like there are two ways to look at things -- whether glass is half 
+      full or half empty -- as I have pretty much completed 50% of tasks; but 
+      not necessarily in order of priority. And this even thought I publicly 
+      outlined priorities.
+    </p>
+    <p>
+      One positive thing is that the top entry (Java UUID Generator 3.) was 
+      just completed; and the second entry (Woodstox 4.1) is nicely in 
+      progress, to be completed within a month or two. On the other hand, 
+      other two completed tasks (both related to Jackson 1.6 that was 
+      completed a month ago) were entries listed as having the lowest 
+      priority. Some entries not on the list were also completed; specifically 
+      work with <a href="http://github.com/AsyncHttpClient/async-http-client">Async 
+      HTTP Client</a> and OAuth signature calculation.
+    </p>
+    <p>
+      I guess I think this is reasonable outcome, as priority lists for my 
+      &quot;hobby&quot; development are there to help and assist, not to drive to 
+      specific business goals or to rein in my creativity. So even more 
+      important than getting things done in &quot;right order&quot; is that things do 
+      get done. So as long as more important or more urgent things are more 
+      likely to get worked on than less important or urgent things, overall 
+      efficiency remains brutally high, which is the way I like it. Finally, 
+      part of the reason for fluctuating order of execution is due to some 
+      tasks being more interesting than others; and working on &quot;most 
+      interesting&quot; things tends to maximize amount of progress (in contrasts 
+      to working on less interesting but more highly prioritized things).
+    </p>
+    <p>
+      But to get some closure on this entry, let's consider this a completed 
+      4-month Scrum and create an updated priority list. Here's what it might 
+      look like:
+    </p>
+    <ol>
+      <li>
+        Complete Woodstox 4.1 (XML Schema, other user requested features) -- 
+        carry-over from the original list
+      </li>
+      <li>
+        Aalto 1.0: finalize async API, implementation
+      </li>
+      <li>
+        Jackson 1.7: focus on extensibility (module registration, contextual 
+        serializers)
+      </li>
+      <li>
+        ClassMate (1.0?) -- library for fully resolving generic types; based 
+        on Jackson code
+      </li>
+      <li>
+        External version of Mr Bean (from Jackson 1.6)
+      </li>
+      <li>
+        StaxMate 2.1? (from the original list)
+      </li>
+      <li>
+        Tr13 1.0? (from the original list)
+      </li>
+      <li>
+        ... and then re-consider
+      </li>
+    </ol>
+    <p>
+      This is an incomplete list and I expect roughly similar completion rate 
+      if I was to look back again in 4 months. Maybe I should start doing 
+      quarterly project reviews just for fun. :-)
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, October 12, 2010 7:32 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_424.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_424.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/10/entry_424.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Tuesday, June 29, 2010 </h2>
+<div class="entry" id="post-403">
+     <h3 class="entry-header">Experiments in advertising, here goes nothing (aka Welcome, AdBrite!)</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Ok let's talk about something that is quite visible to you dear readers, 
+      but something that you have probably managed to ignore automatically. 
+      Yes, I am taking about those commercial decorations on margin of these 
+      pages. But please, don't change the channel quite yet. :-)
+    </p>
+    <p>
+      <b>1. Advertising Changes... yay!</b>
+    </p>
+    <p>
+      So what's up there? After being a very small AdSense publisher for few 
+      years, I figured that I might well retire before ever seeing another 
+      check for ads displayed on this blog; so it might be time to explore 
+      options: if not to get higher yields then at least maybe get more 
+      interesting ads. I also generally root for underdogs, and at this point 
+      Google is the ultimate uber-dog if there ever was one. So why not 
+      partner up with some other advertising puppies.
+    </p>
+    <p>
+      Given these loose goals about the only criteria for finding a 
+      replacement would be that it is not Google. And, well, ideally it should 
+      not be Apple, and preferably not Microsoft. But latter two are 
+      negotiable constraints (in fact, I am tempted to check out M$'s 
+      PubCenter; if for nothing else due to its catchy name!).
+    </p>
+    <p>
+      <b>2. So... ?</b>
+    </p>
+    <p>
+      But enough background discussion: in the end, I decided to change my ad 
+      provider from the big G to an unknown-before-about-a-week-ago company 
+      called <a href="http://www.adbrite.com/">AdBrite</a>. Mostly because 
+      they topped this <a href="http://www.rosswalker.co.uk/adsense_top10/">Handy 
+      List of Google Adsense Alternatives</a>. And finally, as of today, I 
+      bothered to change blog templates for the change to take effect.
+    </p>
+    <p>
+      <b>3. Can hardly contain my excitement &lt;yawn&gt;</b>
+    </p>
+    <p>
+      At this point I am curious to see to what kind of ads they might be 
+      pushing to my blog. I sort of wish it was something that lots of people 
+      found totally repugnant yet completely fascinating... but chances for 
+      that are probably low. We'll see -- maybe I need to cycle through 
+      variety of ad sales networks before choosing my poison.
+    </p>
+    <p>
+      <b>4. Commercial Proposal by Author</b>
+    </p>
+    <p>
+      By the way, if anyone actually wants to actually advertise here -- buy a 
+      section for month-by-month advertising, selling something that actually 
+      relates to something I have written about -- let me know. I am open to 
+      bids and can show google analytics statistics for pricing, so you have a 
+      fair idea of what you'd get.<br>The only limit I will put is that 
+      monthly ad space rental fee has to be non-zero positive number in full 
+      US dollars. :-)<br>(you can consider it as the auction starting price)
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, June 29, 2010 6:42 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_403.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_403.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/06/entry_403.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Friday, April 09, 2010 </h2>
+<div class="entry" id="post-390">
+     <h3 class="entry-header">Rock on Kohsuke!</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Term &quot;Rock start programmer&quot; is thrown around casually when discussing 
+      best software developers. But as with music, true stars are few and far 
+      between. While knowing the lifestyle can help, you got to have the 
+      chops, be able to influence and inspire others, and obviously deliver 
+      the goods to fill the stadiums, and data centers.
+    </p>
+    <p>
+      In Java enterprise programming world there are few more worthy of being 
+      called a rock star than Kohsuke Kawaguchi. List of projects he has 
+      single-handedly built is vast; list of projects he has contributed to 
+      immense, and his coding speed mighty fast (as confirmed by his use of 
+      term POTD, Project of the Day -- very very few individuals write sizable 
+      systems literally in a day!). It all makes you wonder whether he is 
+      actually a mere human being at all (maybe he's twin brother of <a href="http://stackoverflow.com/users/22656/jon-skeet">Jon 
+      Skeet</a>?!). For those not in the know, list of things he has authored 
+      or contributed to contains such programming pearls such as Multi-Schema 
+      Validator, Sun JAXB (v2) and JAX-WS implementations, Hudson, Maven, 
+      Glassfish, Xerces, Args4j, Com4j, and so on and on (for a more complete 
+      list, check out <a href="https://www.ohloh.net/accounts/kohsuke">his 
+      profile at Ohloh</a>; read and weep)
+    </p>
+    <p>
+      But to the point: it seems that mr. Kawaguchi is now <a href="http://weblogs.java.net/blog/kohsuke/archive/2010/04/05/good-bye-sunoracle">moving 
+      on</a> from sinking ship formerly known as Sun. This is not a sad thing 
+      per se (we all gotta move on at some point), nor unexpected -- steady 
+      stream of Sun people leaving Oracle has been and wil be going on for a 
+      while -- but it still feels strange. End of an era in a way; gradual 
+      shutting down of Sun brand. Image of a lonely cowboy riding against Sun 
+      settings (pun intended) comes to mind.
+    </p>
+    <p>
+      Anyway: rock on Kohsuke, onnea &amp; lycka till! I look forward to seeing 
+      exactly what awesomeness you will come up with next!
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Friday, April 09, 2010 8:39 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/04/entry_390.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/04/entry_390.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/04/entry_390.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Friday, March 26, 2010 </h2>
+<div class="entry" id="post-383">
+     <h3 class="entry-header">Welcome HP, So Long Dell (and don't let the door hit you in the ass on your way out)</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      (warning: this is another rant. Sorry!)
+    </p>
+    <p>
+      Here's another improvement in my daily life: after more than a year of 
+      space-shuttle-lift-off noise, short-but-brutish uptimes, and countless 
+      curses, family's lean old Dell XP &quot;work&quot;station is out for good. Its 
+      only agreeable attribute was its slim neat looks (and sort of neat 
+      mechanism used for case, allowing its easy opening -- too bad there's 
+      not much to do even if you can open it easily). Good riddance, music to 
+      my ears.
+    </p>
+    <p>
+      The replacement, HP Pavilion Slimline, actually looks every bit as good 
+      as its predecessor. But otherwise the two are polar opposites: new box 
+      is quiet, as reliable as expected (i.e., &quot;just works&quot;), and its only 
+      design flaw is that it comes with an OS written by a company based in 
+      Redmond. But that I can live with, since it's not my work machine. :-)<br>And 
+      even Windows seems to have improved a bit between versions (new one has 
+      Windows 7, previous one whatever preceded Vista).<br>
+    </p>
+    <p>
+      Anyway: I just thought I'll share my distaste with Dell products (maybe 
+      I should actually include &quot;not-so-good&quot; lists on my semi-professional 
+      home page?) now that I am getting rid of them.
+    </p>
+    <p>
+      It all started couple of years ago, when I decided to stop wasting my 
+      time on building my own PCs from components (which made sense after 
+      college, could save some money). I figured that with time I spent 
+      building PCs, and then troubleshooting problems with components,  it 
+      just didn't make a whole lot of sense. And so I thought I'd go with 
+      something that other customers in general had found usable: back then 
+      Dell had highest customer ratings of all PC companies; and save for one 
+      friend of mine (who had already fought with Dell's phone &quot;support&quot; 
+      people, due to problems with memory chips that were failing; and that no 
+      amount of rebooting would ever fix), I wasn't aware of huge problems 
+      with the company or its products.
+    </p>
+    <p>
+      What I found out by experience makes me suspect that the company that 
+      had gotten good reviews had been abducted by aliens, and replaced by an 
+      ersatz replica or something. Correlation between happy customers and 
+      company that produced crap I bought just is not there. I am not talking 
+      about customer support (no point calling them wrt. badly designed piece 
+      of hardware, IMO, it is not not something a script-reading underpaid 
+      remote helper can help a lot with), but rather about quality of 
+      hardware. My experience beyond PC fiasco was that their products are 
+      competitively priced, but have low quality. For example, laser printer 
+      that I bought to replace trusty old Apple writer (which, after having 
+      bought second hand, served us for 8 years; for total lifetime of 
+      probably 15 years; and would have worked well but I couldn't find new 
+      toner cartridges for reasonable prices any more!) was inexpensive, and 
+      worked fine for a while. Like, maybe a year. And then broke down. The 
+      only thing left are LCD monitors, which I have to admit were reasonably 
+      priced, and still work. In fact both are still in active use. So I guess 
+      they do produce something other than lemons.
+    </p>
+    <p>
+      Thinking about that last sentence: I guess I could put my feelings into 
+      fitting slogan: <b>Dell -- General Motors of Computers</b>.<br>Feel free 
+      to quote.
+    </p>
+    <p>
+      ps. I am happy to admit that after kicking that incompetent CEO of 
+      theirs out, HP seems to have done nice comeback. Good for them, and us.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Friday, March 26, 2010 10:37 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/03/entry_383.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/03/entry_383.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/03/entry_383.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+            </div>
+        </div>
+<div id="beta">
+  <div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+
+<!-- /SiteSearch Google -->
+<hr />
+</div>
+
+     <div class="module-archives module">
+          <h2 class="module-header">Last posts</h2>
+          <div class="module-content">
+               <ul class="module-list">
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_445.html">Basic flaw with most binary formats: missing identifiable prefix (protobuf, Thrift, BSON, Avro, MsgPack)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_444.html">On prioritizing my Open Source projects, retrospect #2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_442.html">Why do modularity, extensibility, matter?</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/01/entry_438.html">On Perception of Java Verbosity</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/12/entry_417.html">Experiments with advertising, Adsense vs Adbrite, experience so far</a></li>
+               </ul>
+          </div>
+     </div>
+<div class="module-categories module">
+          <h2 class="module-header">Categories</h2>
+          <div class="module-content">
+        <ul>
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+          
+        </ul>
+          </div>
+</div>
+<div class="module-syndicate module">
+     <div class="module-content">
+          <a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+          [<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+     </div>
+
+</div>
+</div>
+     <div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+     </div>
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+</div>
+<div class="module-powered module">
+     <h2 class="module-header">Powered By</h2>
+
+     <div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a> and
+  Discus comments.
+     </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>

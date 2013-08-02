@@ -1,0 +1,821 @@
+<html lang="en">
+<head>
+<title>August 2009</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Monday, August 31, 2009 </h2>
+
+<div class="entry" id="post-310">
+			<h3 class="entry-header">Processing non-standard "JSON"</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      One of the basic design principles of <a href="http://wiki.fasterxml.com/JacksonHome">Jackson</a> 
+      is that it is to read and write JSON format, and nothing else. That 
+      &quot;else&quot; includes not only other formats like XML, but also outcast mutant 
+      data that only calls itself JSON but does not conform to JSON 
+      specification.<br>For purposes of this entry, let's call such content 
+      &quot;JSON&quot;, with quotes to emphasize its almost-but-not-quite nature (we 
+      could as well call it JSON--, !JSON, JSON* or pidginJSON -- whatever, 
+      name choice is arbitrary).
+    </p>
+    <p>
+      Whereas there is just one well-specified and -documented structure for 
+      JSON, there are countless possible ways to do &quot;something like JSON&quot; 
+      (&quot;JSON&quot;). But there is a relatively small set of commonly seen 
+      apocryphical features for such JSON pidgins.<br>These are:
+    </p>
+    <ul>
+      <li>
+        Use of comments: usually C (&quot;/* ... */&quot;) or C++ (&quot;// ....&quot;) comments. 
+        Origins of this addition is probably JSON specification itself: some 
+        earliest drafts did indeed include ability to add such comments
+      </li>
+      <li>
+        Optional quoting around field names (i.e. leaving double-quotes out of 
+        field names). This usage is probably related to the fact that quoting 
+        is optional for Javascript, and related logical leap caused by origins 
+        of name JSON itself
+      </li>
+    </ul>
+    <p>
+      These are the most commonly seen deviations, at least based on user 
+      request for supporting &quot;JSON&quot; content.
+    </p>
+    <p>
+      <b>1. ToSupport or !ToSupport</b>
+    </p>
+    <p>
+      From philosophical perspective, it would be tempting to outright decline 
+      to have anything to do with &quot;JSON&quot; content. After all, adding support 
+      might be seen as encouragement to use of non-standard features, leading 
+      to interoperability problems (depending which extra features various 
+      processors chose to support). But on the other hand, it is often useful 
+      to follow &quot;liberal with what you accept; conservative with what you 
+      produce&quot; guideline when promoting interoperability -- especially when 
+      there already exists implementations that make use of non-standard 
+      extensions mentioned earlier.<br>
+    </p>
+    <p>
+      So with some procrastination, discussion and delay, optional support 
+      features have been added over time to let Jackson deal with &quot;JSON&quot;.
+    </p>
+    <p>
+      With the warning that you should use such features only if you 
+      absolutely must (for interoperability reasons), here's what features 
+      exist and how they can be enabled.
+    </p>
+    <p>
+      <b>2. Handling of comments</b>
+    </p>
+    <p>
+      Comments that are encountered with &quot;content like JSON&quot; come in 2 main 
+      flavors: C-style (/* ... */) and C++ - style (// ....). Both forms were 
+      actually allowed in some earlier drafts of JSON specification, but 
+      dropped from the final version (what a shame -- my opinion is that this 
+      would have been a valuable and useful feature).
+    </p>
+    <p>
+      By default such comments in content will result in a parse exception. 
+      But it is possible to make parser simply skip such comments by 
+      configuring parser with:
+    </p>
+    <pre>  jsonFactory.enable(JsonParser.Feature.ALLOW_COMMENTS); // Jackson 1.2+
+  jsonFactory.configure(JsonParser.Feature.ALLOW_COMMENTS, true); // Jackson 1.0+</pre>
+    <p>
+      (and similary directly for <i>JsonParser</i> instances, using 
+      'parser.configure()')
+    </p>
+    <p>
+      or, when using <i>ObjectMapper:</i>
+    </p>
+    <pre>  objectMapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true); // Jackson 1.2+</pre>
+    <p>
+      (which will basically configure parser instances mapper creates and uses)
+    </p>
+    <p>
+      For interoperability, it's best not to create any such content: but if 
+      you really must create such comments, you can do that by using &quot;raw 
+      output&quot; methods of <i>JsonGenerator</i>:
+    </p>
+    <pre>  jsonGenerator.writeRaw(&quot; // my non-standard comment\n&quot;)</pre>
+    <p>
+      <b>3. Handling of unquoted field names</b>
+    </p>
+    <p>
+      Another common deviation from standard is use of unquoted names (field 
+      names not surrounded by double quotes). This deviation is probably due 
+      to common misconception that JSON is a straightforward static subset of 
+      Javascript (which is not true).<br>At any rate such content is often 
+      seen; and sometimes even preferred by some rogue JSON practitioners.
+    </p>
+    <p>
+      Generating such fields can be enabled by a JsonGenerator feature:
+    </p>
+    <pre>jsonFactory.disable(JsonGenerator.Feature.QUOTE_FIELD_NAMES); // Jackson 1.2+
+jsonFactory.configure(JsonGenerator.Feature.QUOTE_FIELD_NAMES, false); // Jackson 1.0+</pre>
+    <p>
+      after which names will be output without surrounding double-quotes.<br>And 
+      to accept such content, parser needs to be configured with:
+    </p>
+    <pre>  jsonFactory.enable(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES); // Jackson 1.2+ only</pre>
+    <p>
+      or, when using <i>ObjectMapper</i>:
+    </p>
+    <pre>  objectMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true); // Jackson 1.2+</pre>
+    <p>
+      <b>4. Warning</b>
+    </p>
+    <p>
+      Did I already mention that you shouldn't really be using features I 
+      talked about above? And that if you do end up enabling these features, 
+      you should seriously consider repenting (take a shower after use, 
+      another one for extra measure; do 50 pater nosters, and spit over your 
+      left shoulder).
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, August 31, 2009 10:40 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/08/entry_310.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/08/entry_310.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/08/entry_310.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Tuesday, August 04, 2009 </h2>
+
+<div class="entry" id="post-307">
+			<h3 class="entry-header">Jackson 1.2 released!</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Even without Netcraft confirming it, this much is official:<a href="http://wiki.fasterxml.com/JacksonRelease12">Jackson 
+      1.2.0</a> has just been released, and is available from <a href="http://wiki.fasterxml.com/JacksonDownload">here</a>.
+    </p>
+    <p>
+      Beside 2 Grand Features already show-cased (<a href="http://wiki.fasterxml.com/JacksonFeatureCreators">BYOC</a>, 
+      <a href="http://wiki.fasterxml.com/JacksonMixInAnnotations">Mix-in 
+      Annotations</a>), here are some other choice additions:
+    </p>
+    <ul>
+      <li>
+        Ability to <a href="http://wiki.fasterxml.com/JacksonSerializeWithStaticTypes">use 
+        declared (static) type for serialization</a>, instead of runtime type: 
+        useful if you want to enforce public API, and avoid leaking 
+        implementation details
+      </li>
+      <li>
+        Ability to <b>suppress errors for unknown (unrecognized) properties</b>
+      </li>
+      <li>
+        More support for non-standard JSON content: <b>can optionally parse 
+        content where field names are not quoted</b> (something Javascript 
+        allows and standard JSON  not)
+      </li>
+      <li>
+        Ability to use <b>&quot;delegating&quot; creators</b> -- constructors 
+        and factory methods that take intermediate bound object to construct 
+        POJO from. Typically this means taking in a Map&lt;String,Object&gt; (which 
+        Jackson binds), and then extracting loosely typed data for POJO
+      </li>
+      <li>
+        ObjectMapper now implements <b>JsonNodeFactory</b>: can construct all 
+        JsonNode types without explicitly getting a factory implementation -- 
+        useful when building Tree Models from scratch
+      </li>
+    </ul>
+    <p>
+      As always, download responsibly! And don't forget to click the advert... 
+      I mean, tip the waitresses.
+    </p>
+    <p>
+      ps. I'll be off for a brief (2 week) vacation, so there won't be much 
+      new material to read here.
+    </p>
+    <p>
+      
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, August 04, 2009 9:12 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/08/entry_307.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/08/entry_307.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/08/entry_307.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header"> </h2>
+
+<div class="entry" id="post-305">
+			<h3 class="entry-header">Jackson 1.2: use Mix-In Annotations to reuse, decouple</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      After <a href="/blog/archives/2009/07/entry_303.html">reviewing</a> the 
+      &quot;number #1 user favorite feature&quot; of upcoming <a href="http://wiki.fasterxml.com/JacksonRelease12">Jackson 
+      1.2</a> release, let's check out the Author's cut. As cool as ability to 
+      use any constructor or factory method a POJO has, my favorite feature is 
+      this little feature called <a href="http://wiki.fasterxml.com/JacksonMixInAnnotations">Mix-in 
+      Annotations</a>.
+    </p>
+    <p>
+      <b>1. What are Mix-in Annotations?</b>
+    </p>
+    <p>
+      Mix-in annotations are annotations defined in a <b>mix-in class</b> (or 
+      interface), that are to be used to augment annotations of a <b>target 
+      class</b> (or interface). Augmenting means that annotations of the 
+      mix-in class are used as if they were directly included in target class. 
+      Another way to explain this is to think of &quot;mixing in annotations&quot; to 
+      mean &quot;injecting annotations from mix-in class to a target class&quot;.
+    </p>
+    <p>
+      Simple enough? There are obviously many smaller details (which will be 
+      explained later on), but for now this definition should suffice.
+    </p>
+    <p>
+      <b>2. Example use case</b>
+    </p>
+    <p>
+      Definition itself only describes what the feature is and does, but not 
+      why it would be useful. So let's consider an example use case.
+    </p>
+    <p>
+      Let's say you are using a third-party (or legacy) library that has a 
+      class called Point, defined as:
+    </p>
+    <pre>  public final class Point {
+    final private int x, y;
+    public Point(int x, int y) {
+      this.x = x;
+      this.y = y;
+    }
+    int x() { return x; }
+    int y() { return y; }
+    int getArea() { return x * y; }
+  }</pre>
+    <p>
+      Point class is used extensively; including being exchanged between 
+      services. This means it needs to be serialized and deserialized.
+    </p>
+    <p>
+      Now Point is a perfectly ok POJO (and even somewhat typical one), but 
+      not one easily usable with data binding frameworks, including Jackson 
+      1.1. Problems are:
+    </p>
+    <ul>
+      <li>
+        Bean naming convention is not used, so that properties &quot;x&quot; and &quot;y&quot; are 
+        not serializable using getter methods; nor are fields public for 
+        automatic detection
+      </li>
+      <li>
+        Method &quot;getArea&quot; implies a bean property (and would be auto-detected), 
+        but we do NOT want to serialize property &quot;area&quot;, since it is just a 
+        derived value and not an actual property
+      </li>
+      <li>
+        No default constructor is defined, but a 2-argument &quot;initializing&quot; 
+        constructor (not a problem per se with 1.2, any more); and that 
+        constructor is not marked as something we can use
+      </li>
+    </ul>
+    <p>
+      So how would we serialize such a POJO?
+    </p>
+    <p>
+      Two main approaches would be adding annotations to guide the process; or 
+      writing a custom serializer.
+    </p>
+    <p>
+      In this case, we can not modify Point class definition itself; and 
+      ideally do not want to write custom serializers and deserializers, 
+      unless we absolutely have to.
+    </p>
+    <p>
+      <b>3. Solution using Mix-in Annotations</b>
+    </p>
+    <p>
+      So here is how you could use mix-in annotations to make Point (JSON) 
+      serializable: first, define a mix-in annotation interface (class would 
+      do as well):
+    </p>
+    <pre>  interface MixIn {
+    @JsonProperty(&quot;x&quot;) int x();
+    @JsonProperty(&quot;y&quot;) int y();
+    @JsonIgnore int getArea();
+  }</pre>
+    <p>
+      and then configure ObjectMapper to use that as a &quot;mix-in&quot; for <code>Point</code> 
+      like so:
+    </p>
+    <pre>  ObjectMapper mapper = new ObjectMapper();
+  mapper.getSerializationConfig().addMixInAnnotations(Point.class, MixIn.class);</pre>
+    <p>
+      And voila! After doing this, Points would be serialized as containing 
+      integer properties &quot;x&quot; and &quot;y&quot;; not &quot;area&quot; as would happen by default.
+    </p>
+    <p>
+      Before considering the other part (deserialization), here are some notes 
+      on using Mix-in Annotations:
+    </p>
+    <ul>
+      <li>
+        All annotation sets that Jackson recognizes (<a href="http://wiki.fasterxml.com/JacksonAnnotations">core 
+        annotations</a>, <a href="http://wiki.fasterxml.com/JacksonJAXBAnnotations">JAXB 
+        extensions</a>) can be mixed in
+      </li>
+      <li>
+        All kinds of annotations (member method, static method, field, 
+        constructor annotations) can be mixed in
+      </li>
+      <li>
+        <i>Only method (and field) name and signature</i> are used for 
+        matching annotations: access definitions (private etc) and method 
+        implementations are ignored. (hint: if you can, it often<b> makes 
+        sense to define mix-in class as an [abstract?] sub-class of target 
+        class</b>, and use @Override JDK annotation to ensure method name and 
+        signature match!)
+      </li>
+      <li>
+        Mix-ins work as expected within inheritance hierarchy: it is feasible 
+        (and useful) to attach mix-in annotations to super-classes -- if so, 
+        mix-in annotations can further be overridden by annotations 
+        sub-classes (of target) provide.
+      </li>
+    </ul>
+    <p>
+      <b>4. Works for deserialization, too (or: &quot;Better with BYOC&quot;)</b>
+    </p>
+    <p>
+      So far so good? So here's another mix-in to tackle deserialization part 
+      -- the need to indicate constructor to use, and its parameter binding.
+    </p>
+    <pre>  abstract class DeserMixIn { // must be class to define constructors!
+    DeserMixIn(@JsonProperty(&quot;x&quot;) int x, @JsonProperty(&quot;y&quot;) int y) { }
+  }</pre>
+    <p>
+      and then just register this mix-in using <i>ObjectMapper.getDeserializationConfig().addMixInAnnotations()</i>.<br>Note, 
+      too, that you could just create a single mix-in class to contain all 
+      annotations; they are here only separated for clarity.
+    </p>
+    <p>
+      It is also worth re-iterating that <a href="http://wiki.fasterxml.com/JacksonFeatureCreators">the 
+      ability to annotate &quot;Creators&quot;</a> (constructors as well 
+      static factory methods) is the &quot;other cool new feature&quot; of Jackson 1.2.
+    </p>
+    <p>
+      So we can get Points out of JSON, so to speak.
+    </p>
+    <p>
+      <b>5. So what IS the Point?</b>
+    </p>
+    <p>
+      So the obvious first main benefit of this feature is that it makes it 
+      easier to work with legacy code; especially one you can not (or do not 
+      want to) modify by adding annotations. It is often good idea to let the 
+      sleeping code lie, unless you plan to do some significant refactoring. 
+      If it ain't broke, don't fix it.
+    </p>
+    <p>
+      But beyond this, it is also possible that perhaps you would ideally not 
+      add &quot;special-purpose&quot; (or perhaps, any at all) annotations to your 
+      POJOs. Arguably these annotations create a depedency to Jackson 
+      annotation classes, which should usually just be implementation details 
+      (assuming the main use for classes is not to serialize to JSON but do 
+      something else, aka &quot;business logic&quot;), and as such lead to unnecessary 
+      coupling of code.
+    </p>
+    <p>
+      So if you prefer to leave serialization-oriented annotations out of your 
+      biz-logic and data access/transfer classes, you could consider instead 
+      using Mix-in Annotations as the mechanism to associate necessary 
+      configuration information without introducing &quot;wrong kind of&quot; coupling. 
+      In a way, Mix-in Annotations can be viewed kind of Aspect-Oriented (or 
+      maybe Inversion-of-Control) feature. They allow injecting runtime 
+      serialization/deserialization configuration information, using dynamic 
+      (but non-intrusive: no code is modified!) mechanism.
+    </p>
+    <p>
+      <b>7. Keep on Innovating!</b>
+    </p>
+    <p>
+      One more thing: I think that this feature is one of the first features 
+      that is truly innovative with Jackson. There are many things that are 
+      improved, and perhaps even clever. But Mix-in Annotations is something I 
+      haven't seen in other libraries yet. Given this, I am curious to learn 
+      how users feel about it -- leave a comment here, or send email: let me 
+      know how you really feel!
+    </p>
+    <p>
+      The idea is of course to continue innovating. 1.3 is planned to contain 
+      similarly innovative features to make it possible, for example, to bind 
+      objects from regular Maps (and vice versa). Why? Well, wouldn't it be 
+      nice to create POJOs out of those nice little Java properties files? I 
+      think so too!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, August 04, 2009 9:01 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/08/entry_305.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/08/entry_305.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/08/entry_305.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/08/entry_310.html">Processing non-standard "JSON"</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/08/entry_307.html">Jackson 1.2 released!</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/08/entry_305.html">Jackson 1.2: use Mix-In Annotations to reuse, decouple</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

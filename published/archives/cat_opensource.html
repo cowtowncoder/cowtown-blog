@@ -1,0 +1,2501 @@
+<html lang="en">
+<head>
+<title>Open Source</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important}
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+     <div id="container">
+          <div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+     <div id="banner-inner" class="pkg">
+          <h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+          <h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+     </div>
+</div>
+               <div id="pagebody">
+                    <div id="pagebody-inner" class="pkg">
+                         <div id="alpha">
+                              <div id="alpha-inner" class="pkg">
+<!-- entry -->
+
+   
+     <h2 class="date-header">Thursday, May 24, 2012 </h2>
+<div class="entry" id="post-475">
+     <h3 class="entry-header">Doing actual non-blocking, incremental HTTP access with async-http-client</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      <a href="https://github.com/sonatype/async-http-client">Async-http-client</a> 
+      library, originally developed at Ning (by Jean-Francois, Tom, Brian and 
+      maybe others and since then by quite a few others) has been around for a 
+      while now.<br>Its main selling point is the claim for better scalability 
+      compared to alternatives like <a href="http://hc.apache.org/">Jakarta 
+      HTTP Client</a> (this is not the only selling points: its API also seems 
+      more intuitive).
+    </p>
+    <p>
+      But although library itself is capable of working well in non-blocking 
+      mode, most examples (and probably most users) use it in plain old 
+      blocking mode; or at most use Future to simply defer handling of 
+      respoonses, but without handling content incrementally when it becomes 
+      available.
+    </p>
+    <p>
+      While this lack of documentation is bit unfortunate just in itself, the 
+      bigger problem is that most usage as done by sample code requires 
+      reading the whole response in memory.<br>This may not be a big deal for 
+      small responses, but in cases where response size is in megabytes, this 
+      often becomes problematic.
+    </p>
+    <p>
+      <b>1. Blocking, fully in-memory usage</b>
+    </p>
+    <p>
+      The usual (and potentially problematic) usage pattern is something like:
+    </p>
+    <pre>  AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
+  Future&lt;Response&gt; f = asyncHttpClient.prepareGet(&quot;http://www.ning.com/ &quot;).execute();
+  Response r = f.get();<br>  byte[] contents = r.getResponseBodyAsBytes();</pre>
+    <p>
+      which gets the whole response as a byte array; no surprises there.
+    </p>
+    <p>
+      <b>2. Use InputStream to avoid buffering the whole entity?</b>
+    </p>
+    <p>
+      The first obvious work around attempt is to have a look at Response 
+      object, and notice that there is method &quot;<i>getResponseBodyAsStream()</i>&quot;. 
+      This would seemingly allow one to read response, piece by piece, and 
+      process it incrementally, by (for example) writing it to a file.
+    </p>
+    <p>
+      Unfortunately, this method is just a facade, implemented like so:
+    </p>
+    <pre> public InputStream getResponseBodyAsStream() {<br>   return new ByteArrayInputStream(getResponseBodyAsBytes());<br> }</pre>
+    <p>
+      which actually is no more efficient than accessing the whole content as 
+      a byte array. :-/
+    </p>
+    <p>
+      (why is it implemented that way? Mostly because underlying non-blocking 
+      I/O library, like Netty or Grizzly, provides content using &quot;push&quot; style 
+      interface, which makes it very hard to support &quot;pull&quot; style abstractions 
+      like java.io.InputStream -- so it is not really AHC's fault, but rather 
+      a consequence of NIO/async style of I/O processing)
+    </p>
+    <p>
+      <b>3. Go fully async</b>
+    </p>
+    <p>
+      So what can we do to actually process large response payloads (or large 
+      PUT/POST request payloads, for that matter)?
+    </p>
+    <p>
+      To do that, it is necessary to use following callback abstractions:
+    </p>
+    <ol>
+      <li>
+        To handle response payloads (for HTTP GETs), we need to implement <b><i>AsyncCompletionHandler</i></b> 
+        interface.
+      </li>
+      <li>
+        To handle PUT/POST request payloads, we need to implement <b><i>BodyGenerator</i></b> 
+        (which is used for creating a Body instance, abstraction for feeding 
+        content)
+      </li>
+    </ol>
+    <p>
+      Let's have a look at what is needed for the first case.
+    </p>
+    <p>
+      (note: there are existing default implementations for some of the pieces 
+      -- but here I will show how to do it from ground up) 
+    </p>
+    <p>
+      <b>4. A simple download-a-file example</b>
+    </p>
+    <p>
+      Let's start with a simple case of downloading a large file into a file, 
+      without keeping more than a small chunk in memory at any given time. 
+      This can be done as follows:
+    </p>
+    <hr>
+    
+
+    <pre>public class SimpleFileHandler implements AsyncHandler&lt;File&gt;
+{
+ private File file;
+ private final FileOutputStream out;
+ private boolean failed = false;
+
+ public SimpleFileHandler(File f) throws IOException {
+  file = f;
+  out = new FileOutputStream(f);
+ }
+
+ public com.ning.http.client.AsyncHandler.STATE onBodyPartReceived(HttpResponseBodyPart part)
+   throws IOException
+ {
+  if (!failed) {
+   part.writeTo(out);
+  }
+  return STATE.CONTINUE;
+ }
+
+ public File onCompleted() throws IOException {
+  out.close();
+  if (failed) {
+   file.delete();
+   return null;
+  }
+  return file;
+ }
+
+ public com.ning.http.client.AsyncHandler.STATE onHeadersReceived(HttpResponseHeaders h) {
+  // nothing to check here as of yet
+  return STATE.CONTINUE;
+ }
+
+ public com.ning.http.client.AsyncHandler.STATE onStatusReceived(HttpResponseStatus status) {
+  failed = (status.getStatusCode() != 200);
+  return failed ?  STATE.ABORT : STATE.CONTINUE;
+ }
+
+ public void onThrowable(Throwable t) {
+  failed = true;
+ }
+}</pre>
+    <hr>
+    
+
+    <p>
+      Voila. Code is not very brief (event-based code seldom is), and it could 
+      use some more handling for error cases.<br>But it should at least show 
+      the general processing flow -- nothing very complicated there, beyond 
+      basic state machine style operation.
+    </p>
+    <p>
+      <b>5. Booooring. Anything more complicated?</b>
+    </p>
+    <p>
+      Downloading a large file is something useful, but while not a contriver 
+      example, it is rather plain. So let's consider the case where we not 
+      only want to download a piece of content, but also want uncompress it, 
+      in one fell swoop. This serves as an example of additional processing we 
+      may want to do, in incremental/streaming fashion -- as an alternative to 
+      having to store an intermediate copy in a file, then uncompress to 
+      another file.
+    </p>
+    <p>
+      But before showing the code, however, it is necessary to explain why 
+      this is bit tricky.
+    </p>
+    <p>
+      First, remember that we can't really use <i>InputStream</i>-based 
+      processing here: all content we get is &quot;pushed&quot; to use (without our code 
+      ever blocking with input); whereas InputStream would want to push 
+      content itself, possibly blocking the thread.
+    </p>
+    <p>
+      Second: most decompressors present either InputStream-based abstraction, 
+      or uncompress-the-whole-thing interface: neither works for us, since we 
+      are getting incremental chunks; so to use either, we would first have to 
+      buffer the whole content. Which is what we are trying to avoid.
+    </p>
+    <p>
+      As luck would have it, however, <a href="https://github.com/ning/compress">Ning 
+      Compress</a> package (version 0.9.4, specifically) just happens to have 
+      a push-style uncompressor interface (aptly named as &quot;<b><i>com.ning.compress.Uncompressor</i></b>&quot;); 
+      and two implementations:
+    </p>
+    <ol>
+      <li>
+        com.ning.compress.lzf.LZFUncompressor
+      </li>
+      <li>
+        com.ning.compress.gzip.GZIPUncompressor (uses JDK native zlib under 
+        the hood)
+      </li>
+    </ol>
+    <p>
+      So why is that fortunate? Because interface they expose is push style:
+    </p>
+    <pre> public abstract class Uncompressor
+ {
+  public abstract void feedCompressedData(byte[] comp, int offset, int len) throws IOException;
+  public abstract void complete() throws IOException;<br> }</pre>
+    <p>
+      and is thereby usable to our needs here. Especially when we use 
+      additional class called &quot;UncompressorOutputStream&quot;, which makes an 
+      OutputStream out of Uncompressor and target stream (which is needed for 
+      efficient access to content AHC exposes via <i>HttpResponseBodyPart</i>)
+    </p>
+    <p>
+      <b>6. Show me the code</b>
+    </p>
+    <p>
+      Here goes:
+    </p>
+    <hr>
+    
+
+    <pre>public class UncompressingFileHandler implements AsyncHandler&lt;File&gt;,
+   DataHandler // for Uncompressor
+{
+ private File file;
+ private final OutputStream out;
+ private boolean failed = false;
+ private final UncompressorOutputStream uncompressingStream;
+
+ public UncompressingFileHandler(File f) throws IOException {
+  file = f;
+  out = new FileOutputStream(f);
+ }
+
+ public com.ning.http.client.AsyncHandler.STATE onBodyPartReceived(HttpResponseBodyPart part)
+   throws IOException
+ {
+  if (!failed) {
+   // if compressed, pass through uncompressing stream
+   if (uncompressingStream != null) {
+    part.writeTo(uncompressingStream);
+   } else { // otherwise write directly
+    part.writeTo(out);
+   }
+   part.writeTo(out);
+  }
+  return STATE.CONTINUE;
+ }
+
+ public File onCompleted() throws IOException {
+  out.close();
+  if (uncompressingStream != null) {
+   uncompressingStream.close();
+  }
+  if (failed) {
+   file.delete();
+   return null;
+  }
+  return file;
+ }
+
+ public com.ning.http.client.AsyncHandler.STATE onHeadersReceived(HttpResponseHeaders h) {
+  // must verify that we are getting compressed stuff here:
+  String compression = h.getHeaders().getFirstValue(&quot;Content-Encoding&quot;);
+  if (compression != null) {
+   if (&quot;lzf&quot;.equals(compression)) {
+    uncompressingStream = new UncompressorOutputStream(new LZFUncompressor(this));
+   } else if (&quot;gzip&quot;.equals(compression)) {
+    uncompressingStream = new UncompressorOutputStream(new GZIPUncompressor(this));
+   }
+  }
+  // nothing to check here as of yet
+  return STATE.CONTINUE;
+ }
+
+ public com.ning.http.client.AsyncHandler.STATE onStatusReceived(HttpResponseStatus status) {
+  failed = (status.getStatusCode() != 200);
+  return failed ?  STATE.ABORT : STATE.CONTINUE;
+ }
+
+ public void onThrowable(Throwable t) {
+  failed = true;
+ }
+
+ // DataHandler implementation for Uncompressor; called with uncompressed content:
+ public void handleData(byte[] buffer, int offset, int len) throws IOException {
+  out.write(buffer, offset, len);
+ }
+}</pre>
+    <hr>
+    
+
+    <p>
+      Handling gets bit more complicated here, since we have to handle both 
+      case where content is compressed; and case where it is not (since server 
+      is ultimately responsible for applying compression or not).
+    </p>
+    <p>
+      And to make call, you also need to indicate capability to accept 
+      compressed data. For example, we could define a helper method like:
+    </p>
+    <hr>
+    
+
+    <pre>public File download(String url) throws Exception
+{
+ AsyncHttpClient ahc = new AsyncHttpClient();
+ Request req = ahc.prepareGet(url)
+  .addHeader(&quot;Accept-Encoding&quot;, &quot;lzf,gzip&quot;)
+  .build();
+ ListenableFuture&lt;File&gt; futurama = ahc.executeRequest(req,<br>   new UncompressingFileHandler(new File(&quot;download.txt&quot;)));
+
+ try { // wait for 30 seconds to complete
+  return futurama.get(30, TimeUnit.MILLISECONDS);
+ } catch (TimeoutException e) {
+  throw new IOException(&quot;Failed to download due to timeout&quot;);
+ }
+}  <br></pre>
+    <hr>
+    
+
+    <p>
+      which would use handler defined above.
+    </p>
+    <p>
+      <b>7. Easy enough?</b>
+    </p>
+    <p>
+      I hope above shows that while doing incremental, &quot;streaming&quot; processing 
+      is bit more work, it is not super difficult to do.
+    </p>
+    <p>
+      Not even when you have bit of pipelining to do, like uncompressing (or 
+      compressing) data on the fly.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Thursday, May 24, 2012 5:26 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Thursday, May 03, 2012 </h2>
+<div class="entry" id="post-474">
+     <h3 class="entry-header">Jackson Data-binding: Did I mention it can do YAML as well?</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Note: as useful earlier articles, consider reading &quot;<a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_468.html">Jackson 
+      2.0: CSV-compatible as well</a>&quot; and &quot;<a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_467.html">Jackson 
+      2.0: now with XML, too!</a>&quot;
+    </p>
+    <p>
+      <b>1. Inspiration</b>
+    </p>
+    <p>
+      Before jumping into the actual beef -- the new module -- I want to 
+      mention my inspiration for this extension: the Greatest New Thing to hit 
+      Java World Since JAX-RS called <a href="https://github.com/codahale/dropwizard">DropWizard</a>.
+    </p>
+    <p>
+      For those who have not yet tried it out and are unaware of its Kung-Fu 
+      Panda like Awesomeness, please go and check it out. You won't be 
+      disappointed.
+    </p>
+    <p>
+      DropWizard is a sort of mini-framework that combines great Java 
+      libraries (I may be biased, as it does use Jackson), starting with 
+      trusty JAX-RS/Jetty8 combination, building with Jackson for JSON, jDBI 
+      for DB/JDBC/SQL, Java Validation API (impl from Hibernate project) for 
+      data validation, and logback for logging; adding bit of Jersey-client 
+      for client-building and optional FreeMarker plug-in for UI, all bundled 
+      up in a nice, modular and easily understandable packet.<br>Most 
+      importantly, it &quot;Just Works&quot; and comes with intuitive configuration and 
+      bootstrapping system. It also builds easily into a single deployable jar 
+      file that contains all the code you need, with just a bit of Maven 
+      setup; all of which is well documented. Oh, and the documentation is 
+      very accessible, accurate and up-to-date. All in all, a very rare 
+      combination of things -- and something that would give RoR and other 
+      &quot;easier than Java&quot; frameworks good run for their money, if hipsters ever 
+      decided to check out the best that Java has to offer.
+    </p>
+    <p>
+      The most relevant part here is the configuration system. Configuration 
+      can use either basic JSON or full YAML. And as I <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_473.html">mentioned 
+      earlier</a>, I am beginning to appreciate YAML for configuring things.
+    </p>
+    <p>
+      <b>1.1. The Specific inspirational nugget: YAML converter</b>
+    </p>
+    <p>
+      The way DropWizard uses YAML is to parse it using SnakeYAML library, 
+      then convert resulting document into JSON tree and then using Jackson 
+      for data binding. This is useful since it allows one to use full power 
+      of Jackson configuration including annotations and polymorphic type 
+      handling.
+    </p>
+    <p>
+      But this got me thinking -- given that the whole converter 
+      implementation about dozen lines or so (to work to degree needed for 
+      configs), wouldn't it make sense to add &quot;full support&quot; for YAML into 
+      Jackson family of plug-ins?
+    </p>
+    <p>
+      I thought it would.
+    </p>
+    <p>
+      <b>2. And Then There Was One More Backend for Jackson</b>
+    </p>
+    <p>
+      Turns out that implementation was, indeed, quite easy. I was able to 
+      improve certain things -- for example, module can use lower level API to 
+      keep performance bit better; and output side also works, not just reader 
+      -- but in a way, there isn't all that much to do since all module has to 
+      do is to convert YAML events into JSON events, and maybe help with some 
+      conversions.
+    </p>
+    <p>
+      Some of more advanced things include:
+    </p>
+    <ul>
+      <li>
+        Format auto-detection works, thanks to &quot;---&quot; document prefix (that 
+        generator also produces by default)
+      </li>
+      <li>
+        Although YAML itself exposes all scalars as text (unless type hints 
+        are enabled, which adds more noise in content), module uses heuristics 
+        to make parser implementation bit more natural; so although 
+        data-binding can also coerce types, this should usually not be needed
+      </li>
+      <li>
+        Configuration includes settings to change output style, to allow use 
+        of more aesthetically pleasing output (for those who prefer &quot;wiki 
+        look&quot;, for example)
+      </li>
+    </ul>
+    <p>
+      At this point, functionality has been tested with a broad if shallow set 
+      of unit tests; but because data-binding used is 100% same as with JSON, 
+      testing is actually sufficient to use module for some work.
+    </p>
+    <p>
+      <b>3. Usage? So boring I tell you</b>
+    </p>
+    <p>
+      Oh. And you might be interested in knowing how to use the module. This 
+      is the boring part, since.... there isn't really much to it.
+    </p>
+    <p>
+      You just use &quot;YAMLFactory&quot; wherever you would normally use 
+      &quot;JsonFactory&quot;; and then under the hood you get &quot;YAMLParser&quot; and 
+      &quot;YAMLGenerator&quot; instances, instead of JSON equivalents. And then you 
+      either use parser/generator directly, or, more commonly, construct an 
+      &quot;ObjectMapper&quot; with &quot;YAMLFactory&quot; like so (code snippet itself is from 
+      test &quot;SimpleParseTest.java&quot;)
+    </p>
+    <hr>
+    
+
+    <pre>  ObjectMapper mapper = new ObjectMapper(new YAMLFactory());<br>  User user = mapper.readValue(&quot;firstName: Billy\n&quot;<br>    +&quot;lastName: Baggins\n&quot;<br>    +&quot;gender: MALE\n&quot;<br>    +&quot;userImage: AQIDBAY=&quot;,<br>   User.class);</pre>
+    <p>
+      <hr>
+      and to get the functionality itself, Maven dependency is:<hr>
+    </p>
+    <pre>&lt;dependency&gt;
+  &lt;groupId&gt;com.fasterxml.jackson.dataformat&lt;/groupId&gt;
+  &lt;artifactId&gt;jackson-dataformat-yaml&lt;/artifactId&gt;
+  &lt;version&gt;2.0.0&lt;/version&gt;
+&lt;/dependency&gt;</pre>
+    <hr>
+    
+
+    <p>
+      <b>4. That's all Folks -- until you give us some Feedback!</b>
+    </p>
+    <p>
+      That's it for now. I hope some of you will try out this new backend, and 
+      help us further make Jackson 2.0 the &quot;Universal Java Data Processor&quot;
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Thursday, May 03, 2012 10:12 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_474.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_474.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_474.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Saturday, April 07, 2012 </h2>
+<div class="entry" id="post-471">
+     <h3 class="entry-header">Java Type Erasure not a Total Loss -- use Java Classmate for resolving generic signatures</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      As I have written before (&quot;<a href="/blog/archives/2010/12/entry_436.html">Why 
+      'java.lang.reflect.Type' Just Does Not Cut It</a>&quot;), Java's Type Erasure 
+      can be a royal PITA.
+    </p>
+    <p>
+      But things are actually not quite as bleak as one might think. But let's 
+      start with an actual somewhat unsolvable problem; and then proceed with 
+      another important, similar, yet solvable problem.
+    </p>
+    <p>
+      <b>1. Actual Unsolvable problem: Java.util Collections</b>
+    </p>
+    <p>
+      Here is piece of code that illustrates a problem that most Java 
+      developers either understand, or think they understand:
+    </p>
+    <pre>  List&lt;String,Integer&gt; stringsToInts = new ArrayList&lt;String,Integer&gt;();<br>  List&lt;byte[],Boolean&gt; bytesToBools = new ArrayList&lt;byte[], Boolean&gt;();<br>  assertSame(stringsToInts.getclass(), bytesToBools.getClass();</pre>
+    <p>
+      The problem is that although conceptually two collections seem to act 
+      different, at source code level, they are instances of the very same 
+      class (Java does not generate new classes for genericized types, unlike 
+      C++).
+    </p>
+    <p>
+      So while compiler helps in keeping typing straight, there is little 
+      runtime help to either enforce this, or allow other code to deduce 
+      expected type; there just isn't any difference from type perspective.
+    </p>
+    <p>
+      <b>2. All Lost? Not at all</b>
+    </p>
+    <p>
+      But let's look at another example. Starting with a simple interface
+    </p>
+    <hr>
+    
+
+    <pre>public interface Callable&lt;IN, OUT&gt; {<br>  public OUT call(IN argument);<br>}</pre>
+    <hr>
+    
+
+    <p>
+      do you think following is true also?
+    </p>
+    <hr>
+    
+
+    <pre>public void compare(Callable&lt;?,?&gt; callable1, Callable&lt;?,?&gt; callable2) {<br>  assertSame(callable1.getClass(), callable2.getClass());<br>}</pre>
+    <hr>
+    
+
+    <p>
+      Nope. Not necessarilly; classes may well be different. WTH?
+    </p>
+    <p>
+      The difference here is that since Callable is an interface (and you can 
+      not instantiate an interface), instances must be of some other type; and 
+      there is a good chance they are different.
+    </p>
+    <p>
+      But more importantly, if you use <a href="https://github.com/cowtowncoder/java-classmate">Java 
+      ClassMate</a> library (more on this in just a bit), we can even figure 
+      out parameterization (unlike with earlier example, where all you could 
+      see is that parameters are &quot;a subtype of java.lang.Object&quot;), so for 
+      example we can do
+    </p>
+    <div>
+      <hr>
+      // Assume 'callable1' was of type:
+    </div>
+    <div>
+      // class MyStringToIntList implements Callable&lt;String, List&lt;Integer&gt;&gt; { 
+      ... }
+    </div>
+    <pre>  TypeResolver resolver = new TypeResolver();
+  ResolvedType type = resolver.resolve(callable1.getClass());
+  List&lt;ResolvedType&gt; params = type.typeParametersFor(Callable.class);<br>  // so we know it has 2 parameters; from above, 'String' and 'List&lt;Integer&gt;'<br>  assertEquals(2, params.size());
+  assertSame(String.class, params.get(0).getErasedType();<br>  // and second type is generic itself; in this case can directly access<br>  ResolvedType resultType = params.get(1);<br>  assertSame(List.class, resultType.getErasedType());<br>  List&lt;ResolvedType&gt; listParams = resultType.getTypeParameters();<br>  assertSame(Integer.class, listParams.get(0).getErasedType();<br>  //or, just to see types visually, try:<br>  String desc = type.getSignature(); // or 'getFullDescription'</pre>
+    <hr>
+    
+
+    <p>
+      How is THIS possible? (fun exercise: pick 5 of your favorite Java 
+      experts; ask if above is possible, observe how most of them would have 
+      said &quot;nope, not a chance&quot; :-) )
+    </p>
+    <p>
+      <b>3. Long live generics -- hidden deep, deep within</b>
+    </p>
+    <p>
+      Basically generic type information is actually stored in class 
+      definitions, in 3 places:
+    </p>
+    <ol>
+      <li>
+        When defining parent type information (&quot;super type&quot;); parameterization 
+        for base class and base interface(s) if any
+      </li>
+      <li>
+        For generic field declarations
+      </li>
+      <li>
+        For generic method declarations (return, parameter and exception types)
+      </li>
+    </ol>
+    <p>
+      It is the first place where ClassMate finds its stuff. When resolving a 
+      Class, it will traverse the inheritance hierarchy, recomposing type 
+      parameterizations. This is a rather involved process, mostly due to type 
+      aliasing, ability for interfaces to use different signatures and so on. 
+      In fact, trying to do this manually first looks feasible, but if you try 
+      it via all wildcarding, you will soon realize why having a library do it 
+      for you is a nice thing...
+    </p>
+    <p>
+      So the important thing to learn is this: <i><b>to retain run-time 
+      generic type information, you MUST pass concrete sub-types which resolve 
+      generic types via inheritance</b></i>.
+    </p>
+    <p>
+      And this is where JDK collection types bring in the problem (wrt this 
+      particular issue): concerete types like ArrayList still take generic 
+      parameters; and this is why runtime instances do not have generic type 
+      available.
+    </p>
+    <p>
+      Another way to put this is that when using a subtype, say:
+    </p>
+    <hr>
+    
+
+    <pre>  MyStringList list = new ArrayList&lt;String&gt;() { }<br>  // can use ClassMate now, a la:<br>  ResolvedType type = resolver.resolve(list.getClass());<br>  // type itself has no parameterization (concrete non-generic class); but it does implement List so:
+  List&lt;ResolvedType&gt; params = type.typeParametersFor(List.class);<br>  assertSame(String.class, params.get(0).getErasedType());  </pre>
+    <hr>
+    
+
+    <p>
+      which once again would retain usable amount of generic type information.
+    </p>
+    <p>
+      <b>4. Real world usage?</b>
+    </p>
+    <p>
+      Above might seem as an academic exercise; but it is not. When designing 
+      typed APIs, many callbacks would actually benefit from proper generic 
+      typing. And of special interest are callbacks or handlers that need to 
+      do type conversions.
+    </p>
+    <p>
+      As an example, my favorite Database access library, jDBI, makes use of 
+      this functionality (using embedded ClassMate) to figure out data-binding 
+      information without requiring extra Class argument. That is, you could 
+      pass something like (not an actual code sample):
+    </p>
+    <pre>  MyPojo value = dbThingamabob.query(queryString, handler);</pre>
+    <p>
+      instead of what would more commonly requested:
+    </p>
+    <pre>  MyPojo value = dbThingamabob.query(queryString, handler, MyPojo.class);</pre>
+    <p>
+      and framework could still figure out what kind of thing 'handler' would 
+      handle, assuming it was a generic interface caller has to implement.
+    </p>
+    <p>
+      difference may seem minute, but this can actually help a lot by 
+      simplifying some aspects of type passing, and remove one particular mode 
+      of error.
+    </p>
+    <p>
+      <b>5. More on ClassMate</b>
+    </p>
+    <p>
+      Above actually barely scratch surface of what <a href="https://github.com/cowtowncoder/java-classmate">ClassMate</a> 
+      provides. Although it is already tricky to find &quot;simple&quot; 
+      parameterization for main-level classes, there are much more trickier 
+      things. Specifically, resolving types of Fields and Methods (return 
+      types, parameters). Given classes like:
+    </p>
+    <pre>  public interface Base&lt;T&gt; {
+    public T getStuff();
+  }
+  public class ListBase&lt;T&gt; implements Base&lt;List&lt;T&gt;&gt; {<br>    protected T value;<br>    protected ListBase(T v) { value = v; }<br>    public T getstuff() { return value; }<br>  }
+  public class Actual implements ListBase&lt;String&gt; {<br>    public Actual(List&lt;String&gt; value) { super(value; }<br>  }</pre>
+    <p>
+      you might be interested in figuring out, exactly what is the type of 
+      return value of &quot;getStuff()&quot;. By eyeballing, you know it should be 
+      &quot;List&lt;String&gt;&quot;, but bytecode does not tell this -- in fact, it just 
+      tells it's &quot;T&quot;, basically.
+    </p>
+    <p>
+      But with ClassMate you can resolve it:
+    </p>
+    <pre>  // start with ResolvedType; need MemberResolver
+  ResolvedType classType = resolver.resolve(Actual.class);<br>  MemberResolver mr = new MemberResolver(resolver);<br>  ResolvedTypeWithMembers beanDesc = mr.resolve(classType, null, null);<br>  ResolvedMethod[] members = bean.getMemberMethods();<br>  ResolvedType returnType = null;<br>  for (ResolvedMethod m : members) {<br>    if (&quot;getStuff&quot;.equals(m.getName())) {<br>      returnType = m.getReturnType();<br>    }<br>  }<br>  // so, we should get<br>  assertSame(List.class, returnType.getErasedType());<br>  ResolvedType elemType = returnType.getTypeParameters().get(0);<br>  assertSame(String.class, elemType.getErasedType();<br></pre>
+    <p>
+      and get the information you need.
+    </p>
+    <p>
+      <b>6. Why so complicated for nested types? </b>
+    </p>
+    <p>
+      One thing that is obvious from code samples is that code that uses 
+      ClassMate is not as simple as one might hope. Handling of nested generic 
+      types, specifically, is bit verbose in some cases (specifically: when 
+      type we are resolving does not directly implement type we are interested 
+      in)<br>Why is that?
+    </p>
+    <p>
+      The reason is that there is a wide variety of interfaces that any class 
+      can (and often does) implement. Further, parameterizations may vary at 
+      different levels, due to co-variance (ability to override methods with 
+      more refined return types). This means that it is not practical to &quot;just 
+      resolve it all&quot; -- and even if this was done, it is not in general 
+      obvious what the &quot;main type&quot; would be. For these reasons, you need to 
+      manually request parameterization for specific generic classes and 
+      interfaces as you traverse type hierarchy: there is no other way to do 
+      it.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, April 07, 2012 1:51 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Friday, April 06, 2012 </h2>
+<div class="entry" id="post-469">
+     <h3 class="entry-header">Notes on upgrading Jackson from 1.9 to 2.0</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      If you have existing code that uses Jackson version 1.x, and you would 
+      like to see how to upgrade to 2.0, there isn't much documentation around 
+      yet; although <a href="http://wiki.fasterxml.com/JacksonRelease20">Jackson 
+      2.0 release</a> page does outline all the major changes that were made.
+    </p>
+    <p>
+      So let's try to see what kind of steps are typically needed (note: this 
+      is based on Jackson 2.0 upgrade experiences by <a href="https://twitter.com/#!/pamonrails">@pamonrails</a> 
+      -- thanks Pierre!)
+    </p>
+    <p>
+      <b>0. Pre-requisite: start with 1.9</b>
+    </p>
+    <p>
+      At this point, I assume code to upgrade works with Jackson 1.9, and does 
+      not use any deprecated interfaces (many methods and some classes were 
+      deprecated during course of 1.x; all deprecated things went away with 
+      2.0). So if your code is using an older 1.x version, the first step is 
+      usually to upgrade to 1.9, as this simplifies later steps.
+    </p>
+    <p>
+      <b>1. Update Maven / JAR dependencies</b>
+    </p>
+    <p>
+      The first thing to do is to upgrade jars. Depending on your build 
+      system, you can either get jars from <a href="http://wiki.fasterxml.com/JacksonDownload">Jackson 
+      Download</a> page, or update Maven dependencies. New Maven dependencies 
+      are:
+    </p>
+    <pre>
+&lt;dependency&gt;
+  &lt;groupId&gt;com.fasterxml.jackson.core&lt;/groupId&gt;
+  &lt;artifactId&gt;jackson-annotations&lt;/artifactId&gt;
+  &lt;version&gt;2.0.0&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;com.fasterxml.jackson.core&lt;/groupId&gt;
+  &lt;artifactId&gt;jackson-core&lt;/artifactId&gt;
+  &lt;version&gt;2.0.0&lt;/version&gt;
+&lt;/dependency&gt;<br>&lt;dependency&gt;
+  &lt;groupId&gt;com.fasterxml.jackson.core&lt;/groupId&gt;
+  &lt;artifactId&gt;jackson-databind&lt;/artifactId&gt;
+  &lt;version&gt;2.0.0&lt;/version&gt;
+&lt;/dependency&gt;</pre>
+    <p>
+      The main thing to note is that instead of 2 jars (&quot;core&quot;, &quot;mapper&quot;), 
+      there are now 3: former core has been split into separate &quot;annotations&quot; 
+      package and remaining &quot;core&quot;; latter contains streaming/incremental 
+      parser/generator components. And &quot;databind&quot; is a direct replacement of 
+      &quot;mapper&quot; jar.
+    </p>
+    <p>
+      Similarly, you will need to update dependencies to supporting jars like:
+    </p>
+    <ul>
+      <li>
+        Mr Bean: com.fasterxml.jackson.module / jackson-module-mrbean
+      </li>
+      <li>
+        Smile binary JSON format: com.fasterxml.jackson.dataformat / 
+        jackson-dataformat-smile
+      </li>
+      <li>
+        JAX-RS JSON provider: com.fasterxml.jackson.jaxrs / 
+        jackson-jaxrs-json-provider
+      </li>
+      <li>
+        JAXB annotation support (&quot;xc&quot;): com.fasterxml.jackson.module / 
+        jackson-module-jaxb-annotations
+      </li>
+    </ul>
+    <p>
+      these, and many many more extension modules have their own project pages 
+      under <a href="https://github.com/FasterXML/">FasterXML Git repo</a>.
+    </p>
+    <p>
+      <b>2. Import statements</b>
+    </p>
+    <p>
+      Since Jackson 2.0 code lives in Java packages, you will need to change 
+      import statements. Although most changes are mechanical, there isn't 
+      strict set of mappings.
+    </p>
+    <p>
+      The way I have done this is to simply use an IDE like Eclipse, and 
+      remove all invalid import statements; and then use Eclipse functionality 
+      to find new packages. Typical import changes include:
+    </p>
+    <ul>
+      <li>
+        Core types: org.codehaus.jackson.JsonFactory/JsonParser/JsonGenerator 
+        -&gt; com.fasterxml.jackson.core.JsonFactory/JsonParser/JsonGenerator
+      </li>
+      <li>
+        Databind types: org.codehaus.jackson.map.ObjectMapper -&gt; 
+        com.fasterxml.jackson.databind.ObjectMapper
+      </li>
+      <li>
+        Standard annotations: org.codehaus.jackson.annotate.JsonProperty -&gt; 
+        com.fasterxml.jackson.annotation.JsonProperty
+      </li>
+    </ul>
+    <p>
+      It is often convenient to just use wildcards imports for main categories 
+      (com.fasterxml.jackson.core.*, com.fasterxml.jackson.databind.*, 
+      com.fasterxml.jackson.annotation.*)
+    </p>
+    <p>
+      <b>3. SerializationConfig.Feature, DeserializationConfig.Feature</b>
+    </p>
+    <p>
+      The next biggest change was that of refactoring on/off Features, 
+      formerly defined as inner Enums of SerializationConfig and 
+      DeserializationConfig classes. For 2.0, enums were moved to separate 
+      stand-alone enums:
+    </p>
+    <ol>
+      <li>
+        <i>DeserializationFeature</i> contains most of entries from former 
+        DeserializationConfig.Feature
+      </li>
+      <li>
+        <i>SerializationFeature</i> contains most of entries from former 
+        SerializationConfig.Feature
+      </li>
+    </ol>
+    <p>
+      Entries that were NOT moved along are ones that were shared by both, and 
+      instead were added into new <i>MapperFeature</i> enumeration, for 
+      example:
+    </p>
+    <ul>
+      <li>
+        SerializationConfig.Feature.DEFAULT_VIEW_INCLUSION became 
+        MapperFeature.DEFAULT_VIEW_INCLUSION
+      </li>
+    </ul>
+    <p>
+      <b>4. Tree model method name changes (JsonNode)</b>
+    </p>
+    <p>
+      Although many methods (and some classes) were renamed here and there, 
+      mostly these were one-offs. But one area where major naming changes were 
+      done was with Tree Model -- this because 1.x names were found to be 
+      rather unwieldy and unnecessarily verbose. So we decided that it would 
+      make sense to try to do a &quot;big bang&quot; name change with 2.0, to get to a 
+      clean(er) baseline.
+    </p>
+    <p>
+      Changes made were mostly of following types:
+    </p>
+    <ul>
+      <li>
+        <i>getXxxValue</i>() changes to <i>xxValue</i>(): getTextValue() -&gt; 
+        textValue(), getFieldNames() -&gt; fieldNames() and so on.
+      </li>
+      <li>
+        getXxxAsYyy() changes to asYyy(): getValueAsText() -&gt; asText()<b>
+</b>      </li>
+    </ul>
+    <p>
+      <b>5. Miscellaneous</b>
+    </p>
+    <p>
+      Some classes were removed:
+    </p>
+    <ul>
+      <li>
+        CustomSerializerFactory, CustomDeserializerFactory: should instead use 
+        Module (like SimpleModule) for adding custom serializers, deserializers
+      </li>
+    </ul>
+    <p>
+      <b>6. What else?</b>
+    </p>
+    <p>
+      This is definitely an incomplete list. Please let me know what I missed, 
+      when you try upgrading!
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Friday, April 06, 2012 9:33 AM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Thursday, March 29, 2012 </h2>
+<div class="entry" id="post-468">
+     <h3 class="entry-header">Jackson 2.0: CSV-compatible as well</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      (note: for general information on Jackson 2.0.0, see the previous 
+      article, &quot;<a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_466.html">Jackson 
+      2.0.0 released</a>&quot;; or, for XML support, see &quot;<a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_467.html">Not 
+      just for JSON any more -- also in XML</a>&quot;)
+    </p>
+    <p>
+      Now that I talked about XML, it is good to follow up with another 
+      commonly used, if somewhat humble data format: Comma-Separated Values 
+      (&quot;CSV&quot; for friends and foes).
+    </p>
+    <p>
+      As you may have guessed... Jackson 2.0 supports CSV as well, via <a href="https://github.com/FasterXML/jackson-dataformat-csv">jackson-dataformat-csv</a> 
+      project, hosted at GitHub
+    </p>
+    <p>
+      For attention-span-challenged individuals, checkout <a href="https://github.com/FasterXML/jackson-dataformat-csv">Project 
+      Page</a>: it contains tutorial that can get you started right away.<br>For 
+      others, let's have a slight detour talking through design, so that 
+      additional components involved make some sense.
+    </p>
+    <p>
+      <b>1. In the beginning there was a prototype</b>
+    </p>
+    <p>
+      After completing Jackson 1.8, I got to one of my wishlist projects: that 
+      of being able to process CSV using Jackson. The reason for this is 
+      simple: while simplistic and under-specified, CSV is very commonly used 
+      for exchanging tabular datasets.<br>In fact, it (in variant forms, 
+      &quot;pipe-delimited&quot;, &quot;tab-delimited&quot; etc) may well be the most widely used 
+      data format for things like Map/Reduce (Hadoop) jobs, analytics 
+      processing pipelines, and all kinds of scripting systems running on Unix.
+    </p>
+    <p>
+      <b>2. Problem: not &quot;self-describing&quot;</b>
+    </p>
+    <p>
+      One immediate challenge is that of lacking information on meaning of 
+      data, beyond basic division between rows and columns for data. Compared 
+      to JSON, for example, one neither necessarily knows which &quot;property&quot; a 
+      value is for, nor actual expected type of the value. All you might know 
+      is that row 6 has 12 values, expressed as Strings that look vaguely like 
+      numbers or booleans.
+    </p>
+    <p>
+      But then again, sometimes you do have name mapping as the first row of 
+      the document: if so, it represents column names. You still don't have 
+      datatype declarations but at least it is a start.
+    </p>
+    <p>
+      Ideally any library that supports CSV reading and writing should support 
+      different commonly used variations; from optional header line (mentioned 
+      above) to different separators (while name implies just comma, other 
+      characters are commonly used, such as tabs and pipe symbol) and possibly 
+      quoting/escaping mechanisms (some variants allow backslash escaping).<br>And 
+      finally, it would be nice to expose both &quot;raw&quot; sequence and high-level 
+      data-binding to/from POJOs, similar to how Jackson works with JSON.
+    </p>
+    <p>
+      <b>3. So expose basic &quot;Schema&quot; abstraction</b>
+    </p>
+    <p>
+      To unify different ways of defining mapping between property names and 
+      columns, Jackson now supports general concept of a Schema. While 
+      interface itself is little more than a tag interface (to make it 
+      possible to pass an opaque type-specific Schema instance through 
+      factories), data-format specific subtypes can and do extend 
+      functionality as appropriate.
+    </p>
+    <p>
+      In case of CSV, Schema (use of which is optional -- more on &quot;raw&quot; access 
+      later on) defines:
+    </p>
+    <ol>
+      <li>
+        Names of columns, in order -- this is mandatory
+      </li>
+      <li>
+        Scalar datatypes columns have: these are coarse types, and this 
+        information is optional
+      </li>
+    </ol>
+    <p>
+      Note that the reason that type information is strictly optional is that 
+      when it is missing, all data is exposed as Strings; and Jackson 
+      databinding has extensive set of standard coercions, meaning that things 
+      like numbers are conveniently converted as necessary. Specifying type 
+      information, then, can help in validating contents and possibly 
+      improving performance.
+    </p>
+    <p>
+      <b>4. Constructing &quot;CSV Schema&quot; objects</b><br>
+    </p>
+    <p>
+      How does one get access to these Schema objects? Two ways: build 
+      manually, or construct from a type (Class).
+    </p>
+    <p>
+      Let's start with latter, using same POJO type as with earlier XML 
+      example:
+    </p>
+    <hr>
+    
+
+    <pre>  public enum Gender { MALE, FEMALE };
+  // Note: MUST ensure a stable ordering; either alphabetic, or explicit
+  // (JDK does not guarantee order of properties)
+  @JsonPropertyOrder({ &quot;name&quot;, &quot;gender&quot;, &quot;verified&quot;, &quot;image&quot; })
+   public class User {
+   public Gender gender;
+   public String name;
+   public boolean verified;
+   public byte[] image;
+  }<br>  // note: we could use std ObjectMapper; but CsvMapper has convenience methods
+  CsvMapper mapper = new CsvMapper();
+  CsvSchema schema = mapper.schemaFor(User.class);</pre>
+    <hr>
+    
+
+    <p>
+      or, if we wanted to do this manually, we would do (omitting types, for 
+      now):
+    </p>
+    <hr>
+    
+
+    <pre>  CsvSchema schema = CsvSchema.builder()<br>   .addColumn(&quot;name&quot;) 
+   .addColumn(&quot;gender&quot;)<br>   .addColumn(&quot;verified&quot;)<br>   .addColumn(&quot;image&quot;)<br>   .build();</pre>
+    <hr>
+    
+
+    <p>
+      And there is, in fact, the third source: reading it from the header 
+      line. I will leave that as an exercise for readers (check the project 
+      home page).
+    </p>
+    <p>
+      Usage is identical, regardless of the source. Schemas can be used for 
+      both reading and writing; for writing they are only mandatory if output 
+      of the header line is requested.
+    </p>
+    <p>
+      <b>5. And databinding we go!</b>
+    </p>
+    <p>
+      Let's consider the case of reading CSV data from file called 
+      &quot;Users.csv&quot;, entry by entry. Further, we assume there is no header row 
+      to use or skip (if there is, the first entry would be bound from that -- 
+      there is no way for parser auto-detect a header row, since its structure 
+      is no different from rest of data).
+    </p>
+    <p>
+      One way to do this would be:
+    </p>
+    <hr>
+    
+
+    <pre>  MappingIterator&lt;Entry&gt; it = mapper<br>    .reader(User.class)<br>    .with(schema)<br>    .readValues(new File(&quot;Users.csv&quot;());<br>  List&lt;User&gt; users = new ArrayList&lt;User&gt;();<br>  while (it.hasNextValue()) {<br>    User user = it.nextValue();<br>    // do something?<br>    list.add(user);<br>  }<br>  // done! (FileReader gets closed when we hit the end etc)</pre>
+    <hr>
+    
+
+    <p>
+      Assuming we wanted instead to write CSV, we would use something like 
+      this. Note that here we DO want to add the explicit header line for fun:
+    </p>
+    <hr>
+    
+
+    <pre>  // let's force use of Unix linefeeds:<br>  ObjectWriter writer = mapper<br>    .writer(schema.withLineSeparator(&quot;\n&quot;));<br>  writer.writeValue(new File(&quot;ModifiedUsers.csv&quot;), users);</pre>
+    <hr>
+    one feature that we took advantage of here is that CSV generator basically 
+    ignores any and all array markers; meaning that there is no difference 
+    whether we try writing an array, List or just basic sequence of objects.
+
+    <p>
+      <b>6. Data-binding (POJOs) vs &quot;Raw&quot; access</b>
+    </p>
+    <p>
+      Although full data binding is convenient, sometimes we might just want 
+      to deal with a sequence of arrays with String values. You can think of 
+      this as an alternative to &quot;JSON Tree Model&quot;; an untyped primitive but 
+      very flexible data structure.
+    </p>
+    <p>
+      All you really have to do is to omit definition of the schema (which 
+      will then change observe token sequence); and make sure not to enable 
+      handling of header line<br>For this, code to use (for reading) looks 
+      something like:
+    </p>
+    <hr>
+    
+
+    <pre>  CsvMapper mapper = new CsvMapper();<br>  MappingIterator&lt;Object[]&gt; it = mapper<br>   .reader(Object[].class)<br>   .readValues(
+   &quot;1,null\nfoobar\n7,true\n&quot;);<br>  Object[] data = it.nextValue();<br>  assertEquals(2, data.length);<br>  // since we have no schema, everything exposed as Strings, really<br>  assertEquals(&quot;1&quot;, data[0]);<br>  assertEquals(&quot;null&quot;, data[1]);</pre>
+    <hr>
+    
+
+    <p>
+      Finally, note that use of raw entries is the only way to deal with data 
+      that has arbitrary number of columns (unless you just want to add 
+      maximum number of bogus columns -- it is ok to have less data than 
+      columns).
+    </p>
+    <p>
+      <b>7. Sequences vs Arrays</b>
+    </p>
+    <p>
+      One potential inconvenience with access is that by default CSV is 
+      exposed as a sequence of &quot;JSON&quot; Objects. This works if you want to read 
+      entries one by one.
+    </p>
+    <p>
+      But you can also configure parser to expose data as an Array of Objects, 
+      to make it convenient to read all the data as a Java array or Collection 
+      (as mentioned earlier, this is NOT required when writing data, as array 
+      markers have no effect on generation).
+    </p>
+    <p>
+      I will not go into details, beyond pointing out that the configuration 
+      to enable addition &quot;virtual array wrapper&quot; is:
+    </p>
+    <hr>
+    
+
+    <pre>mapper.ensable(CsvParser.Feature.WRAP_AS_ARRAY);</pre>
+    <hr>
+    and after this you can bind entries as if they came in as an array: both 
+    &quot;raw&quot; ones (Object[][]) and typed (List&lt;User&gt; and so on).
+
+    <p>
+      <b>8. Limitations</b>
+    </p>
+    <p>
+      Compared to JSON, CSV is more limited data format. So does this limit 
+      usage of Jackson CSV reader?
+    </p>
+    <p>
+      Yes. The main limitation is that column values need to essentially be 
+      scalar values (strings, numbers, booleans). If you do need more 
+      structured types, you will need to work around this, usually by adding 
+      custom serializers and deserializers: these can then convert structured 
+      types into scalar values and back. However, if you end up doing lots of 
+      this kind of work, you may consider whether CSV is the right format for 
+      you.
+    </p>
+    <p>
+      <b>9. Test Drive!</b>
+    </p>
+    <p>
+      As with all the other JSON alternatives, CSV extension is really looking 
+      forward to more users! Let us know how things work.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Thursday, March 29, 2012 7:37 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_468.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_468.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_468.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Saturday, December 10, 2011 </h2>
+<div class="entry" id="post-465">
+     <h3 class="entry-header">Sorting large data sets in Java using Java-merge-sort</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      When sorting data sets in Java, life is easy if amount of data to 
+      process is not huge: JDK has the basic sorting covered well. But if your 
+      data is big enough not to fit in memory you are on your own.
+    </p>
+    <p>
+      This often means that developers use basic Unix 'sort' command line 
+      tool. But while it is a good package for basic textual sort -- and when 
+      combined with other Unix pipeline tools, on whole range of column-based 
+      alternatives -- it is limited in two sometimes crucial aspects:
+    </p>
+    <ol>
+      <li>
+        Defining custom sorting (collation) order is difficult
+      </li>
+      <li>
+        Interacting with external tools (including 'sort') from within JVM is 
+        inherently difficult
+      </li>
+    </ol>
+    <p>
+      But there is one less well-known alternative available: a relatively new 
+      Java Open Source library available from Github: <a href="https://github.com/cowtowncoder/java-merge-sort">java-merge-sort</a>.
+    </p>
+    <p>
+      <b>1. What is java-merge-sort</b>
+    </p>
+    <p>
+      Java-merge-sort library implements basic external <a href="http://en.wikipedia.org/wiki/Merge_sort">merge 
+      sort</a>, sorting algorithm typically used for disk-backed sorting. 
+      Input and output are not limited to files; any <i>java.io.InputStream</i> 
+      / <i>java.io.OutputStream</i> implementation will work just fine.
+    </p>
+    <p>
+      Sorting library is designed to work as an ad-hoc tool (in fact, Jar 
+      itself can be used as 'sort' tool) as well as a component of bigger data 
+      processing systems.
+    </p>
+    <p>
+      Notable features include:
+    </p>
+    <ul>
+      <li>
+        Fully customizable input and output handlers, used for reading 
+        external data into objects to be sorted and writing them back out 
+        (handlers defined by providing factories that create instances)
+      </li>
+      <li>
+        Optional custom comparators (if items read do not implement Comparable)
+      </li>
+      <li>
+        Configurable merge factor (number of inputs merged in each pass); max 
+        memory usage (which limits length of pre-sort segments -- more memory 
+        used, fewer rounds needed)
+      </li>
+      <li>
+        Configurable temporary file handling (defaults to using JDK default 
+        temp files, deletions)
+      </li>
+      <li>
+        Ability to cancel sorting jobs asynchronously
+      </li>
+    </ul>
+    <p>
+      <b>2. Using as command-line tool</b>
+    </p>
+    <p>
+      A simple way to use the library is as a stand-alone command tool; while 
+      there are no specific benefits over standard 'sort' command (assuming 
+      one is available), it can be used to test functionality. Usage is as 
+      simple as:
+    </p>
+    <pre>  java -jar java-merge-sort-[VERSION].jar [input-file]</pre>
+    <p>
+      where 'input-file' is optional (if it is missing, will read from 
+      standard input); and sorted output will be displayed to standard output.<br>Commonly 
+      one will then redirect output to a file:
+    </p>
+    <pre>  java -jar java-merge-sort-[VERSION].jar unsorted.txt &gt; sorted.txt</pre>
+    <p>
+      Under the hood, this will run code from class <i>com.fasterxml.sort.std.TextFileSorter</i>
+    </p>
+    <p>
+      which is both a concrete sorter implementation, and defines main() 
+      method to act as a command-line tool.<br>Sort will be done line-by-line, 
+      using basic lexicographic (~= alphabetic) sort which works for common 
+      encodings like ASCII, Latin-1 and UTF-8.<br>Command will limit memory 
+      usage to 50% of maximum heap.
+    </p>
+    <p>
+      <b>3. Simple programmatic usage: textual file sort </b>
+    </p>
+    <p>
+      More commonly java-merge-sort is used as a component of bigger 
+      processing system. So let's have a look at basic usage as 'sort' 
+      replacement, i.e. sorting text files.
+    </p>
+    <p>
+      Code to sort an input file into output file is:
+    </p>
+    <pre>  public void sort(InputFile in, OutputFile out) throws IOException<br>  {<br>    TextFileSorter sorter = new TextFileSorter(new SortConfig().withMaxMemoryUsage(20 * 1000 * 1000)); // use up to 20 megs<br>    sorter.sort(new FileInputStream(in), new FileOutputStream(out));<br>    // note: sort() will close InputStream, OutputStream after sorting<br>  }<br></pre>
+    <p>
+      which uses default configuration except for maximum memory usage 
+      (default is 40 megs: which often works just fine)
+    </p>
+    <p>
+      <b>4. Advanced usage: sort JSON files</b>
+    </p>
+    <p>
+      Above example showed one benefit -- easy integration from Java code -- 
+      but the real power comes from the fact that we can change input and 
+      output handlers to deal with all kinds of data, to support advanced 
+      sorting behavior. To demonstrate this, let's consider case where input 
+      is a file that contains JSON entries: each line contains a JSON Object 
+      like:
+    </p>
+    <p>
+      { &quot;firstName&quot; : &quot;Joe&quot;, &quot;lastName&quot; : &quot;Plumber&quot;, &quot;age&quot;:58 }
+    </p>
+    <p>
+      and which we want to sort primary by age, from lowest to highest, and 
+      than by name, alphabetic, first by last name, then by first name.<br>We 
+      can bind this to a Java class like:
+    </p>
+    <hr>
+    
+
+    <pre>  public class Person implements Comparable&lt;Person&gt;
+  {
+    public int age;
+    public String firstName, lastName;
+
+    public int compareTo(Person other) {
+     int diff = age - other.age;
+     if (diff == 0) {
+      diff = lastName.compareTo(other.lastName);
+      if (diff == 0) {
+       diff = firstName.compareTo(other.firstName);
+      }
+     }
+     return diff;
+    }
+  }</pre>
+    <hr>
+    
+
+    <p>
+      using Jackson JSON processor, and then sort entries using 
+      java-merge-sort.
+    </p>
+    <p>
+      Code to do this is bit more complicated; let's start with Sorter 
+      implementation:
+    </p>
+    <hr>
+    
+
+    <pre>import java.io.*;
+
+import org.codehaus.jackson.JsonGenerator;
+import org.codehaus.jackson.map.*;
+import org.codehaus.jackson.type.JavaType;
+
+import com.fasterxml.sort.std.StdComparator;
+
+public class JsonPersonSorter extends Sorter&lt;Person&gt;
+{
+  public JsonFileSorter() throws IOException {
+    this(entryType, new SortConfig(), new ObjectMapper());
+  }
+
+  public JsonFileSorter(SortConfig config, ObjectMapper mapper) throws IOException {
+    this(mapper.constructType(Person.class), config, mapper);
+  }
+
+  public JsonFileSorter(JavaType entryType, SortConfig config, ObjectMapper mapper) throws IOException {
+    super(config, new ReaderFactory(mapper.reader(entryType)),
+      new WriterFactory(mapper),
+      new StdComparator&lt;Person&gt;());
+  }
+}</pre>
+    <hr>
+    and supporting reading-related classes are:<hr>
+
+    <pre>public class ReaderFactory extends DataReaderFactory&lt;Person&gt;
+{
+  private final ObjectReader _reader;
+  public ReaderFactory(ObjectReader r) {
+    _reader = r;
+  }
+
+  @Override
+  public DataReader&lt;Person&gt; constructReader(InputStream in) throws IOException {
+    MappingIterator&lt;Person&gt; it = _reader.readValues(in);
+    return new Reader&lt;Person&gt;(it);
+  }
+}
+
+public class Reader&lt;E&gt; extends DataReader&lt;E&gt;
+{
+  protected final MappingIterator&lt;E&gt; _iterator;
+ 
+  public Reader(MappingIterator&lt;E&gt; it) {_i terator = it; }
+
+  @Override
+  public E readNext() throws IOException {
+    if (_iterator.hasNext()) {
+      return _iterator.nextValue();
+    }
+    return null;
+  }
+<br>  // not a good estimation, has to do for now (should count String lengths, estimate)
+  @Override public int estimateSizeInBytes(E item) { return 100; }
+  @Overridepu blic void close() throws IOException { } // auto-closes when we reach end
+}</pre>
+    <p>
+      
+    </p>
+    <hr>
+    and writing-related classes:<hr>
+
+    <pre>static class WriterFactory&lt;W&gt; extends DataWriterFactory&lt;W&gt;
+{
+  protected final ObjectMapper _mapper;
+
+  public WriterFactory(ObjectMapper m) {
+    _mapper = m;
+  }
+
+  @Override
+  public DataWriter&lt;W&gt; constructWriter(OutputStream out) throws IOException {
+    return new Writer&lt;W&gt;(_mapper, out);
+  }
+}
+
+static class Writer&lt;E&gt; extends DataWriter&lt;E&gt;
+{
+  protected final ObjectMapper _mapper;
+  protected final JsonGenerator _generator;
+
+  public Writer(ObjectMapper mapper, OutputStream out) throws IOException {
+    _mapper = mapper;
+    _generator = _mapper.getJsonFactory().createJsonGenerator(out);
+  }
+
+  @Override
+  public void writeEntry(E item) throws IOException {
+    _mapper.writeValue(_generator, item);
+    // not 100% necesary, but for readability, add linefeeds
+    _generator.writeRaw('\n');
+  }
+
+  @Override
+  public void close() throws IOException {
+    _generator.close();
+  }
+}<br><br>So with all of above, we could sort a file using:
+
+   JsonFileSorter sorter = new JsonFileSorter();
+   sorter.sort(inputFile, outputFile);</pre>
+    <p>
+      Which is pretty much identical to earlier code to sort a File; just with 
+      different reader+writer configuration.
+    </p>
+    <p>
+      <b>5. Even more advanced: compress intermediate files?</b>
+    </p>
+    <p>
+      There are many ways to customize processing; and one interesting idea is 
+      to actually compress intermediate files (results of pre-sort, inputs to 
+      later merge rounds); preferably using ultra-fast Java compressor like <a href="https://github.com/ning/compress">Ning 
+      LZF</a>.
+    </p>
+    <p>
+      Code to do this would not be long -- it's just matter of changing 
+      DataReaderFactory and DataWriterFactory to read/write files -- but I 
+      will leave this up as an exercise to reader. :-)
+    </p>
+    <p>
+      <b>6. More speed: configurations</b>
+    </p>
+    <p>
+      There are two main configuration switches that can be used to improve 
+      speed:
+    </p>
+    <ol>
+      <li>
+        Amount of memory used for pre-sorting: more memory to use, fewer 
+        sorted segments are needed -- in fact, it may be possible to do the 
+        whole sort in memory. Default memory to use is 40 megabytes (to 
+        accomodate for default JDK max heap size of 64 megs)
+      </li>
+      <li>
+        Number of inputs merged per round: default is 16 inputs, which should 
+        be enough; but you can increase this to reduce number of merge rounds 
+        needed (or reduce if you want to minimize number of open files, in 
+        case you encounter problems)
+      </li>
+    </ol>
+    <p>
+      <b>7. Future ideas</b>
+    </p>
+    <p>
+      Looking at JSON sorting code, I realize that it would be easy to create 
+      a generic sorter that uses Jackson. And not only would this support 
+      sorting JSON files, but also files that use any other format Jackson 
+      supports, such as Smile (out of the box, with 'SmileFactory'), <a href="https://github.com/FasterXML/jackson-xml-databind">XML</a>, 
+      <a href="https://github.com/FasterXML/jackson-dataformat-csv">CSV</a> 
+      and <a href="https://github.com/michel-kraemer/bson4jackson">BSON</a>!
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, December 10, 2011 7:23 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/12/entry_465.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/12/entry_465.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/12/entry_465.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Wednesday, September 28, 2011 </h2>
+<div class="entry" id="post-461">
+     <h3 class="entry-header">Advanced filtering with Jackson, Json Filters</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      I wrote a bit earlier on &quot;<a href="/blog/archives/2011/02/entry_443.html">filtering 
+      properties with Jackson</a>&quot;. While it was comprehensive in that all 
+      main methods of filtering were covered, there wasn't much depth. 
+      Specifically, only very basic usage of Json Filters (<i>@JsonFilter</i> 
+      annotation, <i>SimpleFilterProvider</i> as provider) was considered. 
+      This approach does allow more dynamic filtering than, say, <i>@JsonView</i>, 
+      but it is still somewhat limited. So let's consider more advanced 
+      customizability.
+    </p>
+    <p>
+      <b>1. Refresher on Json Filters</b>
+    </p>
+    <p>
+      Ok, so the basic idea with Json Filters is that:
+    </p>
+    <ol>
+      <li>
+        Classes can have an associated Filter Id, which defines logical filter 
+        to use.
+      </li>
+      <li>
+        A provider is needed to get the actual filter instance to use, given 
+        id: this will be configured by assigning a FilterProvider (such as 
+        'SimpleFilterProvider') to ObjectMapper or ObjectWriter.
+      </li>
+      <li>
+        Jackson will dynamically (and efficiently) resolve filter given class 
+        uses, dynamically, allowing per-call reconfiguration of filtering.
+      </li>
+    </ol>
+    <p>
+      From this it is clear that there are 2 main things you can configure: 
+      mechanism that is used to find Filter id of a given class, and mechanism 
+      used for mapping this id to actual filter used (implementation of which 
+      can be as complicated as you want).
+    </p>
+    <p>
+      So let's have a look at both parts.
+    </p>
+    <p>
+      <b>2. Configuring mapping from id to filter instance</b>
+    </p>
+    <p>
+      Of mechanisms, latter one may be easier to understand and use: one just 
+      has to implement '<i>FilterProvider</i>', which has but one method to 
+      implement:
+    </p>
+    <pre>  public abstract class FilterProvider {
+    public abstract BeanPropertyFilter findFilter(Object filterId);
+  }</pre>
+    <p>
+      given this, 'SimpleFilterProvider' is little more than a <i>Map&lt;String,BeanPropertyFilter&gt;</i>, 
+      except for adding couple of convenience factory methods that build 
+      'SimpleBeanPropertyFilter' instances given property names, so you 
+      typically just instantiate one with calls like:
+    </p>
+    <pre>  SimpleBeanPropertyFilter filter = SimpleBeanPropertyFilter.filterOutAllExcept(&quot;a&quot;));</pre>
+    <p>
+      which would out all properties except for one named &quot;a&quot;. This filter is 
+      then configured with ObjectMapper like so:
+    </p>
+    <pre>  FilterProvider fp = new SimpleFilterProvider().addFilter(&quot;onlyAFilter&quot;, filter);
+  objectMapper.writer(fp).writeValueAsString(pojo);</pre>
+    <p>
+      which would, then, apply to any Java type configured to use filter with 
+      id &quot;onlyAFilter&quot;.
+    </p>
+    <p>
+      <b>3. Configuring discovery of filter id</b>
+    </p>
+    <p>
+      From above example we know we need to indicate classes that are to use 
+      our &quot;onlyAFilter&quot;. The default mechanism is to use:
+    </p>
+    <pre>  @JsonFilter(&quot;onlyAFilter&quot;)
+  public class FilteredPOJO {
+    //...
+  }</pre>
+    <p>
+      But this is just the default. How so? The way Jackson figures out its 
+      annotation-based configuration is actually indirect, and fully 
+      customizable: all interaction is through configured '<i>AnnotationIntrospector'</i> 
+      object, which amongst other things defines this method:
+    </p>
+    <pre>  public Object findFilterId(AnnotatedClass ac);</pre>
+    <p>
+      which is called when serializer needs to determine id of the filter to 
+      apply (if any) for given class. Since the default implementation 
+      (org.codehaus.jackson.map.introspect.JacksonAnnotationIntrospector) has 
+      everything else working fine, what we can do is to sub-class it and 
+      override this method.<br>For example:
+    </p>
+    <pre>  public class MyFilteringIntrospector extends JacksonAnnotationIntrospector
+  {
+    @Override
+    public Object findFilterId(AnnotatedClass ac) {
+      // First, let's consider @JsonFilter by calling superclass
+      Object id = super.findFilterId(ac);
+      // but if not found, use our own heuristic; say, just use class name as filter id, if there's &quot;Filter&quot; in name:
+      if (id == null) {
+        String name = ac.getName();
+        if (name.indexOf(&quot;Filter&quot;) &gt;= 0) {
+          id = name;
+        }
+      }
+      return id;
+    }
+  }</pre>
+    <p>
+      Above functionality is just to show what is possible, not that it makes 
+      sense. Alternatively you could of course define your own annotations to 
+      check; or have List of known class names, check class definition or 
+      interfaces type implements. The main point is just that you are not 
+      limited to using <i>@JsonFilter</i> annotation, but can use pretty much 
+      any logic you want, within limits of your coding skills.
+    </p>
+    <p>
+      The only caveat is that the resolution from Class to matching id is only 
+      guaranteed to be called once per ObjectMapper; so any variation in 
+      filtering of specific class needs to happen at either mapping of id to 
+      filter, or within filter itself.
+    </p>
+    <p>
+      <b>4. Don't be afraid of sub-classing (Jackson)AnnotationIntrospector</b>
+    </p>
+    <p>
+      Actually, the key take away might as well be the fact that 
+      AnnotationIntrospector is designed to be customizable. It was initially 
+      created to allow easy reuse of JAXB annotations (via <i>JAXBAnnotationIntrospector</i>; 
+      combining things with <i>AnnotationIntrospector.Pair</i>); but it is 
+      also a very powerful general-purpose customization mechanism. But at 
+      this point quite underused one at that.
+    </p>
+    <p>
+      <b>5. Addendum</b>
+    </p>
+    <p>
+      Some additional notes based on feedback I received:
+    </p>
+    <ul>
+      <li>
+        Custom <i>BeanPropertyFilter</i> implementations are obviously 
+        powerful too: not only can they completely change what (if anything) 
+        gets written for property, they can base this on all configuration 
+        accessible via <i>SerializerProvider</i> which is passed to 
+        serializeAsField(): for example, it can check to see what 
+        serialization view is available by calling '<i>provider.getSerializationView()</i>'.
+      </li>
+    </ul>
+    <p>
+      
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Wednesday, September 28, 2011 7:38 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/09/entry_461.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/09/entry_461.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/09/entry_461.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Monday, April 04, 2011 </h2>
+<div class="entry" id="post-454">
+     <h3 class="entry-header">Introducing "jvm-compressor-benchmark" project</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      I recently started one new open source project; this time being inspired 
+      by success of another OS project I had been involved in, project is &quot;<a href="https://github.com/eishay/jvm-serializers/wiki">jvm-serializers</a>&quot; 
+      benchmark originally started by Eishay and built by a community of java 
+      databinder/serializer experts. What has been great with this project has 
+      been amount of energy it seemed ot feed back to development of 
+      serializers: highly visible competition for best performance seems to 
+      have improved efficiency of libraries a lot. I only wish we had 
+      historical benchmark data to compare to see exactly how far have the 
+      fastest Java serializers come.
+    </p>
+    <p>
+      Anyway, I figured that there are other groups of libraries where high 
+      performance matters, but where there is lack of actual solid 
+      benchmarking information. So while there are a few compression 
+      performance benchmarks, they are often non-applicable for Java 
+      developers: partly because they just compare native compressor codecs, 
+      and partly because focus is more often only on space-efficiency (how 
+      much compression is achieved) with little consideration of performance 
+      of compression. The last part is particularly frustrating as in many use 
+      cases there is significant trade-off between space and time efficiency 
+      (compression rate vs time used for compression).
+    </p>
+    <p>
+      So, this is where the new project -- &quot;<a href="https://github.com/ning/jvm-compressor-benchmark">jvm-compressor-benchmark</a>&quot; 
+      -- comes from. I hope it will allow fair comparison of compression 
+      codecs available on JVM, to be used by Java and other JVM lagnuages; and 
+      also bring in some friendly competition between developers of 
+      compression codecs.
+    </p>
+    <p>
+      First version compares half a dozen of compression formats and codecs, 
+      from the venerable deflate/gzip (which offers pretty good compression 
+      ratio with decent speed) to higher-compression-but-slower-operation 
+      alternatives (bzip2) and lower-compression-but-very-fast alternatives 
+      like <a href="https://github.com/ning/compress">lzf</a>, <a href="http://www.quicklz.com/">quicklz</a> 
+      and the new kid on the block, <a href="http://code.google.com/p/snappy-java/">Snappy</a> 
+      (via JNI).
+    </p>
+    <p>
+      And although the best way to evaluate results is to run tests on your 
+      machine, using data sets you care about (which I strongly encourage!), <a href="https://github.com/ning/jvm-compressor-benchmark/wiki">Project 
+      wiki</a> does have some pretty diagrams for tests run on &quot;standard&quot; data 
+      sets gathered from the web. 
+    </p>
+    <p>
+      Anyway: please check the project out -- at the very least it should give 
+      you an idea of how many options there are above and beyond basic 
+      JDK-provided gzip. 
+    </p>
+    <p>
+      ps. Contributions are obviously also welcome -- anyone willing to tackle 
+      Java version of 7-zip's LZMA, for example, would be most welcome!
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Monday, April 04, 2011 10:48 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/04/entry_454.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/04/entry_454.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/04/entry_454.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Saturday, March 12, 2011 </h2>
+<div class="entry" id="post-451">
+     <h3 class="entry-header">Non-blocking XML parsing with Aalto 0.9.7</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Aalto XML processor (see <a href="http://wiki.fasterxml.com/AaltoHome">home 
+      page</a>) is known for two things:
+    </p>
+    <ol>
+      <li>
+        It is the fastest Java-based XML parser available (for example, see <a href="https://github.com/eishay/jvm-serializers/wiki">jvm-serializers</a> 
+        benchmark, or <a href="http://technotes.blogs.sapo.pt/1708.html">this 
+        comparison</a>); both for Stax and SAX parsing
+      </li>
+      <li>
+        It is the only open-source Java parser that can do non-blocking 
+        parsing (aka asynchonous, or async, parsing)
+      </li>
+    </ol>
+    <p>
+      Former is relatively easy to figure out: given that Aalto implements two 
+      standard low-level Java streaming parsing APIs -- Stax and SAX -- you 
+      can easily switch Aalto in place of Woodstox or Xerces and see how fast 
+      it is. For many common types of XML data, it is almost exactly twice as 
+      fast for parsing as Woodstox (which itself is generally faster than 
+      alternatives like Xerces/SAX); and it is also bit faster for writing XML 
+      content.
+    </p>
+    <p>
+      But non-blocking parsing is more difficult to evaluate. This is because 
+      there are no other non-blocking Java XML parsers, nor real documentation 
+      for use of non-blocking part of Aalto; and also because this part of 
+      functionality has been only completed fairly recently (while some parts 
+      of functionality were written up to two years ago, last pieces were 
+      completed just for the latest official release).
+    </p>
+    <p>
+      So I will try to explain basic non-blocking operation here. But first, 
+      brief introduction to non-blocking parsing, using Aalto's non-blocking 
+      Stax extension. Non-blocking variant of SAX will be completed before 
+      Aalto 1.0 is released.
+    </p>
+    <p>
+      <b>1. Non-Blocking / Async operation for XML</b>
+    </p>
+    <p>
+      Basic feature of non-blocking parsing is that it does not rely on 
+      blocking input (InputStream or Reader). Instead of parser using a stream 
+      or reader to read content, and blocking the thread if none is available, 
+      content is rather &quot;pushed&quot; to parser; and parser will give out processed 
+      events if there is enough content available. This is similar to how many 
+      C parsers work; as well as operation of Java's gzip/zip/deflate codecs (<i>java.util.zip.Deflater</i>).
+    </p>
+    <p>
+      The main benefit of non-blocking operation is ability to process 
+      multiple XML input sources without having to allocate one thread per 
+      source, same benefit as that NIO has for basic web services. And in 
+      fact, having a non-blocking parser is something that could benefit 
+      non-blocking web services a lot: without such parser, services must 
+      buffer all the input before parsing, to ensure that no blocking occurs.
+    </p>
+    <p>
+      So why does it matter that there need not be as many threads as sources? 
+      While Java threading efficiency has improved a lot over time, it can 
+      still be hard to scale systems that use more than hundreds of threads 
+      (or low thousands; exact number depends on platform). So systems that 
+      are highly concurrent, but typically have high latencies, or highly 
+      varying workloads, cand benefit from this mode of operation.<br>In 
+      addition, another related benefit is that memory usage of non-blocking 
+      parser can be more close bounded: since limited amount of input is 
+      buffered at any given point, amount of working memory can be more 
+      limited (at least when not forcing coalecing of XML text segments).
+    </p>
+    <p>
+      On downside, writing code to use non-blocking parsing can be slightly 
+      more complex to write: and given lack of standardized APIs, it is 
+      something new to learn. And since regular blocking I/O can scale quite 
+      well nowadays for many (or most) uses, non-blocking parsing is not 
+      something one generally starts doing initially. But it can be a very 
+      useful technique for subset of all XML processing use cases.
+    </p>
+    <p>
+      <b>2. Non-blocking XML parsing using Aalto API</b>
+    </p>
+    <p>
+      The easiest way to explain operation is probably by showing piece of 
+      sample code (lifted from Aalto unit tests). Here we will actually 
+      construct a static XML document from String (for demonstration purposes: 
+      in real systems, it would be read via NIO channels or a higher-level 
+      non-blocking abstraction), and feed it into parser, single byte at a 
+      time. In actual production use one would typically feed content block at 
+      a time; either fully read blocks, or chunks of contents as soon as they 
+      become available. Aalto does not implement higher-level buffer 
+      management (there is just one active buffer), although adding basic 
+      buffer handling would not be difficult; it just tends to be either 
+      provided by input source (Netty), or be input source specific.
+    </p>
+    <hr>
+    
+
+    <pre>  byte[] XML = &quot;&lt;html&gt;Very &lt;b&gt;simple&lt;/b&gt; input document!&lt;/html&gt;&quot;;
+  AsyncXMLStreamReader asyncReader = new InputFactoryImpl().createAsyncXMLStreamReader();
+  final AsyncInputFeeder feeder = asyncReader.getInputFeeder();
+  int inputPtr = 0; // as we feed byte at a time
+  int type = 0;
+
+  do {
+    // May need to feed multiple &quot;segments&quot;
+    while ((type = asyncReader.next()) == AsyncXMLStreamReader.EVENT_INCOMPLETE) {
+      feeder.feedInput(buf, inputPtr++, 1);<br>      if (inputPtr &gt;= XML.length) { // to indicate end-of-content (important for error handling)<br>        feeder.endOfInput();
+      }
+    }
+    // and once we have full event, we just dump out event type (for now)
+    System.out.println(&quot;Got event of type: &quot;+type);
+    // could also just copy event as is, using Stax, or do any other normal non-blocking handling:
+    // xmlStreamWriter.copyEventFromReader(asyncReader, false);
+  } while (type != END_DOCUMENT);
+  asyncReader.close();</pre>
+    <hr>
+    
+
+    <p>
+      And that's it. There are actually just couple of additional things 
+      needed to do non-blocking parsing:
+    </p>
+    <ol>
+      <li>
+        Use of regular Stax API, with just a single extension, introduction of 
+        new token, <b>EVENT_INCOMPLETE</b> 
+        (com.fasterxml.aalto.AsyncXMLStreamReader.EVENT_INCOMPLETE), which is 
+        returned if there isn't enough content buffered to fully construct a 
+        token to return
+      </li>
+      <li>
+        Feeding of content using AsyncInputFeeder (instance of which is 
+        accessed via <b>AsyncXMLStreamReader</b>, extension of basic 
+        XMLStreamReader)
+      </li>
+      <li>
+        Indicating end-of-content via feeder when all content has been read
+      </li>
+    </ol>
+    <p>
+      Which makes operation bit more complicated than use of straight 
+      XMLStreamReader, but not significantly so.
+    </p>
+    <p>
+      <b>3. Next steps</b>
+    </p>
+    <p>
+      There are two things that Aalto non-blocking mode does not yet 
+      implement, which will be finished before Aalto becomes 1.0:
+    </p>
+    <ul>
+      <li>
+        Coalescing mode has not been implemented for non-blocking Stax. Since 
+        use of coalescing (of all adjacent text segments, as per Stax spec) is 
+        probably less important for non-blocking use cases than blocking ones 
+        (as it will increase need for buffering, possible increase latency), 
+        it was less as the last major piece to be completed.
+      </li>
+      <li>
+        There isn't yet non-blocking SAX mode. This should be relatively easy 
+        to implement, and should not require extensions to SAX API itself (one 
+        just has to call &quot;XMLReader.parse()&quot; multiple times; but as it is 
+        based on same parser core as Stax mode, it has not yet been completed.
+      </li>
+    </ul>
+    <p>
+      At this point what is needed most is actual usage: while there is some 
+      test coverage, non-blocking mode is less well tested than blocking mode: 
+      blocking mode can use full basic StaxTest suite, used succesfully for 
+      years with Woodstox (and for Aalto for more than a year as well).
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, March 12, 2011 3:49 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_451.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_451.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/03/entry_451.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+     <h2 class="date-header">Monday, February 28, 2011 </h2>
+<div class="entry" id="post-446">
+     <h3 class="entry-header">Jackson: not just for JSON, Smile or BSON any more -- Now With XML, too!</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      (NOTE: see the newer article on &quot;<a href="/blog/archives/2012/03/entry_467.html">Jackson 
+      2.0 with XML</a>&quot;)
+    </p>
+    <p>
+      One of first significant new Jackson extension projects (result of <a href="/blog/archives/2011/02/entry_441.html">Jackson 
+      1.7</a> release which made it much easier to provide <a href="/blog/archives/2011/02/entry_442.html">modular 
+      extensions</a>) is <a href="https://github.com/FasterXML/jackson-xml-databind">jackson-xml-databind</a>, 
+      hosted at GitHub. Although this extension is still in its pre-1.0 
+      development phase, the latest released version is fully usable as is and 
+      is even in some limited production use by some brave developers (running 
+      on Google AppEngine, of all things!).
+    </p>
+    <p>
+      So it is probably a good idea to now give a brief overview of what this 
+      project is all about.
+    </p>
+    <p>
+      <b>1. What is jackson-xml-databind?</b>
+    </p>
+    <p>
+      <i>Jackson-xml-databind</i> comes in a small package (jar is only about 
+      55 kB) , and is used with Jackson data binding functionality 
+      (jackson-mapper jar). It provides basic replacement for <i>JsonFactory</i>, 
+      <i>JsonParser</i> and <i>JsonGenerator</i> components of Jackson 
+      Streaming API, and allows reading and writing of XML instead of JSON, in 
+      context of generic Jackson data binding functionality. In addition, core 
+      ObjectMapper is also sub-classed to provide customized versions of 
+      couple of other provider types, so typically all usage is done by 
+      creating com.fasterxml.jackson.xml.XmlMapper instead of ObjectMapper, 
+      and using it for data binding.
+    </p>
+    <p>
+      <b>2. What is it used for?</b>
+    </p>
+    <p>
+      This package is used to read XML and convert it to POJOs, as well as to 
+      write POJOs as XML. In this respect it is very similar to JAXB (<i>javax.xml.bind</i>) 
+      package; and an alternative for many other Java XML data binding 
+      packages such as XStream and JibX. Given Jackson support for JAXB 
+      annotations, it can be especially conveniently used as a JAXB 
+      replacement in many cases.
+    </p>
+    <p>
+      Functionality supported is in some ways a subset of JAXB, and in other 
+      ways a superset: XML-specific functionality is more limited (no explicit 
+      support for XML Schema), but general data binding functionality is 
+      arguably more powerful (since it is full set of Jackson functionality).
+    </p>
+    <p>
+      Two obvious benefits of this package compared to JAXB or other existing 
+      XML data binding solutions (like XStream) are superior performance -- 
+      with fast Stax XML parser, this is likely the fastest data binding 
+      solution on Java platform (see <a href="https://github.com/eishay/jvm-serializers/wiki">jvm-serializers</a> 
+      for results) -- and extensive and customizable data POJO conversion 
+      functionality, using all existing Jackson annotations and configuration 
+      options. The main downside currently is potential immaturity of the 
+      package; however, this only applies to interaction between mature XML 
+      packages (stax implementation) and Jackson data binder (which is also 
+      fairly mature at this point).
+    </p>
+    <p>
+      <b>3. So how do I use it?</b>
+    </p>
+    <p>
+      If you know how to use Jackson with JSON, you know almost everything you 
+      need to use this package. The only other thing you need to know is that 
+      there has to be a Stax XML parser/generator implementation available. 
+      While JDK 1.6 provides one implementation, your best best is using 
+      something bit more efficient, such as <a href="http://woodstox.codehaus.org">Woodstox</a> 
+      or <a href="http://wiki.fasterxml.com/AaltoHome">Aalto</a>. Both should 
+      work fine; Aalto is faster of two, but Woodstox is a more mature choice. 
+      So you will probably want to include one of these Stax implementations 
+      when using jackson-xml-databind.
+    </p>
+    <p>
+      Other than this, all you need to do is to construct XmlMapper:
+    </p>
+    <pre>  XmlMapper mapper = new XmlMapper(); // can also specify XmlFactory to 
+  use, to override Stax factories used</pre>
+    <p>
+      and use it like you would any other ObjectMapper, like so:
+    </p>
+    <pre>  User user = new User(); // from Jackson-in-five-minutes sample<br>  String xml = mapper.writeValueAsString(user);</pre>
+    <p>
+      and what you would get is something like:
+    </p>
+    <pre>&lt;User&gt;
+  &lt;name&gt;
+    &lt;first&gt;Joe&lt;/first&gt;
+    &lt;last&gt;Sixpack&lt;/last&gt;
+  &lt;/name&gt;
+  &lt;verified&gt;true&lt;/verified&gt;
+  &lt;gender&gt;MALE&lt;/gender&gt;
+  &lt;userImage&gt;AQIDBAU=&lt;/userImage&gt;
+&lt;/User&gt;</pre>
+    <p>
+      which is equivalent of JSON serialization that would look like:
+    </p>
+    <pre>{
+  &quot;name&quot;:{
+    &quot;first&quot;:&quot;Joe&quot;,
+    &quot;last&quot;:&quot;Sixpack&quot;
+  },
+  &quot;verified&quot;:true,
+  &quot;gender&quot;:&quot;MALE&quot;,
+  &quot;userImage&quot;:&quot;AQIDBAU=&quot;
+}</pre>
+    <p>
+      Pretty neat eh?
+    </p>
+    <p>
+      Oh, and reverse direction obviously works similarly:
+    </p>
+    <pre>  User user = mapper.readValue(xml, User.class);</pre>
+    <p>
+      There is really nothing extra-ordinary in it usage; just another way to 
+      use Jackson for slicing and dicing your POJOs.
+    </p>
+    <p>
+      <b>4. Limitations</b>
+    </p>
+    <p>
+      While existing version works pretty well in general, there are some 
+      limitations. These mostly stem from the basic difference between XML and 
+      JSON logical models; and specifically affect handling of Lists/arrays. 
+      XmlMapper for example only allows so-called &quot;wrapped&quot; lists (for now); 
+      meaning that there is one wrapper XML element for each List or array 
+      property, and separate element for each List item.
+    </p>
+    <p>
+      Compared to JAXB (and related to JAXB annotation support), no DOM 
+      support is included; meaning, it is not possible to use converters that 
+      take or produce DOM Elements.
+    </p>
+    <p>
+      With respect to Jackson functionality, while polymorphic type 
+      information does work, some combinations of settings may not work as 
+      expected.
+    </p>
+    <p>
+      And given project's pre-1.0 status, testing is not yet as complete as it 
+      needs to be, so other rough edges may also be found. But with help of 
+      user community I am sure we can polish these up pretty quickly.
+    </p>
+    <p>
+      <b>5. Feedback time!</b>
+    </p>
+    <p>
+      So what is needed most at this point? Users, usage, and resulting bug 
+      (or, possibly, success) reports! Seriously, more usage there is, faster 
+      we can get the project up to 1.0 release.
+    </p>
+    <p>
+      Happy hacking!
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Monday, February 28, 2011 9:28 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_446.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_446.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_446.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
+            </div>
+        </div>
+<div id="beta">
+  <div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+
+<!-- /SiteSearch Google -->
+<hr />
+</div>
+
+     <div class="module-archives module">
+          <h2 class="module-header">Last posts</h2>
+          <div class="module-content">
+               <ul class="module-list">
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html">Doing actual non-blocking, incremental HTTP access with async-http-client</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_474.html">Jackson Data-binding: Did I mention it can do YAML as well?</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html">Java Type Erasure not a Total Loss -- use Java Classmate for resolving generic signatures</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html">Notes on upgrading Jackson from 1.9 to 2.0</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_468.html">Jackson 2.0: CSV-compatible as well</a></li>
+               </ul>
+          </div>
+     </div>
+<div class="module-categories module">
+          <h2 class="module-header">Categories</h2>
+          <div class="module-content">
+        <ul>
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+          
+        </ul>
+          </div>
+</div>
+<div class="module-syndicate module">
+     <div class="module-content">
+          <a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+          [<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+     </div>
+
+</div>
+</div>
+     <div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+     </div>
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+</div>
+<div class="module-powered module">
+     <h2 class="module-header">Powered By</h2>
+
+     <div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a> and
+  Discus comments.
+     </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>

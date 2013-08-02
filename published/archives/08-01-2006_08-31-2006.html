@@ -1,0 +1,1168 @@
+<html lang="en">
+<head>
+<title>August 2006</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Tuesday, August 29, 2006 </h2>
+
+<div class="entry" id="post-20">
+			<h3 class="entry-header">Woodstox 3.0.1 released</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      It is only couple of weeks since the 3.0 release, but due to high 
+      adoption rate (news at <a href="http://www.theserverside.com">ServerSide</a>
+ quadrupled traffic at <a href="http://woodstox.codehaus.org">
+      woodstox.codehaus.org</a>!), bug reports started arriving soon after the 
+      release. The biggest contributing factor seems to be the fact that 
+      newcomers tend to use wider range of functionality, and thus find 
+      problems along the unbeaten path... At any rate, a few important bug 
+      fixes have been done since the initial release, so it seemed like a good 
+      idea to release the minor update, to make sure all fixes are available 
+      in 'binary' form.
+    </p>
+    <p>
+      For specific fixes, please refer to the <a href="http://woodstox.codehaus.org/3.0.1/release-notes/VERSION">
+release notes</a>. Most of the problems fixed were not commonly encountered; 
+      so if you have not had any problems so far, it is not a required update. 
+      However, chances of regression bugs should also be minor due to limited 
+      scope of changes.
+    </p>
+    <p>
+      The next short-term goal will be 3.1 minor release: the exact feature 
+      set is still open, but here are some planned improvements:
+    </p>
+    <ul>
+      <li>
+        Improve reporting of SPACE events in non-validating DTD-aware mode 
+        (currently only reported in validating mode)
+      </li>
+      <li>
+        Remove some of asynchronous (&quot;lazy&quot;) exceptions, so that regular 
+        XMLStreamExceptions can be thrown from next(), instead of unchecked 
+        exceptions from methods like XMLStreamReader.getText()
+      </li>
+      <li>
+        Simple heuristic indentation (already implemented for StaxMate, maybe 
+        possible to add easily to XMLStreamWriter itself)
+      </li>
+      <li>
+        Xml:id implementation?
+      </li>
+    </ul>
+    <p>
+      Other feature requests will also be considered if suggested: one place 
+      to check out things that are on Woodstox team's radar is <a href="http://jira.codehaus.org/browse/WSTX">
+Jira</a>. It is also the best place to suggest new features and improvements 
+      (along with the <a href="http://xircles.codehaus.org/projects/woodstox/lists">
+mailing lists</a>)
+    </p>
+    <p>
+      
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, August 29, 2006 10:59 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_20.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_20.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_20.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Friday, August 18, 2006 </h2>
+
+<div class="entry" id="post-19">
+			<h3 class="entry-header">StaxMate basics, reader side</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Before embarking on journey to build a simple web application (we'll get 
+      there), it is necessary to explain the costructs we will use, so that 
+      the example itself only needs comments regarding actual functionality. 
+      So, here are typical usage patterns on reader side.
+    </p>
+    <p>
+      <b>1. Getting started </b>
+    </p>
+    <p>
+      First things first: since StaxMate is built on top of Stax API, you need 
+      to create an XMLStreamReader, properly configured. StaxMate is quite 
+      adaptive, and Stax defaults are usually sufficient so usually you can 
+      just use something like:
+    </p>
+    <pre>  XMLInputFactory f = XMLInputFactory.newInstance(); // remember to reuse
+  XMLStreamReader sr = f.createStreamReader(new FileInputStream(&quot;mydoc.xml&quot;));                </pre>
+    <p>
+      <b>2. Start iterating</b>
+    </p>
+    <p>
+      All access to the input document is handled using cursors. Cursors come 
+      in two basic types: hierarchic cursors (also known as &quot;child cursor&quot;, as 
+      they traverse immediate children) and flattening cursors (or descendant 
+      cursors, as they traverse all descendants, children, grand-children and 
+      so on). In addition to the traversal type, the second important property 
+      of a cursor is type of events it filters out: SMFilter interface can be 
+      implemented to specify which underlying events to filter out and which 
+      not. Most of the time default ones (element-only filter, text filter, 
+      mixed filter) are good enough, and there are convenience method for 
+      constructing other types you are likely to need.
+    </p>
+    <p>
+      At this point, we need to obtain the first cursor; and usually it is a 
+      hierarchic element-only cursor, since we usually do not care about 
+      possible comments or processing instructions outside of the root 
+      element, but do we want to handle things hierarchically (level by 
+      level). So, most often you will get the root cursor by doing:
+    </p>
+    <pre>  SMInputCursor rootCrsr =  SMInputFactory.rootElementCursor(sr);               </pre>
+    <p>
+      So what does cursor point to having been created? Nothing, as of yet: 
+      similar to JDBC result set cursors, StaxMate cursors need to be advanced 
+      to point to the next applicable event (if any). They will return type of 
+      the event, if there was one (for root element there will always be a 
+      root element, for any well-formed document), or null otherwise. Return 
+      type is a type-safe enumeration (StaxMate requires Java 5 aka 1.5). So, 
+      typically you will see something like this:
+    </p>
+    <pre>  rootCrsr.getNext(); // for element cursor, return type will be SM Event.START_ELEMENT        </pre>
+    <p>
+      after which you can check that the element is what you think it should 
+      be (and/or do other validation):
+    </p>
+    <pre>  assert(rootCrsr.getQName(), new QName(&quot;root&quot;));                </pre>
+    <p>
+      and perhaps access an attribute or two:
+    </p>
+    <pre>String id = rootCrsr.getAttrValue(&quot;id&quot;); // convenience method for attrs without namespace        </pre>
+    <p>
+      and when you are ready to inspect the sub-tree starting from root, you 
+      do:
+    </p>
+    <pre>  SMCursor childCrsr = rootCrsr.childElementCursor();                </pre>
+    <p>
+      <b>3. Collect text</b>
+    </p>
+    <p>
+      One common thing to do is accessing textual content of a leaf element. 
+      Although Stax XMLStreamReader does have 'getElementText' method, it is 
+      bit tricky to use, and will not work for mixed content (if there are 
+      child elements). Further, you still need to skip the end element after 
+      getting text.
+    </p>
+    <p>
+      With StaxMate, you just do (assuming crsr points to a 
+      SMEvent.START_ELEMENT):
+    </p>
+    <pre>  String value = crsr.collectDescendantText()            </pre>
+    <p>
+      and you get all text element contains, recursively if necessary, all 
+      non-text content being stripped out.
+    </p>
+    <p>
+      <b>4. Share (and enjoy!) the cursor </b>
+    </p>
+    <p>
+      One of most mundane chores with Stax is the book-keeping with end tag 
+      balancing, and especially so if you want to modularize your code. If so, 
+      the called code has to be careful to match and skip all end tags for 
+      start tags it has handled. This is tedious and error-prone; and with 
+      enough code can make code harder to read than necessary. It also makes 
+      it very easy for called code to wreak havoc, by over-iterating over 
+      events it is not supposed to read. This because there is just one 
+      XMLStreamReader.
+    </p>
+    <p>
+      Here StaxMate can help, not only because you never need to deal with end 
+      tags directly (when underlying stream hits an end tag, cursor knows it 
+      can't advance, and this is signalled by returning null -- plus, it is 
+      still safe to call getNext() again; you will just get another null), but 
+      also because all cursors are scope such that they can only traverse over 
+      events within scope. That is, a child or descendant cursor constructed 
+      for cursor point to, say, start tag &lt;tag&gt; can only traverse over events 
+      up to the &lt;/tag&gt; that matches the start tag. And finally, even if the 
+      child cursor does NOT traverse through all the events (called code gets 
+      bored, or found what it was looking for), parent cursor knows how to 
+      automatically skip the &quot;uninteresting&quot; events in-between. That is, 
+      cursors are kept in-sync.
+    </p>
+    <p>
+      So, quite often you will see method calls like:
+    </p>
+    <pre>  handleHeadSection(crsr.childElementCursor());
+  crsr.getNext();
+  assertElement(crsr, &quot;body&quot;);
+  handleBodySection(crsr.childElementCursor());
+  crsr.getNext();
+  assertElement(crsr, &quot;trailer&quot;);
+  handleTrailer(crsr.childElementCursor());
+  // ...    </pre>
+    <p>
+      in which different handlers take care of different parts of the 
+      document, and without having to keep track of anything beyond its 
+      immediate needs.
+    </p>
+    <p>
+      <b>5. The limitation</b>
+    </p>
+    <p>
+      So what's the catch? Can I now freely create and traverse cursors, even 
+      if only in forward direction? Yes and no: there is one major fundamental 
+      limitation. All access will still have to be done in document order. So 
+      that:
+    </p>
+    <ol>
+      <li>
+        Parent element information has to always be completely accessed before 
+        child element information (that is, you can not access parent 
+        information [except if tracking is enabled -- but this uses different 
+        methods] after a cursor has advanced to a child element). Parent 
+        information includes attribute information, so that it is not possible 
+        to access attribute values of a parent, after advancing a cursor to a 
+        child element.
+      </li>
+      <li>
+        Siblings have to be accessed in the document order (although you can 
+        use tracking here, too). This is seldom a problem, since cursors only 
+        advance in one direction.
+      </li>
+    </ol>
+    <p>
+      Similar limitations apply to the output side as well, although there too 
+      there are ways around ordering (specifically it is possible to use 
+      feature called &quot;buffering&quot; to delay outputting of an element, allowing 
+      limited out-of-order addition of output: this is most often used to add 
+      attributes after children are added).
+    </p>
+    <p>
+      How big is this limitation? It is no worse than the basic Stax API 
+      limitations, but it may be easier to ignore. However, if you understand 
+      the basic operation, and keep in mind the implied (but strongly 
+      enforced!) ordering restriction, you should be able use cursors quite 
+      conveniently and efficiently.
+    </p>
+    <p>
+      <b>6. Advanced Features</b>
+    </p>
+    <p>
+      In addition to the basic hierarchic iteration, and convenient access to 
+      data, there are other more advanced features StaxMate input side offers. 
+      Since this is a tutorial article, these will not be explained in detail, 
+      but here is a short list of additional advanced features you can learn 
+      from the source code (or possibly later tutorials):
+    </p>
+    <ol>
+      <li>
+        Access to simple positional indexes. StaxMate keeps track of node and 
+        element order number for cursor, and offers access to it. So, for 
+        example, if you need different handling for the first &lt;li&gt; child 
+        element, and following ones, you can do this by checking 
+        'crsr.getElementCount()'.
+      </li>
+      <li>
+        Customized event filtering. If you are only interested in, say, 
+        comments in the document, you can easily implement SMFilter, or even 
+        just construct SimpleFilter with proper (Stax API - based) event flags.
+      </li>
+      <li>
+        Tracking: simply put, this allows retaining of parts of the input 
+        structure even after cursors have been moved past that content. 
+        Tracking can be dynamically enabled on sub-trees: and when enabled, a 
+        temporary tree-like (but very light-weight) structure is maintained. 
+        This may be useful for simple state-tracking
+      </li>
+      <li>
+        Customize (override) all object creation methods, to store additional 
+        information in cursor objects, or tracking info objects. All of the 
+        factory methods are designed to be overloadable, so if you need a 
+        light-weight additional storage for storing state information, you can 
+        just sub-class objects you need, and the framework should be able to 
+        use your sub-classes instead of the default ones.
+      </li>
+    </ol>
+    <p>
+      
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Friday, August 18, 2006 11:26 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_19.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_19.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_19.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Friday, August 11, 2006 </h2>
+
+<div class="entry" id="post-18">
+			<h3 class="entry-header">Introducing StaxMate -- the perfect companion for your favorite Stax XML processor</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Now that <a href="http://woodstox.codehaus.org">Woodstox</a> 3.0.0 is 
+      released (see one of recent entries here at CowTownCoder), it is good 
+      time to introduce another even less widely known utility: <a href="http://woodstox.codehaus.org/StaxMate">
+StaxMate</a>. Although it has been in development for quite a while, and even 
+      used by its author for almost a year, it has remained largely unnoticed, 
+      hopefully only due to its lack of documentation.
+    </p>
+    <p>
+      So what is StaxMate and why should I care?
+    </p>
+    <p>
+      If you are perfectly happy using raw Stax API, you probably do not need 
+      StaxMate. But if you have ever felt that using plain vanilla Stax API 
+      (especially cursor API) is... well, acquired taste, or at least bit 
+      inconvenient, you may want to have a look at StaxMate.
+    </p>
+    <p>
+      The raison d'etre of StaxMate is to add bit of &quot;syntactic&quot; (or should I 
+      say synthetic?) sugar and tad of cream, but with moderate amount of 
+      extra calories. That is, the overhead introduced should be nominal (less 
+      than that of using Event API), to allow effectively running fast 
+      Stax-based streaming processing, but in a bit more convenient fashion, 
+      by accessing XML the way it is structured (in hierarchic manner), and by 
+      focusing on things you really care about. I mean, really, usually one 
+      really does not care if there are comments within elements, or, for 
+      element-only content, if there is white space in there. For example, 
+      given following XML document:
+    </p>
+    <pre>&lt;doc&gt;&lt;!-- title follows --&gt;
+ &lt;title&gt;the title&lt;/title&gt;
+ &lt;body&gt;
+  &lt;abstract&gt;Hi mom!&lt;/abstract&gt;
+ &lt;/body&gt;
+&lt;/doc&gt;                    </pre>
+    <p>
+      Basic Stax Cursor API would feed you event sequence like:
+    </p>
+    <pre>   START_DOCUMENT
+   START_ELEMENT (doc)
+   COMMENT
+   CHARACTERS (white space)
+   START_ELEMENT (title)
+   CHARACTERS (the title)
+   END_ELEMENT
+   ... (and so on)
+   END_DOCUMENT                </pre>
+    <p>
+      Now while this is 100% accurate, it is also a nuisance to shift through 
+      all these events, if one just wants to know what is textual content of 
+      element 'abstract'. Why should I need to keep track of start and end 
+      elements, check out CHARACTERS that contains white space, or skip 
+      comments. The processor already has all the information, why do I have 
+      to write all the monkey code for traversing the sub-trees for skipping, 
+      and such? Shouldn't things be easier and &quot;just work&quot;?
+    </p>
+    <p>
+      I think they should. With StaxMate, you can think of terms of cursors 
+      that can ignore all events except for ones you care about: typically you 
+      want to only see elements (for non-mixed content) or elements and text. 
+      Further, when encountering an element, you may just want to get all the 
+      contained text, independent of any other XML events that may lurk in 
+      there (comments, processing instructions, unknown child elements). And 
+      finally, if you don't care about an element and sub-tree it contains 
+      (optional elements in your content model, for example), you can just 
+      ignore it by advancing the cursor. StaxMate can keep track of all the 
+      details for you. There are many more advanced features StaxMate can 
+      offer on the reader side (building partial tree of current element's 
+      parents, and/or previous siblings, for example), but the main point are 
+      really the things that make simple content processing tasks, well, 
+      simple.
+    </p>
+    <p>
+      Similarly, for output side, you can free yourself from namespace binding 
+      problems; as well as from having to keep track of how many end tags are 
+      needed. Output objects can keep track of what is needed and where, based 
+      on things you do want to add. Output side can also do simple 
+      heuristic-based indentation. And finally, for cases where document-order 
+      output just is not good enough, you can do some limited out-of-order 
+      output (for example, adding attributes to the parent element after 
+      adding child elements; or adding a place-holder, &quot;dummy element&quot;, under 
+      which you can add other elements): in this case StaxMate can temporarily 
+      buffer your output for you, to be released once you are done with adding 
+      output.
+    </p>
+    <p>
+      If all of above sounds interesting (even if vague), I will try to write 
+      a simple sample web service using StaxMate, for my next blog entry. Stay 
+      tuned!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Friday, August 11, 2006 10:44 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_18.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_18.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_18.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, August 10, 2006 </h2>
+
+<div class="entry" id="post-17">
+			<h3 class="entry-header">Using Stax2 (Woodstox 3.0) Validation API, part 3</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Continuing on the theme of validating XML content processed with 
+      Woodstox, using Stax2 extension of Stax API, let's do something more 
+      interesting: validate content as it is getting written (note: the full 
+      source code for the example shown below can be found from <a href="http://woodstox.codehaus.org/DocStax2Validation">http://woodstox.codehaus.org/DocStax2Validation</a>).
+    </p>
+    <p>
+      So, here is piece of code that will demonstrate how to validate XML 
+      output being written (using XMLStreamWriter), using Stax2 API extension.
+    </p>
+    <pre>final String DTD_STR = &quot;&lt;!ELEMENT root (branch | leaf)*&gt;\n&quot;
+  +&quot;&lt;!ELEMENT branch (leaf)+&gt;&quot;
+  +&quot;&lt;!ELEMENT leaf (#PCDATA)&gt;&quot;
+  +&quot;&lt;!ATTLIST leaf desc CDATA #IMPLIED&gt;\n&quot;;
+StringWriter strw = new StringWriter();
+// First, let's parse DTD schema object
+XMLValidationSchemaFactory sf = XMLValidationSchemaFactory.newInstance(XMLValidationSchema.SCHEMA_ID_DTD);
+XMLValidationSchema dtd = sf.createSchema(new StringReader(DTD_STR));
+XMLOutputFactory ofact = XMLOutputFactory.newInstance();
+XMLStreamWriter2 sw = (XMLStreamWriter2) ofact.createXMLStreamWriter(strw);
+sw.validateAgainst(dtd); // this starts validation
+// Document validation is done as output is written
+try {
+ sw.writeStartDocument();
+ sw.writeStartElement(&quot;root&quot;);
+ sw.writeStartElement(&quot;branch&quot;);
+ sw.writeStartElement(&quot;leaf&quot;);
+ sw.writeEndElement();
+ // We'll get validation exception here -- branch not allowed within branch
+ sw.writeStartElement(&quot;branch&quot;);
+ sw.writeEndElement();
+ sw.writeEndElement();
+ sw.writeEndElement();
+ sw.writeEndDocument();
+ sw.close();
+} catch (XMLStreamException xse) {
+ System.err.println(&quot;Failed output the document: &quot;+xse);
+}</pre>
+    <p>
+      You may notice some similarity with the earlier reader side example (and 
+      if not, you may want to have another look!). The pattern is quite 
+      simple: obtain a schema object from schema factory, passing in schema 
+      content from any of typical content sources (InputStream, Reader, 
+      javax.xml.transform.Source), and start validating content being read 
+      (using XMLStreamReader) or written (using XMLStreamWriter). How is that 
+      for simplicity? Even more advanced things like chaining multiple 
+      instances of validators, or doing partial validation, just use these 
+      basic mechanisms (ok, except for partial validation also needing to use 
+      method stopValidatingAgainst()...)
+    </p>
+    <p>
+      Now, what is the point of validating output? Since you write output 
+      code, shouldn't you be able to do it just fine with normal testing? In 
+      above example there isn't much need for validation, obviously, but there 
+      are other cases where output validation makes sense. For example:
+    </p>
+    <ul>
+      <li>
+        During testing, you may want to enable strict input and output side 
+        validation, as assertions verifying correctness of code, even if you 
+        disable validation in production. And even in production, you may be 
+        able to easily re-enable validation as needed.
+      </li>
+      <li>
+        When doing transformations, it is hard to cover all the possible 
+        outputs that might result: even worse, when using technologies like 
+        XSLT, there is no formal way of (statically) ensuring that the output 
+        will conform to a given schema. But you can assert validity on output 
+        side quite simply by validating against specific schema.
+      </li>
+      <li>
+        When pipelining XML content, it may be easier (and more efficient) to 
+        plug in processing component between output stream writer, and actual 
+        physical output, than having to write output to a temporary location, 
+        and then parsing for validation.
+      </li>
+    </ul>
+    <p>
+      Another question is what is the specific point of using Stax2 
+      validation, over, say, using stand-alone validators or plugging in 
+      SAX-based validators. One benefit is that validation done as part of 
+      reading/writing XML is likely to be more efficient, as input/output is 
+      only parsed/generated once. Also, diagnostics regarding the problem are 
+      likely to be more accurate when validation is synchronized with actual 
+      processing.
+    </p>
+    <p>
+      As to validation schema objects, it is worth noting that these schema 
+      objects are fully reusable (actual validators that are created from 
+      schemas are not; calls to startValidatingAgainst() create validator 
+      objects behind the scenes), as well as thread-safe. This means that in 
+      general you can just create validation schema objects once when the 
+      system starts up (for static set of schemas at least), and fully reuse 
+      afterwards.
+    </p>
+    <p>
+      Given that it is easy to validate XML output this way, I hope that more 
+      developers will make use of this feature. I am also interested in 
+      hearing about experiences from doing this (feedback can be sent to <b>stax_builders</b> 
+      mailing list, for example).
+    </p>
+    <p>
+       
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, August 10, 2006 9:35 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_17.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_17.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_17.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Tuesday, August 08, 2006 </h2>
+
+<div class="entry" id="post-16">
+			<h3 class="entry-header">Third Time's the Charm -- Woodstox 3.0 released!</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Lo and Behold, the day is here. <a href="http://woodstox.codehaus.org">Woodstox</a> 
+      3.0 is finally released! For minute details of what has changed since 
+      the last release candidate, you can check out the <a href="http://woodstox.codehaus.org/3.0.0/release-notes/VERSION">release 
+      notes</a>. And at higher level, I already <a href="/blog/archives/2006/06/entry_4.html">listed</a> 
+      the high-level changes since 2.0. So what else is there to be said about 
+      this version?
+    </p>
+    <p>
+      The main thing is that 3.0 is now considered the stable release. It has 
+      been extensively tested, retested, regression tested, using not only 
+      StaxTest conformance test suite and Woodstox' own JUnit test suite, but 
+      also using the vast automated end-to-end processing test suite of <a href="http://dsd.lbl.gov/nux/">Nux</a> 
+      (with above 45000 sample documents). So the quality should be superior 
+      to that of 2.0 series, including all-around improved standards 
+      compliance (both in regards to XML in general, and Stax specifically).
+    </p>
+    <p>
+      So, if you have been using Stax 2.0.x up until now, it is a very good 
+      time to upgrade. It will be worth it.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, August 08, 2006 10:27 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_16.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_16.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_16.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Friday, August 04, 2006 </h2>
+
+<div class="entry" id="post-15">
+			<h3 class="entry-header">Using Stax2 (Woodstox 3.0) Validation API, part 2</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Ok, first things first: the code sample I will go through can be found 
+      from <a href="http://woodstox.codehaus.org/DocStax2Validation">http://woodstox.codehaus.org/DocStax2Validation</a>, 
+      and will be part of Woodstox source code distribution (in <b>src/samples/</b>).
+    </p>
+    <p>
+      So here is the basic usage pattern for using Stax2 validation API on 
+      reader side. Example will validate a document read via XMLStreamReader, 
+      but same could easily be done by with XMLEventWriters: you just need to 
+      first construct the stream writer, and then event writer using that 
+      specific stream reader. Order of attack is as follows:
+    </p>
+    <ol>
+      <li>
+        Get an instance of XMLValidationSchemaFactory that knows how to parse 
+        schemas of the type you need (RelaxNG == rng for this example).
+      </li>
+      <li>
+        Ask factory to construct a XMLValidationSchema, given a resource 
+        (file, URL, InputStream, Reader): it will parse the resource as 
+        necessary.
+      </li>
+      <li>
+        Construct your Stax stream reader as usual
+      </li>
+      <li>
+        Enable validation using schema you got from step 2
+      </li>
+      <li>
+        Traverse the input document using stream reader -- this is necessary, 
+        since validation is done in fully streaming manner.
+      </li>
+      <li>
+        There is no step 6!
+      </li>
+    </ol>
+    <p>
+      Sound simple enough? Ok, here is the source code (minus comments, error 
+      handling and class declaration of the actual sample class -- for full 
+      class, see the link above), with comments indicating where each step 
+      starts:
+    </p>
+    <pre>// step 1: get schema factory
+XMLValidationSchemaFactory sf = XMLValidationSchemaFactory.newInstance(XMLValidationSchema.SCHEMA_ID_RELAXNG);
+// step 2: construct validation schema instance
+XMLValidationSchema rng = sf.createSchema(new File(args[1]));
+// step 3: construct stream reader
+XMLInputFactory2 ifact = (XMLInputFactory2)XMLInputFactory.newInstance();
+XMLStreamReader2 sr = ifact.createXMLStreamReader(new File(args[0]));
+// step 4: enable validation
+sr.validateAgainst(rng);
+// step 5: stream through the document:
+while (sr.hasNext()) {
+  sr.next();
+}
+// done!
+   </pre>
+    <p>
+      And there you have it: simple validation of an xml document, against an 
+      Relax NG Schema. The exact same procedure (except for getting a 
+      different schema validation factory in step 1) would work for other 
+      types, specifically for DTDs. And in future, with other pluggable schema 
+      factories, for other schemas like W3C Schema as well.
+    </p>
+    <p>
+      Now that you know how to do this simple task, possible next tasks would 
+      be:
+    </p>
+    <ol>
+      <li>
+        Validating XML document you are writing against a Schema: not 
+        surprisingly, code looks very similar to above. In fact, you only need 
+        to change steps 3 and 5!
+      </li>
+      <li>
+        Validating a single document against multiple schemas. Just repeat 
+        steps 2 and 4 multiple times!
+      </li>
+      <li>
+        Writing your own custom schema validators, to separate business level 
+        data validation from access.
+      </li>
+      <li>
+        Validating sub-trees, possibly against different schemas.
+      </li>
+    </ol>
+    <p>
+      I will try to find time to write about some of above ideas in near 
+      future. Stay tuned!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Friday, August 04, 2006 11:45 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_15.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_15.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_15.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, August 03, 2006 </h2>
+
+<div class="entry" id="post-14">
+			<h3 class="entry-header">Using Stax2 (Woodstox 3.0) Validation API, part 1</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      One of the new features of Woodstox 3.0 is its completely redesigned and 
+      reimplemented validation system. Changes are complete, as both the 
+      interface (2.0 implemented basic Stax 1.0 API, and simple property-based 
+      native extensions) and the implementation (2.0 had in-built DTD 
+      validator) have been completely re-built.
+    </p>
+    <p>
+      The new interface to the validation sub-system is via experimental Stax2 
+      package (defined under <b>org.codehaus.stax2</b> package and its 
+      sub-packages, included in Woodstox distribution). This is in addition to 
+      the basic &quot;enable DTD validation&quot; property that was all that the 
+      original Stax 1.0 API defined in regards to validation. Internal 
+      implementation of the DTD validator was changed to be accessible via 
+      this new interface, and an additional optional <a href="https://msv.dev.java.net/">Sun's 
+      Multi-Schema Validator</a> based <a href="http://relaxng.org/">Relax NG</a> 
+      validator was also added (initially it was hoped that a W3C Schema 
+      validator would also be included, but this was deferred until after 3.0 
+      release).
+    </p>
+    <p>
+      The main features of the new Validation API can be summarized as follows:
+    </p>
+    <ul>
+      <li>
+        Fully bi-directional: both documents processed with Stream/Event 
+        Readers <i>AND </i>Writers can be validated against same schemas, 
+        using same interface. Schema and validator instances work on both, 
+        since the interface they define (and context they get) is identical.
+      </li>
+      <li>
+        Implementations are pluggable: Schema instances are created using 
+        factories similar to basic Stax 1.0 XMLInputFactory and 
+        XMLOutputFactory 
+        (org.codehaus.stax2.validation.XMLSchemaValidationFactory), and 
+        registered using standard service definition mechanism.
+      </li>
+      <li>
+        Validators are chainable: one can use more than one validator per 
+        input/output processor.
+      </li>
+      <li>
+        Dynamic enabling/disabling of validators: it is possible to start/stop 
+        validation mid-stream (within constraints that the validator 
+        implementations may impose): specifically, it should be possible to 
+        validate sub-trees, instead of complete documents.
+      </li>
+      <li>
+        Possible to register error handlers, to implement different validation 
+        error handling strategies: from fail-fast to collect-all-problems or 
+        somewhere in between.
+      </li>
+      <li>
+        High-performance streaming validation: interface is designed to avoid 
+        unnecessary overhead when passing content to validate, so that 
+        implementations can try to optimize for performance.
+      </li>
+    </ul>
+    <p>
+      So how does one use the new API? I just recently added first 2 sample 
+      classes into Woodstox distribution, to show-case simple reader-side 
+      validation. These classes are under '<b>src/samples</b>' in Woodstox SVN 
+      repository, for those who need to learn it now.
+    </p>
+    <p>
+      Tomorrow I will show specific examples (based on above-mentioned sample 
+      classes), to show how simple validators can be written using Woodstox 
+      3.0 and its Stax2 Validation API. Stay tuned!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, August 03, 2006 11:09 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_14.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_14.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_14.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_20.html">Woodstox 3.0.1 released</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_19.html">StaxMate basics, reader side</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_18.html">Introducing StaxMate -- the perfect companion for your favorite Stax XML processor</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_17.html">Using Stax2 (Woodstox 3.0) Validation API, part 3</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2006/08/entry_16.html">Third Time's the Charm -- Woodstox 3.0 released!</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

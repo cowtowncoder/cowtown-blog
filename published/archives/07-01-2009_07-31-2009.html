@@ -1,0 +1,1204 @@
+<html lang="en">
+<head>
+<title>July 2009</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Monday, July 27, 2009 </h2>
+
+<div class="entry" id="post-303">
+			<h3 class="entry-header">Jackson 1.2: BYOC (Bring Your Own Constructors)*; Use  Your Objects & Do More (with less)!</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      * (or Factory Methods)
+    </p>
+    <p>
+      <b>1. What's up, Doc?</b>
+    </p>
+    <p>
+      One of 2 Coolest Features of upcoming <a href="http://wiki.fasterxml.com/JacksonRelease12">Jackson 
+      v 1.2</a> -- and <b>the</b> Top Feature by actual user requests (and 
+      Jira user voting) -- is the <a href="http://wiki.fasterxml.com/JacksonFeatureCreators">ability 
+      to (finally!) use arbitrary constructors</a> and factory methods a class 
+      has, for their intended purpose: constructing bean instances. And 
+      specifically, constructing beans without having to mess with setter 
+      methods whose sole purpose is to initialize the value.
+    </p>
+    <p>
+      So, if you have class like:
+    </p>
+    <hr>
+    
+
+    <pre>public class Name {
+  private final String givenName, familyName;
+
+  public Name(String given, String fam)
+  {
+   givenName = given;
+   familyName = fam;
+  }
+
+  public String getGivenName() { return givenName; }
+  public String getFamilyName() { return familyName; }
+}</pre>
+    <hr>
+    
+
+    <p>
+      you can actually use it (almost) as is, without having to add setters 
+      and default constructor like you so far have had to:
+    </p>
+    <hr>
+    
+
+    <pre>public class Name {
+  private String givenName, familyName;
+
+<b>  // Used to have to add these:
+  private Name() { }
+
+  void setGiveName(String str) { givenName = str; }
+  void setFamilyName(String str) { familyName = str; }</b>
+  public String getGivenName() { return givenName; }
+  public String getFamilyName() { return familyName; }
+}</pre>
+    <hr>
+    
+
+    <p>
+      So what is this &quot;almost&quot; part? Well, you do have to decorate the 
+      constructor (or factory method) to let Jackson know which 
+      constructor/factory method to use (by @JsonCreator); and bind names to 
+      parameters (using @JsonProperty), like so
+    </p>
+    <pre>  <b>@JsonCreator</b>
+  public Name(<b>@JsonProperty(&quot;givenName&quot;)</b> String given, <b>@JsonProperty(&quot;familyName&quot;)</b> String fam)</pre>
+    <p>
+      or, if you prefer factory methods:
+    </p>
+    <pre>  <b>@JsonCreator</b>
+  public static Name constructIt(<b>@JsonProperty(&quot;givenName&quot;)</b> String given, <b>@JsonProperty(&quot;familyName&quot;)</b> String fam) {
+ // construct and return an instance...
+  }</pre>
+    <p>
+      and that's it.
+    </p>
+    <p>
+      My now-resolved earlier pet peeve was the inability to use Jackson with 
+      immutable value classes. Not so any more: now you can not only remove 
+      the setters, but can also make member fields constructor-assigned and 
+      final, i.e. value class immutable.
+    </p>
+    <p>
+      <b>2. Soap Box Time</b>
+    </p>
+    <p>
+      Ok now: after demonstrating this new, nifty and long-awaited feature, 
+      let's consider why this is a Fundamentally Big Thing.<br>(ok, I may rant 
+      a bit, perhaps even go monologuing a bit. Humor me here)
+    </p>
+    <p>
+      So: this is Big, because it nicely demonstrates 2 core Jackson <a href="http://en.wikipedia.org/wiki/Credo">Credo</a>s:
+    </p>
+    <ul>
+      <li>
+        <b>Use Your Objects</b> (aka &quot;Have It Your Way&quot;)
+      </li>
+      <li>
+        <b>Do More</b> (with less)
+      </li>
+    </ul>
+    <p>
+      <b>3. Jackson Credo: Use Your Objects</b>
+    </p>
+    <p>
+      (aka &quot;Have it Your Way&quot;, but that's (tm) by some fast food chain)
+    </p>
+    <p>
+      This is directly related to those alternative data binding (or object 
+      serialization) frameworks that take strict Schema-first approach.<br>This 
+      includes formats like <a href="http://en.wikipedia.org/wiki/Protocol_buffers">Protocol 
+      Buffers</a>.As nifty as these frameworks are for some purposes, they 
+      fundamentally want to rule their own sandbox; to the degree that objects 
+      to use are &quot;<b><i>Their Objects, Not Yours</i></b><i>&quot; </i>(Tony-principle?). 
+      That is: they define Their Objects, using Schema you (have to) provide. 
+      And if you play nice, you just might get to borrow Their Objects for 
+      your personal temporary use.<br>But make no mistake, you do NOT get to 
+      provide the toys, specifically not Your Objects. It is clear who's the 
+      boss.
+    </p>
+    <p>
+      Jackson, on the other hand, is not that bossy. It lets YOU bring YOUR 
+      Objects, and it'll play nicely with them, as per YOUR instructions.
+    </p>
+    <p>
+      Sounds fair? Good, since we are ready to move to the other Credo.
+    </p>
+    <p>
+      <b>4. Jackson Credo: Do More (with less)</b>
+    </p>
+    <p>
+      Up until version 1.1, Jackson has sort of played catch up with other 
+      best-of-class data mapping/binding frameworks (and by-passed good many 
+      inferior ones, but I digress). But now it is rather close to true 
+      feature parity.
+    </p>
+    <p>
+      Good mature frameworks like <a href="https://jaxb.dev.java.net/">JAXB</a> 
+      are reasonably feature-filled. But one benefit Jackson has, specifically 
+      wrt. JAXB, is that the data format it uses (JSON) is simpler. Simplicity 
+      has many benefits, but the main thing is that it allows one to quickly 
+      solve the &quot;simple&quot; parts (parsing, writing) -- without sacrificing other 
+      important parts like API simplicity and performance -- and then move on 
+      to more advanced (and arguably more value-additive) features.
+    </p>
+    <p>
+      I claim that if it wasn't for complexities of XML (or, worse, 
+      complexities of XML Schema). JAXB might be much more full-featured. In 
+      fact, it seems little odd that it does not yet allow you to BYOC doesn't 
+      it? But considering scope of what has already been (it is a HUGE 
+      undertaking, akin to building a cathedral), it would be unfair to blame 
+      its creators. At some point you have done enough and move on. I gather 
+      that point was reached at some point in the past. So with all the 
+      usefulness, project is realistically in maintenance mode: good, stable, 
+      but not going anywhere fast.
+    </p>
+    <p>
+      But the important point here is that this point has not at all been 
+      reached with Jackson; nor is it likely to be reached any time soon. In 
+      fact, there is a <a href="http://jira.codehaus.org/browse/JACKSON">boatload 
+      of New Features</a> to consider for many new releases; and solid plan to 
+      get there; to develop new useful things, and have some fun along the 
+      way. We plan to enjoy the ride, so hang on loosely and enjoy the new 
+      scenery.
+    </p>
+    <p>
+      Oh, and the &quot;with less&quot; part is mostly meant to related to YOU having to 
+      do less; but it also applies to part of JSON itself providing less, but 
+      perhaps counter-intuitively making the whole package offer much more. I 
+      think there's some fundamentally neat principle hidden down there; but 
+      that's, as they, another story.
+    </p>
+    <p>
+      <b>5. Next Up: Mix-in Annotations</b>
+    </p>
+    <p>
+      Ok; and after introducing this allegedly cool new feature, be prepared 
+      to get your mind blown with next entry: we will be visiting the Feature 
+      Known as &quot;Mix-in Annotations&quot;. Stay tuned!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, July 27, 2009 11:57 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_303.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_303.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_303.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Tuesday, July 21, 2009 </h2>
+
+<div class="entry" id="post-302">
+			<h3 class="entry-header">Bean Validation API looks good, even after reading the spec</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Here's another update: I wrote <a href="/blog/archives/2009/05/entry_245.html">a 
+      bit</a> about Bean Validation API (jsr-303) earlier, suggesting it might 
+      be something to look for.
+    </p>
+    <p>
+      And lo + behold, after finally taking time to read the underlying JSR 
+      specification (still a draft, not finalized, but rather complete it 
+      seems), I still like it! In fact, I think it's amongst the best JSRs I 
+      have read (granted, I have read but maybe dozen all in all -- quality of 
+      other hundred or so completed ones I can only speculate freely about).
+    </p>
+    <p>
+      So why is it good? Here are some reasons:
+    </p>
+    <ol>
+      <li>
+        Its scope is well-defined: the thing covers validation of beans, and 
+        only limited number of additions (like localization of error messages 
+        -- not needed for all use cases, but is for the &quot;obvious&quot; case of 
+        validating user input)
+      </li>
+      <li>
+        &quot;New&quot; language features (like generics, annotations, enums) are used 
+        professionally: used when useful and/or necessary, but not going wild 
+        for sake of using them
+      </li>
+      <li>
+        Innovative design within above bounds
+      </li>
+      <li>
+        Specification itself is well-written as a technical document: concise, 
+        formal (enough) but readable (enough non-toy-examples, but not too 
+        many)
+      </li>
+    </ol>
+    <p>
+      I am especially intrigued by #3: I think the way that validator 
+      factories are constructed is sensible, clever, and a clear improvement 
+      over way that many earlier JSRs defined creation of factories (like JAXP 
+      et al). The innovation parts is that instead of first locating a factory 
+      implementation and returning it for application to configure, order is 
+      actually reversed: process starts by constructing configuration object, 
+      and after it has been built (using fluent/fluid/builder style), only 
+      then the factory is created. The beauty of this is that the <b>resulting 
+      factory is immutable and hence thread-safe</b> (and specified to be so 
+      by the specs). Why is this such a big deal? Because it is now possible 
+      to safely instantiate just one (or at most couple) of such factories, to 
+      be shared by the whole application or subsystem. Although this can be 
+      done de factor for most factories (JAXB, DOM, Stax etc etc), this is not 
+      guaranteed by respective specification.
+    </p>
+    <p>
+      But benefits of this style extend beyond thread-safety part: it also 
+      allows for clean way of adding custom configurations (with help of using 
+      generics to define configurator objects), with bit more type safety. If 
+      you do know the provider to use (or at least extension(s) it defines), 
+      you can configure things, but still within same framework.
+    </p>
+    <p>
+      If above description seems fuzzy, go ahead and read the specification. 
+      It should make more sense, especially if you have had to create such 
+      pluggable-provider-factory frameworks.
+    </p>
+    <p>
+      So anyway, hats off to writers of JSR-303. I hope other aspiring (or 
+      veteran) JSR members will learn from it.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, July 21, 2009 10:24 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_302.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_302.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_302.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, July 16, 2009 </h2>
+
+<div class="entry" id="post-300">
+			<h3 class="entry-header">Better Coffee, Better Work (results?)</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Well, although <a href="http://lifehacker.com/5312052/top-10-tips-and-tricks-for-better-coffee">this 
+      article</a> (&quot;Top 10 Tips and Tricks for Better Coffee&quot;) does NOT claim 
+      above, I do. So now I'm off to find a cheap coffee press to improve my 
+      code, I mean, coffee, quality! :-)<br>Interesting reading, and readily 
+      applicable. Sweet.
+    </p>
+    <p>
+      ... and if (read: when) it works, what you will see is a significant 
+      incremental revenue for a <a href="http://amazon.com">well-known general 
+      merchandise on-line retailer</a>.<br>Feel free to buy more of AMZN 
+      shares based on this tip &amp; thank me later when you have earned a fortune 
+      due to rocket-like run on share price after said revenue increase. It's 
+      a good investment at any rate, and planned to pay for my next year home 
+      renovation project (unless I can somehow convince my dear <a href="http://www.cowtowncoder.com/blog/archives/2009/06/entry_278.html">readers 
+      to be more inquisitive</a> regarding commercial interludes you see on 
+      the right-hand side -- in which case it'll be another big-name online 
+      company that'll pay for it!).
+    </p>
+    <p>
+      (Q: should I maybe cut back on coffee consumption, before writing blog 
+      entries? You be the judge...)
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, July 16, 2009 9:29 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_300.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_300.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_300.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Wednesday, July 15, 2009 </h2>
+
+<div class="entry" id="post-299">
+			<h3 class="entry-header">Michael has left the building?</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      I assume this was inevitable: question(s) are now emerging regarding <a href="http://www.adam-bien.com/roller/abien/entry/was_michael_jackson_a_java">relationship 
+      between Jackson Project and late King of Pop</a>. We of course deny all 
+      such allegations; or at least can not confirm them. Even if it can be 
+      said that Jackson (the JSON processor) IS the King of JSON (0wns the 
+      space, so to sp33k!), that's where similarities end.
+    </p>
+    <p>
+      Very entertaining. I think this beats the previous silly association; 
+      someone commenting he (or she?) liking Jackson because it was named 
+      after his cat... :-)
+    </p>
+    <p>
+      ps. If I ever write a YAML parser, I guess I have to name it either 
+      &quot;Aaron&quot; or &quot;Presley&quot;...
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, July 15, 2009 10:43 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_299.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_299.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_299.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Friday, July 10, 2009 </h2>
+
+<div class="entry" id="post-296">
+			<h3 class="entry-header">Seattle Super Stars: Bruce Lee</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Here's something else I did not know: that the iconic Kung Fu hero <a href="http://en.wikipedia.org/wiki/Bruce_lee">Bruce 
+      Lee</a> was a Seattleite! And that he is a &quot;permanent resident&quot; now, 
+      being buried in <a href="http://www.allbrucelee.com/article/bruce_lee_grave_site.htm">Lakewood 
+      Cemetery</a>. Fascinating! So Seattle not only produces (or at least 
+      refines) first-class axe men (Jimi; guys of Pearl Jam &amp; other big names 
+      of grunge), geeks (Bill G, Jeff B) but also first class ass-kickers.
+    </p>
+    <p>
+      I also need to keep this in mind next time I feel like giving hard time 
+      for waiters at local (Intl. District, near my day job) hole-in-the-wall 
+      joints...
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Friday, July 10, 2009 6:33 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_296.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_296.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_296.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, July 09, 2009 </h2>
+
+<div class="entry" id="post-298">
+			<h3 class="entry-header">Are GAE developers a bunch of</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      ignorant, incompetent boobs... or what?
+    </p>
+    <p>
+      Usually I avoid ranting, at least on my blog entries. Thing is, negative 
+      output creates negative image: there is little positive in negativity. 
+      If you have nothing good to say, say nothing, and so on.
+    </p>
+    <p>
+      But sometimes enough is enough. This is the case with Google, and their 
+      pathetic attempts at Creating Java(-like) platforms.
+    </p>
+    <p>
+      <b>1. Past failures: Android</b>
+    </p>
+    <p>
+      In the past I have wondered at the clusterfuck known as Android: API is 
+      a mess, concoction of JDK pieces included (and mixed with arbitrary open 
+      source APIs and implementation classes) is arbitrary and incoherent. But 
+      since I don't really work much in the mobile space, I have just shook my 
+      head when observing it -- it's not really my problem. Just an eyesore.
+    </p>
+    <p>
+      But it is relevant in that it set the precedent for what to expect: 
+      despite some potentially clever ideas (regarding the lower level 
+      machinery), it all seems like a trainwreck, heading nowhere fast. And 
+      the only saving grace is that most mobile development platforms are even 
+      worse.
+    </p>
+    <p>
+      <b>2. Current problems: start with ignorance</b>
+    </p>
+    <p>
+      After this marvellous learning experience, you might expect that the big 
+      G would learn from its mistakes and get more things right second time 
+      around. No such luck: <a href="http://code.google.com/appengine/">Google 
+      App Engine</a> was a stillbirth; plagued by very similar problem as 
+      Android. Most specifically, significant portion of what SHOULD be 
+      available (given their implied goal of supporting all JDK5 pieces 
+      applicable to the context) was -- and mostly still is -- missing. And 
+      decisions again seem arbitrary and inconsistent; but probably made by 
+      different bunch of junior developers.
+    </p>
+    <p>
+      My specific case in point (or pet peeve) is the lack of <a href="http://code.google.com/p/googleappengine/issues/detail?id=1277">Stax 
+      API on GAE</a> (it is missing from white-list, which is needed to load 
+      anything within &quot;javax.&quot; packages). It seems clear that this was mostly 
+      due to good old ignorance -- they just didn't have enough expertise 
+      in-house to cover all necessary aspects of JDK. Hey, that happens: maybe 
+      they have no XML expertise within the team; or whoever had some 
+      knowledge was busy farting around doing something else. Who knows? 
+      Should be easy to fix, whatever gave.
+    </p>
+    <p>
+      <b>3. From ignorance to excuses</b>
+    </p>
+    <p>
+      Ok: omission due to ignorance would be easily solved. Just add 
+      &quot;javax.xml.stream&quot; on the white list, and be done with that. After all, 
+      what could possibly be problematic with an <i>API package</i>? (we are 
+      not talking about bundling an implementation here)
+    </p>
+    <p>
+      But this is where things get downright comical: almost all 
+      &quot;explanations&quot; center around the strawman argument of &quot;there must be 
+      some security-related issue here&quot;. I may be unfair here -- it is 
+      possible that all people peddling this excuse are non-Googlians (if so, 
+      my apologies to GAE team). But this is just very ridiculous (dare I say, 
+      retarded?) argument, because:
+    </p>
+    <ol>
+      <li>
+        Being but an API package, <b>there is no functionality</b> that could 
+        possibly have security implications (yes, l know exactly what is 
+        within those few classes -- the only actual code is for implementation 
+        discover, which was copied from SAX), and
+      </li>
+      <li>
+        If there are problems with implementations of the API (which should be 
+        irrelevant, but humor me here), <b>same problems would affect already 
+        included and sanctioned packages</b> (SAX, DOM, JAXP, bundled Xerces 
+        implementation of the same)
+      </li>
+    </ol>
+    <p>
+      Perhaps even worse, these &quot;explanations&quot; are served by people who seem 
+      to have little idea about package in question. I could as well ask about 
+      regular expression or image processing packages it seems.
+    </p>
+    <p>
+      <b>4. Misery loves company</b>
+    </p>
+    <p>
+      About the only silver lining here (beyond my not having to work on 
+      GAE...) is that there are other packages that got similarly hosed (I 
+      think JAXB may be one of those; and many open source libraries are 
+      affected indirectly, including popular packages like <a href="http://xstream.codehaus.org">XStream</a>). 
+      So hopefully there is little bit more pressure in fixing these flaws 
+      within GAE.
+    </p>
+    <p>
+      But I so hope that other big companies would consider implementing 
+      sand-boxed &quot;cloudy&quot; Java environments. Too bad competitors like 
+      Microsoft and <a href="http://amazon.com">Amazon</a> tend to focus on 
+      other approaches: both doing &quot;their own things&quot;, although those being 
+      very different from each other (Microsoft with their proprietary 
+      technology; Amazon focusing on offering low-level platform (EC2) and 
+      simple services (S3, SQS, SWF -- simple storage, queue, workflow service 
+      -- etc), but not managed runtime execution service.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, July 09, 2009 10:51 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_298.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_298.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_298.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header"> </h2>
+
+<div class="entry" id="post-293">
+			<h3 class="entry-header">Wolf Power! (coolest Mockumercial for t-shirts ever)</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Ok, here's yet another Internet Phenomenon I had so far missed: <a href="http://www.amazon.com/The-Mountain-Three-Wolf-T-Shirt/dp/B000NZW3KC">Three 
+      Wolf Moon</a> t-shirt, #1 seller at Amazon Apparel store. Be sure to 
+      check out <a href="http://www.amazon.com/Three-T-Shirt-Available-Various-Sizes/product-reviews/B000NZW3IY">customer 
+      reviews</a> -- they are AWESOME (almost as good as ones <a href="http://www.amazon.com/Tuscan-Whole-Milk-Gallon-128/dp/B00032G1S0">Tuscan 
+      Whole Milk</a>, <a href="http://www.amazon.com/Wedding-Chapel-10-Wood-Roof/product-reviews/B000HUQ1C4">Wedding 
+      Chapel</a> and <a href="http://www.amazon.com/JL421-Badonkadonk-Land-Cruiser-Tank/dp/B00067F1CE">Badonkadonk 
+      Tank</a>; or ones that <a href="http://www.amazon.com/Metric-Brass-Grade-Metal-Diameter/dp/B000FMUHWO">Brass 
+      Balls</a> and <a href="http://www.amazon.com/Iranian-Sevruga-000-Caviar-Malossol/dp/B000LR2NSO">Beluga 
+      Caviar</a> used to have).
+    </p>
+    <p>
+      It is kind of cool that this T-shirt has gotten some majic (see its <a href="http://www.youtube.com/watch?v=QPB45AUmchM">YouTube 
+      mockumercial</a>!) by sheer luck. And its also amazing how useful such 
+      viral &quot;marketing&quot; can be (quotes since this had NOTHING to do with 
+      manufacturer itself); especially for smaller companies: get 
+      Internet-scale sales, even if you are a small player. As long as you get 
+      into this strange crowd-a-review cyclone. :-)
+    </p>
+    <p>
+      Now the main question is: how many should <b>I</b> order!
+    </p>
+    <p>
+      
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, July 09, 2009 7:33 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_293.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_293.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_293.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Tuesday, July 07, 2009 </h2>
+
+<div class="entry" id="post-292">
+			<h3 class="entry-header">Fear and Loathing with Windows Vista</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Ok: so far I have been wondering if there's a reason why Windows Vista 
+      has gotten bad rap. I mean, up until now. No wonder any more -- I have 
+      tried using Vista for past week or so. And now it is quite clear why 
+      people might hate, despite and loathe it. My number one guess: it sucks 
+      like no tomorrow.
+    </p>
+    <p>
+      I mean: a simple thing like printing to a network printer is apparently 
+      beyond capabilities of this marvel of engineering. At work I tried 
+      printing a 2 page document to a network printer. Workflow for this task 
+      goes like so:
+    </p>
+    <ol>
+      <li>
+        Ask Vista nicely to locate printers in da hood: it will find 9 out of 
+        200+ printers there are, none of which is in the same building; I am 
+        not entirely convinced these are not just random names drawn out of 
+        some sw engineers a$$. At any rate, none is a real printer within 
+        building I work at.
+      </li>
+      <li>
+        Lend Vista a helping hand (first with just one finger raised...): tell 
+        it IP name to have a look at.
+      </li>
+      <li>
+        Stare at the popup that claims it has no idea what type of a printer 
+        this might be; offering a not-so-helpful list of 79 known printer 
+        manufacturers, most with 500+ types of printers
+      </li>
+      <li>
+        Go check the actual type of printer (from its side), write it 
+        carefully down
+      </li>
+      <li>
+        Cross-check with list Vista gave you: notice that there is no such 
+        printer amongst thousands listed (I wonder if these are even real 
+        printers... maybe they were just generated using Jabberwocky)
+      </li>
+      <li>
+        Try using something that is as close to the actual type as possible 
+        (same manufacturer, same product line, same number, couple of same 
+        letters)
+      </li>
+      <li>
+        Try printing
+      </li>
+      <li>
+        Observe Vista producing to print a stack of paper thicker than your 
+        local phone book -- likely because it saw no problem in seding 
+        Postscript file to what appears to be a PCL printer.
+      </li>
+      <li>
+        Count your blessing when half-way through printing there is paper jam 
+        that prevents some of paper waste
+      </li>
+      <li>
+        Wonder out aloud how is it that previous versions of Windows managed 
+        get above (minus printing tons of crap; replaced with printing out the 
+        actual doc) done with fewer steps. As does MacOS; and even Linux.
+      </li>
+    </ol>
+    <p>
+      Now, some of you may think I just made above up. I so wish this was the 
+      case, but no, it is a sad but true story. And the rest (who heard me 
+      curse, and wave that stack of paper angrily, in general direction of my 
+      laptop); pardon my french. Yes, that kind of language is not suitable 
+      for corporate setting, I know. Next time I will use my mother tongue for 
+      expressing my true feelings.
+    </p>
+    <p>
+      I don't know if there is already a law outlawing manu(factu)re, 
+      distribution and selling of Vista. But if not, I sure hope Obama 
+      admistration considers it a crime punished by something severe. Like 
+      having to use Vista for all your work, for term to exceed 20 years. 
+      Without parole.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, July 07, 2009 9:25 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_292.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_292.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_292.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Monday, July 06, 2009 </h2>
+
+<div class="entry" id="post-287">
+			<h3 class="entry-header">Another Not-so-well-known Gem: Ant Maven Task</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Ok: I thought it was common knowledge that:
+    </p>
+    <ol>
+      <li>
+        Maven repositories are great for storing versions of product artifacts 
+        (jars), but
+      </li>
+      <li>
+        Converting projects to Maven is sometimes big hassle, since it 
+        requires everything to be set up the Way Maven Wants (which is the key 
+        to keeping configuration to minimum, convention-over-configuration)
+      </li>
+    </ol>
+    <p>
+      and that these two points are somewhat conflicting.<br>So: while it is 
+      an absolutely great idea to provide jars of non-Maven projects through 
+      Maven repositories, it may be royal PITA to get that done by Mavenizing 
+      builds. Or, well, at least extra work that is easily deferred, given 
+      half a chance.
+    </p>
+    <p>
+      But fortunately you can both ship your dog food, and staunchly refuse to 
+      eat it: just use <a href="http://maven.apache.org/ant-tasks/index.html">Ant 
+      Maven Task</a> to publish (&quot;deploy&quot;) any Ant-produced (or whatever you 
+      use) into Maven repositories (including snapshot repos)! And allow those 
+      diligent Maven users (or smarties who use, say, Ivy, but with Maven 
+      repos!) to use your great library, without giving in to demands of 
+      converting to this new religion. :-)
+    </p>
+    <p>
+      So why am I writing this entry? Because it looks like there are still 
+      developers who do not know this nifty shortcut! But no more -- you have 
+      been advised: get the artifacts out; it's good for you and others.
+    </p>
+    <p>
+      ps. This is quite similar to how you REALLY should also make sure your 
+      jars are actual <a href="http://en.wikipedia.org/wiki/OSGi">OSGi</a> 
+      bundles. How? By either: (a) using Maven (which has bundle generation 
+      targets), or (b) Just Use Ant (JUA), with the nifty -- yes, you guessed 
+      it! -- <a href="https://opensource.luminis.net/wiki/display/SITE/OSGi+Bundle+Ant+Task">Ant 
+      OSGi Bundle task</a>... :-)<br>
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, July 06, 2009 7:46 PM </span>
+<br />	Categories: <a href=""></a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_287.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_287.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_287.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Sunday, July 05, 2009 </h2>
+
+<div class="entry" id="post-281">
+			<h3 class="entry-header">Green Day still Rocks</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p technocode="jkbnexu5cg">
+  Last friday I did something I haven't done in a while: go to a 
+  rock concert. Turns out it has been way too long -- it was a very 
+  positive surprise. Need to be doing this stuff more often. It was also 
+  the very first time I've heard <a href="http://en.wikipedia.org/wiki/Green_day">Green 
+  Day</a> live, and they did very good job: although I can't compare it to 
+  what's their standard, it was probably the best live concert I have ever 
+  attended. And perhaps luckily it was not perfect (... how could they 
+  leave out <a href="http://en.wikipedia.org/wiki/Wake_Me_Up_When_September_Ends">my 
+  favorite song</a>? all the other hits were included fortunately) -- just 
+  very very good -- so there is a small chance of seeing something even 
+  better in future. At any rate, well done. I better go buy their last 
+  album, so I can give American Idiot little bit of rest.
+</p>
+<p>
+  Also: I think it is quite fitting to do this on July 3rd, to get bit of 
+  counter-balance to celebrations of the day following... with somewhat 
+  nationalistic (not just &quot;patriotic&quot;) tendencies (luckily, this year 
+  things are bit better, maybe due to centrist president, or perhaps due 
+  to economy, whatever). Little bit of punky snot rock (with 
+  fascism-inspired video wall as background etc) is always good antidote 
+  for that stuff. Kind of like how sour works well with sweet, and why 
+  Pixar movies mop the floor with Disney (&quot;classic&quot;, not including 
+  Pixar...) movies. You need bit of edge to get enjoyable, not just 
+  agreeable, tabste. But I digress.
+</p>
+<p>
+  One more thing that I respect about GD guys is their involvement of 
+  audience -- they actually let an audience member play rhythm guitar on 
+  &quot;Jesus of Suburbia&quot;. Unless that was staged (kind of doubt that, 
+  wouldn't fit well with the image?) it takes some balls to try that out, 
+  I think. I can only imagine letting someone from &quot;worst of American Idol 
+  auditions&quot; sing: just because someone REALLY wants to sing with their 
+  idols doesn't mean they can, or even should.
+</p>
+<p>
+  Anyway: that's that: tomorrow, back to work. And I better blog something 
+  about my new gig too: things are off to a good start; I feel excited, 
+  think I have a good chance to actually dig deep into domain and get 
+  something solved deeply rather than broadly. And best of all, see some 
+  of my earlier work having come to fruition, so that I don't even really 
+  start from scratch this time.
+</p>
+<p>
+  (and after these personal digressions, I need to get back to factual 
+  writing, Jackson 1.2 plans; maintenance work for Woodstox and all the 
+  usual content)
+</p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Sunday, July 05, 2009 10:46 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_281.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_281.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_281.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_303.html">Jackson 1.2: BYOC (Bring Your Own Constructors)*; Use  Your Objects & Do More (with less)!</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_302.html">Bean Validation API looks good, even after reading the spec</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_300.html">Better Coffee, Better Work (results?)</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_299.html">Michael has left the building?</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2009/07/entry_296.html">Seattle Super Stars: Bruce Lee</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

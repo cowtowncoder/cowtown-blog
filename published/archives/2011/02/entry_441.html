@@ -1,0 +1,765 @@
+<html lang="en">
+<head>
+<title>Jackson 1.7; quest for Maximum Extensibility</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<!-- HaloScan comments: -->
+<script type="text/javascript" src="http://www.haloscan.com/load/cowtowncoder">
+</script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+     <div id="container">
+          <div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+     <div id="banner-inner" class="pkg">
+          <h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+          <h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+     </div>
+</div>
+               <div id="pagebody">
+                    <div id="pagebody-inner" class="pkg">
+                         <div id="alpha">
+                              <div id="alpha-inner" class="pkg">
+<!-- entry -->
+
+
+   
+   
+
+     <h2 class="date-header">Wednesday, February 02, 2011 </h2>
+
+<div class="entry" id="post-441">
+<h3 class="entry-header">Jackson 1.7; quest for Maximum Extensibility</h3>
+     <div class="entry-content">
+          <div class="entry-body">
+          
+               <p><p>
+      At this point Jackson 1.7 has been out for almost a month (and in fact, 
+      1.7.2 is by now the latest patch release), so it's high time to write 
+      something about this release.<br>1.7 turns out to be third &quot;anything but 
+      minor&quot; minor release in a row, which is part of the reason why I have 
+      procrastinated a bit: it is not a simple matter of just listing set of 
+      simple features, or linking the release notes page (which can be found <a href="http://wiki.fasterxml.com/JacksonRelease17">here</a>, 
+      for anyone interested). Rather, it makes sense to talk a bit about 1.7 
+      development cycle.
+    </p>
+    <p>
+      But it is actually good that I have had some time to think about what to 
+      write, instead of rushing to document release that just happened: 
+      especially since there is now some progress that was directly germinated 
+      by this release. But more on this bit later.
+    </p>
+    <p>
+      <b>1. Background</b>
+    </p>
+    <p>
+      After 1.6, a whopper of a release that boasted 4 major new featurers and 
+      a boatload of smaller ones, the initial plan for 1.7 was to make a 
+      somewhat smaller incremental release. Beyond tackling some fixes that 
+      required API changes (and thus couldn't go in one of 1.6.x patch 
+      releases), the focus was on the most important concern at the time: 
+      difficult in cleanly extending Jackson with modular extensions. So it 
+      seemed like this might be a modest incremental upgrade.
+    </p>
+    <p>
+      It was quickly found out that needed changes to allow modular 
+      extensibility were quite wide-spread, since information needed was not 
+      propagated through all the pieces. But the focus on a single 
+      cross-cutting concern turned out to be a good thing, so that major 
+      changes to interfaces could be done in one fell swoop and hopefully 
+      abstractions added (and changes to existing ones) will form a solid 
+      foundation for further development.
+    </p>
+    <p>
+      <b>2. Aspects of extensibility</b>
+    </p>
+    <p>
+      While the main goal was to improve extensibility, there are multiple 
+      kinds changes that are needed to support proper modular extensibility. 
+      For example:
+    </p>
+    <ul>
+      <li>
+        Changes to allow registration of bundles of new functionality in a way 
+        that it is possible to add multiple extensions that ideally do not 
+        conflict, and that need not even be aware of other extensions that may 
+        be used.
+      </li>
+      <li>
+        Retrofitting existing components and interfaces to allow clean 
+        extension (i.e. avoiding having to sub-class things)
+      </li>
+      <li>
+        Adding new extension points to replace older extension methods
+      </li>
+      <li>
+        Making existing extension points more powerful, to further reduce need 
+        for more invasive techniques (overrides with sub-classing)
+      </li>
+    </ul>
+    <p>
+      Another way to consider this is to think of Jackson becoming a platform; 
+      the way a web browser can be seen a platform to build on (via addition 
+      of plug-ins and add-ons). In fact, given new projects that support many 
+      non-JSON data formats (see below), it is not a strecth to claim that 
+      Jackson is becoming a &quot;Java data format conversion platform&quot; at this 
+      point.
+    </p>
+    <p>
+      <b>3. New mechanism for registering extensions: Module API</b>
+    </p>
+    <p>
+      The most visible new construct is Module API. It is also amongst 
+      simplest, since there are basically just two things a Jackson Module 
+      developer needs to learn:
+    </p>
+    <ol>
+      <li>
+        org.codehaus.jackson.map.<b>Module</b> interface, which must be 
+        implemented by one class of the module; and specifically its 
+        &quot;setupModule(SetupContext ctxt)&quot; method (other methods are for 
+        exposing metadata such as module version)
+      </li>
+      <li>
+        <b>Module.SetupContext</b> (passed to &quot;setupModule&quot; method) that 
+        exposes set of extension points (methods) that module can use to 
+        register handlers it wants to add.
+      </li>
+    </ol>
+    <p>
+      And from user end point, it is even simple; there is but one thing to 
+      know. To use, say, new Jackson-guava-module (available from <a href="https://github.com/FasterXML/jackson-module-guava">FasterXML 
+      GitHub repository</a>; provides support for reading/writing Guava data 
+      types), you will do:
+    </p>
+    <pre>  ObjectMapper mapper = new ObjectMapper();
+  mapper.registerModule(new GuavaModule());</pre>
+    <p>
+      that is, add a one-line call to let module register whatever it wants to 
+      offer, via interfaces that ObjectMapper provides it.
+    </p>
+    <p>
+      From above description, definition of a Jackson module is quite simple: 
+      it is piece of code that defines one class that implements 
+      org.codehaus.jackson.map.Module, and which registers all functionality 
+      offered by the module.
+    </p>
+    <p>
+      <b>3.1. Module interface: not just for extensions -- use for your own 
+      app too!</b>
+    </p>
+    <p>
+      One thing worth noting is that while Module interface is really designed 
+      to allow writing of reusable third-party extensions, it actually works 
+      pretty well just for encapsulating ObjectMapper configuration and 
+      extensions that are only used by a single application, or company-wide 
+      (but not published externally). So it is a good idea to use modules, for 
+      example, when registering custom serializers and deserializers; there is 
+      no overhead and this helps in encapsulating configurability and 
+      customization in one place.
+    </p>
+    <p>
+      <b>4. Modular extension points: Serializers, Deserializers</b>
+    </p>
+    <p>
+      Beyond having a simple registration mechanism for extensions (which I 
+      will from here on simply refer as &quot;modules&quot;), the obvious problem with 
+      extensibility has been that it has been limited to application developer 
+      being able to override custom behavior, either by setting an explicit 
+      handler, or by sub-classing and replacing existing components (like 
+      SerializerFactory). True extensibility requires that it must be possible 
+      for multiple modules to add handlers without overriding each other's 
+      changes (unless they happen to truly conflict like trying to define 
+      handler for same data type); ability for modules to peacefully co-exist, 
+      co-operate without explicitly having to plan for it.
+    </p>
+    <p>
+      The first obvious thing was to add mechanisms for adding custom 
+      serializers and deserializers without having to replace default 
+      SerializerFactory and DeserializerFactory instances. This was done by 
+      adding new interfaces <i>org.codehaus.jackson.map.<b>Serializers</b> </i>and<i> 
+      org.codehaus.jackson.map.<b>Deserializers</b> </i>(and matching basic 
+      implementations), which just define a way for a module to provide 
+      serializers and deserializers for specific data types. These can then be 
+      registered with <i>SerializerFactory.withAdditionalSerializers(Serializers) 
+      </i>and <i>DeserializerFactory.withAdditionalDeserializers(Deserializers)</i>; 
+      which is exactly what ObjectMapper exposes via 
+      SetupContext.setupModule() method.
+    </p>
+    <p>
+      These simple extension points alone cover much of what most module need 
+      to do: to provide specific handlers for third party libraries. And when 
+      using <b>org.codehaus.jackson.map.module.SimpleModule</b> (default 
+      implementation of Module), addition of these handlers is a one-line 
+      operation.
+    </p>
+    <p>
+      <b>5. Modular extension points: BeanSerializerModifier, 
+      BeanDeserializerModifier </b>
+    </p>
+    <p>
+      But beyond ability to conveniently register deserializers and 
+      serializers, it was understood that ability to modify functioning of 
+      standard BeanSerializer and BeanDeserializer instances (things that take 
+      your POJOs, find out properties, handle annotations and pretty much do 
+      most of the magic Jackson provides) is a definite must. This because in 
+      most cases much of existing functionality is fine, but there is need to 
+      tweak specific aspects of serialization or deserialization: for example, 
+      one may want to override handling of just one specific property, for 
+      specific class of POJOs. And while annotations can configure many things 
+      well, there are limitations.
+    </p>
+    <p>
+      To support this, two new interfaces (and matching registration methods, 
+      added in Module.SetupContext) were added: BeanSerializerModifier and 
+      BeanDeserializerModifier.
+    </p>
+    <p>
+      Methods defined in these interfaces are called during (and right after) 
+      building BeanSerializer and BeanDeserializer instances; and can be used 
+      for example to:
+    </p>
+    <ol>
+      <li>
+        Add or remove properties to be serialized, deserialized
+      </li>
+      <li>
+        Change the order in which properties are serialized
+      </li>
+      <li>
+        Completely replace BeanSerializer/-Deserializer that has been built, 
+        with specified JsonSerializer/JsonDeserializer (this is often done by 
+        constructing a new BeanSerializer / BeanDeserializer, using some 
+        properties from initial serializer/deserializer)
+      </li>
+    </ol>
+    <p>
+      Which pretty much means that the whole serializer and deserializer 
+      configuration and construction process can be modified; but without 
+      having to replace everything. Possibilities are unlimited.
+    </p>
+    <p>
+      <b>6. Contextual configuration of serializers, deserializers</b>
+    </p>
+    <p>
+      While ability to change the way bean serializers, deserializers are 
+      configured and constructed is powerful, there was one other aspect of 
+      construction process that needed revamping. Up until version 1.6, once a 
+      serializer (deserializer) was constructed for a given type, same 
+      instance was used for properties of that type. This meant that any 
+      context-specific behavior (serialization of a field of specific type 
+      being handled differently, depending on which exact property is being 
+      serialized) was hard to do; and basically could not be done from within 
+      serializer or deserializer implementation.
+    </p>
+    <p>
+      Consider something that would seem like a simple extension: ability to 
+      define which DateFormat to use for serializing specific properties. For 
+      example, we might want something like:
+    </p>
+    <pre>  public class Bean {
+    @JsonDateFormat(&quot;YYYY-MM-DD&quot;)<br>    public Date createDate;
+  }</pre>
+    <p>
+      in which 'createdDate' property would be serialized using specified 
+      DateFormat, instead of the default DateFormat mapper uses.
+    </p>
+    <p>
+      Problem is two-fold: first of all, JsonSerializer/JsonDeserializer does 
+      not get enough contextual information to do much configuration. But 
+      worse, even if it did, there would be just one instance that is used 
+      regardless of location of property. So the only way (pre-1.7) to 
+      implement such feature would be to explicitly add support within core 
+      Jackson data binder; BeanSerializerFactory and AnnotationIntrospector 
+      would need to be modified at minimum.
+    </p>
+    <p>
+      One obvious way to solve the problem would have been to pass contextual 
+      information during serialization/deserialization. But while this would 
+      be a powerful mechanism, it would add significant amount of overhead, 
+      especially if configuration was to be done using annotations. Instead we 
+      decided to pass this information during construction of 
+      serializer/deserializer instance; from design perspective this is 
+      compatible with the general goal of trying to gather as much information 
+      as possible during non-performance-critical phase of constructing 
+      handlers, and minimize work to be done during performance-critical 
+      serialization phase.
+    </p>
+    <p>
+      Specific mechanism chosen is that of defining two interfaces (<b>ContextualSerializer</b>, 
+      <b>ContextualDeserializer</b>) that serializer and deserializer 
+      instances can implement. And if they do, SerializerProvider / 
+      DeserializerProvider will first construct instance, and then call 
+      methods in new interfaces, to allow <i>creation of contextual instances</i>, 
+      passing information about context in form of <b>BeanProperty</b> 
+      instance which gives property name and access to all related annotations 
+      (as well as currently active configuration).
+    </p>
+    <p>
+      With this information it will be possible to support use cases such as 
+      one explained below: in fact, unit tests used to verify functionality 
+      define trivial serializer types (like StringSerializer that can 
+      conditionally lower-case property values based on existence of a test 
+      annotation).
+    </p>
+    <p>
+      <b>7. From theoretical to practical extensibility</b>
+    </p>
+    <p>
+      While it has been just 4 weeks since the release, extensibility 
+      improvements outlined above have already been made good use of by 
+      multiple projects. I am aware of at least following extension projects 
+      (please let me know of others if you know):
+    </p>
+    <ul>
+      <li>
+        <a href="https://github.com/michel-kraemer/bson4jackson">bson4jackson</a> 
+        (support for BSON format (used by MongoDB))
+      </li>
+      <li>
+        <a href="https://github.com/FasterXML/jackson-module-scala">jackson-module-scala</a> 
+        (support Scala data types) (there is also another noteworthy 
+        Scala-with-Jackson project, <a href="https://github.com/codahale/jerkson">Jerkson</a>)
+      </li>
+      <li>
+        <a href="https://github.com/FasterXML/jackson-module-hibernate">jackson-module-hibernate</a> 
+        (support lazy-loaded Hibernate types):
+      </li>
+      <li>
+        <a href="https://github.com/FasterXML/jackson-module-guava">jackson-module-guava</a> 
+        (support google Guava collection types)
+      </li>
+      <li>
+        <a href="https://github.com/FasterXML/jackson-xml-databind">jackson-xml-databind</a> 
+        (support reading/writing XML instead of JSON, &quot;mini-JAXB&quot;) -- I will 
+        definitely need to write bit more about this in near future (can't use 
+        XStream or JAXB at GAE? jackson-xml-databind actually can be -- and it 
+        is much faster than either on J2SE platform as well)
+      </li>
+    </ul>
+    <p>
+      and new ones are bound to come up (there have been talks for adding 
+      Joda-module, CSV-module for example)
+    </p>
+    <p>
+      <b>8. Beyond extensibility: other new features, improvements:</b>
+    </p>
+    <p>
+      As imporant as extensibility (and benefits it brings, such as new 
+      modules!), 1.7 actually contains a few important other improvements and 
+      new features that are not directly related to extensibility. Here's a 
+      quick list of most noteworthy ones:
+    </p>
+    <ul>
+      <li>
+        @JsonTypeInfo can now be used for properties (fields, getter/setter 
+        methods), not just types (classes) -- useful for &quot;untyped&quot; fields 
+        (like ones using java.lang.Object as value), so one need not enable 
+        default type information
+      </li>
+      <li>
+        Dynamic Filtering: powerful new filtering mechanism using @JsonFilter 
+        to specify filter id, ObjectMapper.filteredWriter(FilterProvider) to 
+        specify which id maps to which filter -- this is a major new feature, 
+        and I hope to write more about it too (
+      </li>
+      <li>
+        Support for wrapping output within &quot;root name&quot; (similar to JAXB), for 
+        interoperability with other JSON tools, frameworks
+      </li>
+      <li>
+        @JsonRawValue for injecting &quot;raw text&quot; (such as pre-encoded JSON 
+        without re-parsing) during serialization
+      </li>
+      <li>
+        SerializedString for high-efficiency serialization of pre-encoded 
+        (quoted, utf-8 encoded) String values, property names
+      </li>
+      <li>
+        Feature to enable/disable wrapping of runtime exceptions (separately 
+        for serialization, deserialization)
+      </li>
+    </ul></p>
+
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Wednesday, February 02, 2011 8:39 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_441.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_441.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_441.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+
+
+   
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /**
+    * var disqus_identifier; [Optional but recommended: Define a unique identifier (e.g. post id or slug) for this thread] 
+    */
+  (function() {
+   var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+   dsq.src = 'http://cowtalk.disqus.com/embed.js';
+   (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>(enable JavaScript to view the <a href="http://disqus.com/?ref_noscript=cowtalk">comments powered by Disqus)</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  </div>
+</div>
+<div id="beta">
+  <div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+
+<!-- /SiteSearch Google -->
+<hr />
+</div>
+
+     <div class="module-archives module">   
+          <h2 class="module-header">Last posts</h2>
+          <div class="module-content">
+               <ul class="module-list">
+                <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_441.html">Jackson 1.7; quest for Maximum Extensibility</a></li>
+               </ul>
+          </div>
+     </div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+
+     <div class="module-categories module">
+          <h2 class="module-header">Categories</h2>
+          <div class="module-content">
+        <ul>
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+          
+        </ul>
+          </div>
+     </div>
+<div class="module-syndicate module">
+     <div class="module-content">
+          <a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+          [<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+     </div>
+
+</div>
+
+<div class="module-about module">
+  <h2 class="module-header">Sponsored By</h2>
+  <div class="module-content">
+  </div>
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+<hr />
+
+     <h2 class="module-header">Related Blogs</h2>
+          <div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+
+<div class="module-powered module">
+     <h2 class="module-header">Powered By</h2>
+
+     <div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a> and
+     </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>

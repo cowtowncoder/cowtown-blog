@@ -1,0 +1,734 @@
+<html lang="en">
+<head>
+<title>September 2007</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Wednesday, September 26, 2007 </h2>
+
+<div class="entry" id="post-49">
+			<h3 class="entry-header">Fresh out of oven: Woodstox 3.2.2 released</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+  In a surprising turn of events, one more 3.x release of Woodstox just 
+  occured today. Although the plan was to move all development to trunk 
+  (for eventual 4.0 release), it turned out that two more minor feature 
+  enhancements could be developed in trunk, but backported easily to 3.2 
+  branch:
+</p>
+<ul>
+  <li>
+DOM compatibility was incomplete in 3.2.2, as reported in <a href="http://jira.codehaus.org/browse/WSTX-104">
+[WSTX-104]</a>. This was an oversight, in that although decision not to 
+complete support was deliberate, code was left accessible. However, it 
+turned out to be relatively easy to support DOMTarget (i.e. ability to 
+constructed stream/event writers with 
+javax.xml.transform.dom.DOMTarget as destination). So now it is 
+possible to use Stax API to build DOM trees. Should anyone care... :-)
+  </li>
+  <li>
+<a href="http://en.wikipedia.org/wiki/Ebcdic">EBCDIC</a> encodings 
+were detected (&quot;hey; there's some garbage in here... smells like 
+EBCDIC?&quot;), but no support was included to handle such content (see <a href="http://jira.codehaus.org/browse/WSTX-122">
+[WTSX-122]</a>). But after support was requested (yes, Big Iron talks xml too 
+it seems!), it was found simple enough to add support for handling 
+such content (not trivial, it not being 7-bit ascii compatible, just 
+doable). Big thanks to <a href="http://www.datadirect.com">DataDirect</a>
+ folks for their help on resolving this issue.
+  </li>
+</ul>
+<p>
+  Anyway; while it would seem that number of developers/teams that 
+  desperately need either one of the improved features can be counted with 
+  one hand fingers, when you need, you need it. And if you do need to read 
+  EBCDIC content and turn fast Stax output to bulky DOM trees, now <a href="http://woodstox.codehaus.org">
+Woodstox</a> can help you do that, too!
+</p>
+<p>
+  Thank you, thank you, I'll be here all week, don't forget to tip the 
+  waitresses...
+</p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Wednesday, September 26, 2007 10:11 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_49.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_49.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_49.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Thursday, September 20, 2007 </h2>
+
+<div class="entry" id="post-48">
+			<h3 class="entry-header">More on JSON performance in Java (or, lack thereof!)</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      (<b>UPDATE</b>, 06-May-2009: <a href="/blog/archives/2009/02/entry_204.html">here</a> 
+      are more recent results)
+    </p>
+    <p>
+      <b>Other JSON parser implementations</b>
+    </p>
+    <p>
+      After previous blog entry, I decided to have a look at other alternative 
+      JSON parser implementations available for Java. I figured that the <a href="http://www.json.org">json.org</a>'s 
+      reference JSON parser implementation is probably mostly aimed at 
+      show-casing the concept, not to act as the ultimate solution, perhaps 
+      some of the other choices might be optimized for performance.
+    </p>
+    <p>
+      For some reason this appears not to be the case. Some implementations 
+      obviously have other goals, like <a href="http://www.stringtree.org/stringtree-json.html">StringTree 
+      JSON</a> which takes pride in having miniscule bytecode footprint. Small 
+      can be beautiful. But others could conceivably perform quite nicely: for 
+      example, <a href="http://jsontools.berlios.de/">BerliOS' JSONTools</a> 
+      would seem like a good candidate, given it is built on top of a 
+      lexer-generated scanner: this approach could yield some mean lean 
+      tokenizers. But not in this case, it seems.
+    </p>
+    <p>
+      So let's have a look at some numbers. I will use a document similar to 
+      the earlier test (it would be nice to have a wider collection of test 
+      data, but it'll have to do for now). Here are numbers from 
+      &quot;TestJsonPerf&quot; (after running for a while to stabilize timings):
+    </p>
+    <ul>
+      <li>
+        Test 'Jackson, stream' -&gt; 190 msecs
+      </li>
+      <li>
+        Test 'Jackson, Java types' -&gt; 304 msecs
+      </li>
+      <li>
+        Test 'Json.org' -&gt; 867 msecs
+      </li>
+      <li>
+        Test 'StringTree' -&gt; 733 msecs
+      </li>
+      <li>
+        Test 'JSONTools (berlios.de)' -&gt; 2727
+      </li>
+    </ul>
+    <p>
+      (and as before, time taken is for 2500 repetitions of parsing a given 
+      json document from in-memory buffer)
+    </p>
+    <p>
+      So... StringTree implementation is on par with the reference 
+      implementation, actually, even a little bit faster (although nowhere 
+      near Jackson speedwise). But what is rather surprising is exactly how 
+      slow JSONTools appears to be. This was a big surprise, given how one 
+      would expect different outcome. With amount of code the package has, it 
+      perhaps has some other particularly interesting features to make up for 
+      rather more relaxed pace?
+    </p>
+    <p>
+      Although benchmarks can be misleading, it does seem like Jackson has a 
+      suitable raison d'etre even if it was only due to its efficiency. To me 
+      it is still a bit puzzling as to why no one had so far considered 
+      performance to be something to look for. Did everyone just assume that 
+      JSON would be super-fast purely by virtue of being a simple format to 
+      handle? Surely it should be well-known that xml parsers are ridiculously 
+      extensively optimized, and that naive approaches yield less than stellar 
+      speeds.
+    </p>
+    <p>
+      Anyway, with this brief detour, I'll be off working on the second core 
+      data mapper for Jackson, &quot;Dynamic JSON mapper&quot; (or, perhaps, 
+      &quot;JsonTypeMapper&quot;?). It'll be something closer to how people work with 
+      XML trees, but without keeping simple things from being simple.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, September 20, 2007 9:49 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_48.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_48.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_48.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Tuesday, September 18, 2007 </h2>
+
+<div class="entry" id="post-47">
+			<h3 class="entry-header">Jackson is Fast... but how fast?</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      <b>Faster Than The Speeding Bullet?</b>
+    </p>
+    <p>
+      Nope: that would be Superman. But perhaps <a href="/hatchery/jackson/index.html">Jackson</a> 
+      can at least sting like a bee? Anyway, to try to answer the question, I 
+      decided to repurpose code from StaxTest (loose set of performance test 
+      components used for <a href="http://woodstox.codehaus.org">Woodstox</a> 
+      development) and see how Jackson compares to the venerable <a href="http://www.json.org/java/index.html">Json.org</a> 
+      reference implementation. Test classes in question will be available as 
+      part of the next Jackson source code bundle (under src/perf), and others 
+      can check out their experiences. But here are some choice tidbits until 
+      then.
+    </p>
+    <p>
+      First of all, I decided to use sample documents from <a href="http://www.json.org/example.html">http://www.json.org/example.html</a>. 
+      The documents are quite short (from less than 1 kB to about 4), but 
+      since there do not seem to be similar sample document repositories as 
+      there are for xml, these would have to do. The test consists of repeated 
+      parsing of specified document. Document is first read into a byte array 
+      before running tests (to minimize I/O overhead), and then feed using 
+      implementation dependant mechanism.
+    </p>
+    <p>
+      For repetition count of 2500 over the largest (4 kB) of sample JSON 
+      documents, on my (t)rusty old single-CPU Athlon box, I got following 
+      numbers:
+    </p>
+    <ul>
+      <li>
+        Jackson, fully streaming: 224 milliseconds
+      </li>
+      <li>
+        Jackson using simple Java type mapper: 333 milliseconds
+      </li>
+      <li>
+        Json.org reference implementation: 883 milliseconds
+      </li>
+    </ul>
+    <p>
+      (I also did test out the other documets; numbers I saw were similar)
+    </p>
+    <p>
+      Fully streaming case will just iterate over all tokens of the input, 
+      without further processing. Java mapper, on the other hand, will 
+      actually construct in-memory representation (Lists, Maps, Numbers, 
+      Strings, Booleans). So for this particular case, Jackson would be about 
+      4 times as fast as the reference implementation, when using the fastest 
+      mode. This comparison is not completely fair, of course, since the 
+      reference implementation does actually build an in-memory 
+      representation. Of course it is not necessarily true that one always 
+      needs such &quot;tree&quot;, so your mileage may vary.
+    </p>
+    <p>
+      At any rate, a simplified and somewhat naive answer would be that 
+      Jackson may be <b>3 - 4 times as fast as the reference implementation</b> 
+      if you use the fastest access mode (streaming); and<b> 2 - 3 times as 
+      fast if you need an Object representation of JSON data</b>. The usual 
+      disclaimers apply, of course: it is not always easy to give fair 
+      comparison; different kind of input might give different results and so 
+      forth. But hopefully this gives some perspective on kinds of 
+      improvements one could get. And I would love to see others doing similar 
+      measurements.
+    </p>
+    <p>
+      <b>But how about the absolute speed?</b>
+    </p>
+    <p>
+      So it seems like Jackson might be a wee bit faster than the most 
+      commonly used alternative. But beyond this, how would JSON compare to, 
+      say, equivalent XML parsing? Well, given the input document size and 
+      repetition counts, streaming parsing with JSON appears to proceed with 
+      respectable rate of about 50 MBps on this particular system. The usual 
+      XML processing rates using Woodstox, on same machine, is anywhere 
+      between 10 and 30 MBps, depending on complexity of the document (plain 
+      text and elements are fastest to process, attribute slower and so 
+      forth). So assuming similar information density (some people claim JSON 
+      has less fluff, but this seems debatable -- however, I haven't heard 
+      anyone claim that XML would have more compact representation in its 
+      textual serialization) it would appear that processing JSON is indeed 
+      somewhat faster, which is to be expected given simplifity of JSON as a 
+      data (transfer) format.
+    </p>
+    <p>
+      The real question is whether this advantage can be converted to even 
+      more significant speed boost at higher level, like when doing full Java 
+      data binding (a la JAXB). We should find it in near future once people 
+      get more serious about building toolkits on top of efficient JSON 
+      parsers...
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Tuesday, September 18, 2007 10:38 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_47.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_47.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_47.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Monday, September 17, 2007 </h2>
+
+<div class="entry" id="post-46">
+			<h3 class="entry-header">Jackson JSON-processor, v0.7</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      After some bugfixes, added unit testing, and one significant new 
+      feature, it is good time to release the next pre-1.0 version of <a href="http://www.cowtowncoder.com/hatchery/jackson/index.html">Jackson 
+      JSON-processor</a>.
+    </p>
+    <p>
+      So what's new? In addition to the basic stream parser (reader) and 
+      generator (writer) implementations, there is now support for simple data 
+      binding, implemented by mapper class <b>org.codehaus.jackson.map.JavaTypeMapper</b>. 
+      This mapper allows for mapping from JSON content into corresponding 
+      basic JDK data types (Lists, Maps, Strings, Numbers, Booleans and null) 
+      and back. When mapping from Java objects to JSON, a few more types are 
+      recognized (like primitive arrays, various basic Collections and so on), 
+      but no attempt is done to handle Java beans. Such support may be added 
+      via other mappers, but for now it is more important to cover the 
+      simplest cases.
+    </p>
+    <p>
+      Simple examples should show-case how easy it is to use this mapper. 
+      Let's start by mapping JSON to Java objects:
+    </p>
+    <pre>  JsonFactory jf = new JsonFactory();
+  Object result = new JavaTypeMapper().read(jf.createJsonParser(new StringReader(&quot;[ 1, 15, true ]&quot;)));</pre>
+    <p>
+      So what would 'result' look like? It would be equivalent to:
+    </p>
+    <pre>  List result = new ArrayList();
+  result.add(Integer.valueOf(1));
+  result.add(Integer.valueOf(15));
+  result.add(Boolean.TRUE);</pre>
+    <p>
+      And the other direction (outputting JSON given basic Java wrapper or 
+      collection instances is about as simple:
+    </p>
+    <pre>  JsonFactory jf = new JsonFactory();
+  StringWriter sw = new StringWriter();
+  JsonGenerator gen = new JsonFactory().createJsonGenerator(sw);
+  Map m = new LinkedHashMap();
+  m.put(&quot;key&quot;, Integer.valueOf(29));
+  m.put(&quot;value&quot;, &quot;something&quot;);
+  m.put(&quot;enabled&quot;, Boolean.TRUE);
+  new JavaTypeMapper().writeAny(gen, m);</pre>
+    <p>
+      And the output would look something like:
+    </p>
+    <pre>{&quot;key&quot;:29, &quot;value&quot;:&quot;something&quot;, &quot;enabled&quot;:true}</pre>
+    <p>
+      Rather simple? I think so. No extra metadata needed, no messing with 
+      annotations or (heaven forbid!) xml configuration files. Nor new java 
+      classes, only purpose of which is to act as C struct equivalents. Simple 
+      tool for simple (but common!) use cases.
+    </p>
+    <p>
+      So what's next? Jackson 0.8, obviously, but what will that contain? 
+      There is another kind of straightforward mapper that will probably 
+      added: one that uses basic node structure, somewhat similar to XML tree 
+      model (XOM, JDOM, DOM, DOM4J) nodes: ones that can be both conveniently 
+      traveled, and accessed in dynamic type-safe manner (a la &quot;duck typing&quot;). 
+      Stay tuned!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Monday, September 17, 2007 9:58 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_46.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_46.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_46.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_49.html">Fresh out of oven: Woodstox 3.2.2 released</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_48.html">More on JSON performance in Java (or, lack thereof!)</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_47.html">Jackson is Fast... but how fast?</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2007/09/entry_46.html">Jackson JSON-processor, v0.7</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

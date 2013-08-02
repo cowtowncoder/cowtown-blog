@@ -1,0 +1,656 @@
+<html lang="en">
+<head>
+<title>September 2006</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Thursday, September 28, 2006 </h2>
+
+<div class="entry" id="post-22">
+			<h3 class="entry-header">Woodstox 3.1 (release candidate 1) just released</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+  After taking almost a full year to get 3.0 release out, it took less 
+  than 2 months to get the first release candidate of <a href="http://woodstox.codehaus.org">
+Woodstox</a> 3.1 out. Since this is the first &quot;minor&quot; release (there have been 
+  three major releases, and multiple patches, but only &quot;pre-release 
+  minors&quot;, like 2.9), it may be interesting to know what is going on with 
+  Woodstox development.
+</p>
+<p>
+  The short answer is that the features of this release (described below) 
+  were ones that optimally would have made it into 3.0 release, but that 
+  needed more internal changes than dev team was prepared for during the 
+  end of 3.0 cycle. On the other hand, these changes did not need major 
+  API changes. This made them good candidates for being implemented right 
+  after 3.0, but before full (possibly backwards incompatible) 4.0 release.
+</p>
+<p>
+  So what are the new and improved features? There is only one completely 
+  new feature:
+</p>
+<ul>
+  <li>
+Xml:id support was added. This allows for properly identifying the 
+unique identifier of an element, without needing a DTD to specify 
+attribute types. This is something that just makes sense, so I am 
+happy it got finally added, and is enabled by default (check out 
+XMLStreamProperties for the property to disable support, if for some 
+weird reason that is needed)
+  </li>
+</ul>
+<p>
+  In addition, 3 existing features were improved:
+</p>
+<ul>
+  <li>
+XMLStreamWriter was ignoring namespace declaration calls, as well as 
+prefixes for namespace URIs that were already bound: after changes 
+repairing writer tries to honor prefix, and write out namespace 
+bindings suggested by calls to XMLStreamWriter.writeNamespace(). This 
+change was done to make it even more tempting use the repairing mode: 
+it now does almost the same as non-repairing mode in most cases, and 
+only uses different prefixes and adds automatic namespace bindings 
+when it has to. Bit like having a well functioning automatic shifting.
+  </li>
+  <li>
+XMLStreamReader was only reporting SPACE in validating mode, but not 
+in regular DTD-aware mode. Not any more: SPACE is now reported 
+whenever DTD is handled, independent of validation.
+  </li>
+  <li>
+Missing validation checks for handling xml:space attribute were added: 
+now it will verify type and enumrated values, in DTD-validating mode.
+  </li>
+</ul>
+<p>
+  Additionally, the release will obviously contain all the fixes from 
+  3.0.x maintenance branch.
+</p>
+<p>
+  So, what's next with Woodstox? There are 2 main alternatives: another 
+  minor release (to perhaps contain one or both of the most often requsted 
+  missing features: native <b>XMLStreamWriter</b> indentation [which, by the way, 
+  can be done using either <a href="http://woodstox.codehaus.org/StaxMate">StaxMate</a>, or <b>stax-utils</b>, already], and W3C 
+  Schema Validation), or going straight to 4.0 development. Latter will 
+  mean some non-backwards - compatible changes (such as requiring JDK 
+  1.4), but also allow actual API changes, and new version of Stax2 
+  extension API.
+</p>
+<p>
+  ps. Regarding stable/maintenance branch, 3.0.2 patch was also released: it fixes couple of user 
+  reported problems.
+</p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Thursday, September 28, 2006 10:09 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2006/09/entry_22.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2006/09/entry_22.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2006/09/entry_22.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+	<h2 class="date-header">Friday, September 01, 2006 </h2>
+
+<div class="entry" id="post-21">
+			<h3 class="entry-header">StaxMate basics, writer side</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      The second part of &quot;introduction to StaxMate&quot; needed before showing how 
+      to actually use it, in the context of an actual web application, after 
+      introducing the reader (input) side, is obviously introducing the writer 
+      (output) side.
+    </p>
+    <p>
+      In some ways the writer side is simpler than the reader side: there is 
+      only one general abstraction, that of &quot;output entities&quot;, as defined by 
+      SMOutputtable abstract base class. These output entities (sub-classes of 
+      SMOutputtable) fall into 2 main categories: output containers that can 
+      contain other entities (elements, fragments, and the document entity 
+      belong to this class), and leaf entities (text, comments, processing 
+      instructions, entity references). Although you conceptually create both 
+      types, you will only directly manipulate the former: StaxMate will 
+      construct entities of latter type if and as they are needed: most of the 
+      time they can be directly output, and there is no need to even 
+      instantiate these entities.
+    </p>
+    <p>
+      In addition to the output entities, namespaces are handled as 
+      first-class objects (but very simple ones, from application 
+      point-of-view): this is done both for design (cleaner to use, cleaner to 
+      implement) and performance reasons (StaxMate can handle namespace 
+      bindings very efficiently by using canonical namespace objects).
+    </p>
+    <p>
+      About the only advanced things beyond outputting things is the 
+      possibility to temporarily &quot;freeze&quot; (buffer) output; and this is only 
+      needed if out-of-order addition of output entities is needed. More on 
+      this later on.
+    </p>
+    <p>
+      Finally, StaxMate output functionality also adds one often requested 
+      feature that is missing from core Stax API: ability to intend 
+      (&quot;pretty-print&quot;) XML output using simple heuristics. It can be enabled 
+      on per-container basis, and is inherited as expected: thus, you can 
+      control indentation as much or as little as you want: but most of the 
+      time you will just want to enable it, and forget about it.
+    </p>
+    <p>
+      Having said all of that, here are typical steps one takes when 
+      outputting XML content using StaxMate.
+    </p>
+    <p>
+      <b>1. Getting started</b>
+    </p>
+    <p>
+      Just like with StaxMate input cursors, the first thing is to instantiate 
+      the underlying XMLStreamWriter needed, i.e. something like:
+    </p>
+    <pre>  XMLOutputFactory f = XMLOutputFactory.newInstance();
+  XMLStreamWriter sw = f.createXMLStreamWriter(new 
+  FileOutputStream(&quot;mydoc.xml&quot;, &quot;UTF-8&quot;));        </pre>
+    <p>
+      <b>2. Create the root-level container, configure</b>
+    </p>
+    <p>
+      Somewhat similar to needing to create the root-level cursor, you need to 
+      create a root-level output container. Here you have two choices: an 
+      output document and output fragment. Former is used if you want to 
+      output a whole xml document, latter if you need to be able to output 
+      part of xml output (for example if you are outputting surrounding 
+      document structure using XMLStreamWriter outside of StaxMate). You can 
+      also enabled and configure indentation at this point:
+    </p>
+    <pre>  SMOutputDocument doc = SMOutputFactory.createOutputDocument(sw, &quot;1.0&quot;, 
+  &quot;UTF-8&quot;, true);
+  // Defines linefeed to use, spaces for indentation (from 1, step by 1)
+  doc.setIndentation(&quot;\n &quot;, 1, 1);        </pre>
+    <p>
+      <b>3. Start outputting things </b>
+    </p>
+    <p>
+      And then we are ready to start composing the output document:<b> </b>
+    </p>
+    <pre>  SMOutputElement root = doc.addElement(&quot;root&quot;);
+  // But the leaves will be (suggests prefix &quot;ns&quot;, defines URI)
+  SMNamespace ns = root.getNamespace(&quot;http://myns&quot;, &quot;ns&quot;);
+  root.addElement(ns, &quot;leaf&quot;); // empty one
+  root.addElement(ns, &quot;leaf&quot;).addCharacters(&quot;leaf text&quot;);
+  SMOutputElement leaf3 = root.addElement(ns, &quot;leaf3&quot;);
+  leaf3.addAttribute(&quot;id&quot;, &quot;leaf3&quot;); // no-namespace attribute
+  leaf3.addComment(&quot;ad space for sale!&quot;);
+  // ... and so on
+  root.addComment(&quot;end of content&quot;);
+  /* This is important: root-level element MUST be closed,
+  * otherwise StaxMate can not determine when output is done
+  */
+  doc.closeRoot();        </pre>
+    <p>
+      <b>4. The Limitation</b>
+    </p>
+    <p>
+      Just like with the reader side, the main limitation is that since output 
+      is done in streaming way, output will have to be done in the document 
+      order: parent before children, and attributes after the element itself, 
+      but before children.
+    </p>
+    <p>
+      But also just like with the reader side, there is a way to relax this 
+      requirement a little, by using a feature that trades in added memory 
+      usage with some added comfort. This is called &quot;buffering&quot;, and is 
+      explained next...
+    </p>
+    <p>
+      <b>5. Advanced Feature(s)</b>
+    </p>
+    <p>
+      As mentioned above, about the only advanced feature on the output side 
+      is the ability to &quot;freeze&quot; output. This is done by using &quot;buffered&quot; 
+      output entities, and the reason to use them is to allow out-of-order 
+      output of xml content. Or, rather, allow temporary buffering of content 
+      during assembling of all the output entities, so that the underlying 
+      stream writer can be fed all the output entities in the strict document 
+      order. StaxMate can handle all this smoothly, given just two things:
+    </p>
+    <ol>
+      <li>
+        Create special entities that are to be buffered (and whose contents 
+        will also be buffered, as long as the containing entity itself is)
+      </li>
+      <li>
+        Tell StaxMate when buffering is no longer needed (&quot;release&quot;) for these 
+        items -- you only need to indicate the buffered entity is to be 
+        released, and all of its 'normal' contents will also be released.
+      </li>
+    </ol>
+    <p>
+      The first step is done using one of two methods that all containers 
+      (documents, fragments, elements) have:
+    </p>
+    <pre>  createBufferedFragment()
+  createBufferedElement()        </pre>
+    <p>
+      which results in creating of either a fragment, or element, in which 
+      other entities can be added using normal output container add methods. 
+      These resulting entities can then be added (possibly later, after doing 
+      other non-buffered output), either as buffered, calling:
+    </p>
+    <pre>  container.addBuffered(bufferedEntity);        </pre>
+    <p>
+      and releasing (when all content to be added out-of-order has been added):
+    </p>
+    <pre>  bufferedEntity.release();        </pre>
+    <p>
+      or, if both steps can be combined, calling:
+    </p>
+    <pre>  container.addAndReleaseBuffered(bufferedEntity);        </pre>
+    <p>
+      This latter method obviously assumes that you have added other things 
+      within the buffered entity -- if not, you could have just created a 
+      normal element or fragment and added it.
+    </p>
+    <p>
+      <b>6. Next Steps</b>
+    </p>
+    <p>
+      Ok: after this crash course into basics of using StaxMate, we are about 
+      ready to start writing the UUID Generator Web Application!
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Friday, September 01, 2006 10:46 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2006/09/entry_21.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2006/09/entry_21.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2006/09/entry_21.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2006/09/entry_22.html">Woodstox 3.1 (release candidate 1) just released</a></li>
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2006/09/entry_21.html">StaxMate basics, writer side</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

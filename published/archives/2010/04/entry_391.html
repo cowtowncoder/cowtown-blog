@@ -1,0 +1,625 @@
+<html lang="en">
+<head>
+<title>Simpler Java database access with jDBI</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<!-- HaloScan comments: -->
+<script type="text/javascript" src="http://www.haloscan.com/load/cowtowncoder">
+</script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+     <div id="container">
+          <div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+     <div id="banner-inner" class="pkg">
+          <h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+          <h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+     </div>
+</div>
+               <div id="pagebody">
+                    <div id="pagebody-inner" class="pkg">
+                         <div id="alpha">
+                              <div id="alpha-inner" class="pkg">
+<!-- entry -->
+
+
+   
+   
+
+     <h2 class="date-header">Wednesday, April 14, 2010 </h2>
+
+<div class="entry" id="post-391">
+<h3 class="entry-header">Simpler Java database access with jDBI</h3>
+     <div class="entry-content">
+          <div class="entry-body">
+          
+               <p><p resolver="NamedStyle:default {font-size=3,font-weight=normal,font-style=,font-family=Tahoma,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,}" margin-top="0">
+      One of most common tasks on server-side Java development is that of 
+      interacting with relational databases. Given that support for doing this 
+      is almost as old as stable versions of Java (<a href="http://en.wikipedia.org/wiki/Jdbc">JDBC</a> 
+      API was added in JDK as of Java 1.1, and drivers for most databases were 
+      quickly published), one might think this as a well-known and covered 
+      area of Java development.
+    </p>
+    <p resolver="NamedStyle:default {font-size=3,font-weight=normal,font-style=,font-family=Tahoma,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,}" margin-top="0">
+      But it is not really: on one hand, there are rather complex ORM 
+      solutions that work acceptably for cases where complexity is on 
+      object-hierarchies and where significant overhead is accepted; and on 
+      the other hand, there is mostly just &quot;raw&quot; JDBC. If JDBC itself was a 
+      good API, this would not be so bad: unfortunately, it is not. JDBC is a 
+      victim of having been written back when apparently few knew how to write 
+      decent Java APIs (it has distinct feel of C style); and of course it was 
+      heavily influenced by companies not known for producing good Java APIs 
+      or code (relational database vendors -- Oracle may well win the title of 
+      &quot;most crap Java shipped world-wide&quot;, and don't even get me started on 
+      catastrophe known as MySQL).<br>But I digress. It is enough to know that 
+      JDBC is a crappy API, first and foremost, and direct use should be 
+      avoided.
+    </p>
+    <p resolver="NamedStyle:default {font-size=3,font-weight=normal,font-style=,font-family=Tahoma,FONT_ATTRIBUTE_KEY=javax.swing.plaf.FontUIResource[family=Dialog,name=Tahoma,style=plain,size=11],name=default,}" margin-top="0">
+      Which brings us to the actual point of this blog entry: there is hope 
+      for developers who feel squeezed between intrinsic ugliness of 
+      JDBC-based code, and torturous complexity of Hibernate and similar 
+      frameworks. There is a simpler way, using library called jDBI (which I 
+      briefly mentioned a few blog entries ago).
+    </p>
+    <p>
+      To here is a simple tutorial for <a href="http://jdbi.org/">jDBI</a>.
+    </p>
+    <p>
+      <b>1. It all starts with a Handle</b>
+    </p>
+    <p>
+      To do anything useful, you need to start by creating DBI instance, which 
+      basically represents the database instance (schema). This in turn allows 
+      you to create Handle, which is essentially wrapper around JDBC 
+      Connection.
+    </p>
+    <p>
+      DBI instances can be created from DataSource instances (commonly the 
+      case when using JNDI or connection pools), or by giving the usual 
+      connect information (user, password, JDBC URL). So we will start with 
+      something like:
+    </p>
+    <pre>  DataSource ds = JdbcConnectionPool.create(&quot;jdbc:h2:mem:test&quot;, userName, pwd); // using in-mem H2 database<br>  DBI database = new DBI(ds);<br></pre>
+    <p>
+      (for more information, check out <a href="http://jdbi.org/apidocs/index.html">jDBI</a> 
+      javadocs)
+    </p>
+    <p>
+      Now: DBI instance does allow creating Handles directly; however, it is 
+      usually more convenient to use callbacks, so that we do not have to 
+      worry about cleaning up after operation (especially not have to worry 
+      about exception cases).
+    </p>
+    <p>
+      <b>2. Inquisitive Idiots vs Simple Queries</b>
+    </p>
+    <p>
+      If we are just doing one-off queries, we can use DBI.withHandle(), like 
+      so:
+    </p>
+    <pre>  Integer rowCount = database.withHandle(new HandleCallback&lt;Integer&gt;() {<br>    public Integer withHandle(Handle h) {<br>      return h.createQuery(&quot;select count(1) from USER&quot;).map(IntegerMapper.FIRST).first();
+  }});<br></pre>
+    <p>
+      and not to have to worry about handling of all underlying Connections, 
+      ResultSets and so on.
+    </p>
+    <p>
+      So what's with the map() and first() calls? Map() if for mapping first 
+      column of ResultSet rows into Integer (using one of existing standard 
+      mappers), and first() is for choosing value for first result row.
+    </p>
+    <p>
+      In this case latter may seem superfluous, but we could also have done 
+      something like:
+    </p>
+    <pre>  List&lt;Integer&gt; ids = dbi.withHandle(new HandleCallback&lt;List&lt;Integer&gt;&gt;() {<br>    public List&lt;Integer&gt; withHandle(Handle h) {<br>      return h.createQuery(&quot;select ID from USER&quot;).map(IntegerMapper.FIRST).list();
+  }});<br></pre>
+    <p>
+      and so on. You get the idea.
+    </p>
+    <p>
+      <b>3. S/M section: binding your parameters</b>
+    </p>
+    <p>
+      Well, simple queries are simple; and similarly simple updates (INSERTs, 
+      DELETEs; basically stuff other than queries) are simple. Next common 
+      need is for parameter binding. For example, to delete a user, you can do:
+    </p>
+    <pre>  final String lastName = &quot;Foobar&quot;; // final since it is reference from inner class<br>  Integer deleted = database.withHandle(new HandleCallback&lt;Integer&gt;() {<br>   public Integer withHandle(Handle g) {<br>     return h.createStatement(&quot;delete from USER where LAST_NAME = ?&quot;).bind(0, lastName); // note: 0-based index<br>     // or:<br>     // h.createStatement(&quot;delete from USER where LAST_NAME = :lastName).bind(&quot;lastName&quot;, lastName);<br>   }<br> });</pre>
+    <p>
+      You can bind both positional parameters (like in JDBC, except that 
+      indexes start at 0), or more conveniently, by name.
+    </p>
+    <p>
+      Parameter binding works similarly with queries; but there is even more 
+      convenient way to
+    </p>
+    <p>
+      <b>3b. VIP: De Luxe Parameter Binding</b>
+    </p>
+    <p>
+      Ok, so basic binding looks simple enough. But wait! There's more!
+    </p>
+    <p>
+      In fact, there are convenience short cuts for common CRUD operations, so 
+      that you could insert a new user like so:
+    </p>
+    <pre>  h.insert(&quot;insert into USER (FIRST_NAME, LAST_NAME) values (?, ?)&quot;, firstName, lastName);</pre>
+    <p>
+      and similarly for <i>Handle.update()</i> (SQL update statement) and <i>Handle.select()</i> 
+      (for SQL select statement)
+    </p>
+    <p>
+      <b>4. And even more bondage: binding the results</b>
+    </p>
+    <p>
+      The other place where more convenient data binding is needed is that of 
+      handling query results. There are two main ways to do this. First one is 
+      to use explicit user-provided (&quot;custom&quot;) converters; these are 
+      implementations of jDBI ResultSetMapper:
+    </p>
+    <pre>  static class UserMapper implements ResultSetMapper&lt;User&gt;
+  {<br>    public User map(int rowIndex, ResultSet rs, StatementContext ctxt) throws SQLException {
+      return new User(rs.getString(1), rs.getString(2));
+    }	
+  }
+
+  static class User {<br>    private String firstName, lastName;<br>    public String getFirstName(String n) { return firstName; }
+    public String getLastName(String n) { return lastName; } 
+    public void setFirstName(String n) { firstName = n; }
+    public void setLastName(String n) { lastName = n; }
+  }</pre>
+    <p>
+      And then actual result binding:
+    </p>
+    <pre>  List&lt;User&gt; users = database.withHandle(new HandleCallback&lt;List&lt;User&gt;&gt;() {
+    public List&lt;User&gt; withHandle(Handle h) {
+      return h.createQuery(&quot;select FIRST_NAME, LAST_NAME from USER&quot;).map(new BeanMapper()).list();
+    }
+  });</pre>
+    <p>
+      Alternatively (and even more conveniently since you need not write <i>UserMapper</i> 
+      class) you can use basic Bean-based binding: if value classes conform 
+      Java Beans specification (has appropriately named &quot;getters&quot; and 
+      &quot;setters&quot;), you can also just use:
+    </p>
+    <pre>  List&lt;User&gt; users = database.withHandle(new HandleCallback&lt;List&lt;User&gt;&gt;() {
+    public List&lt;User&gt; withHandle(Handle h) {
+      return h.createQuery(&quot;select FIRST_NAME, LAST_NAME from USER&quot;)<br>        .map(new BeanMapper&lt;User&gt;(User.class)).list();<br>    }
+  });</pre>
+    <p>
+      Nifty, eh? In fact, not very much less convenient than Hibernate for 
+      many common cases.
+    </p>
+    <p>
+      <b>5. Transactions</b>
+    </p>
+    <p>
+      So far all code has used &quot;withHandle&quot; callback, which basically uses 
+      JDBC auto-commit mode. It usually works well for queries and one-step 
+      CRUD operations; but not when regular transactions are needed. But we 
+      could have as easily used transactions for operations, like:
+    </p>
+    <pre>  final String account1 = &quot;1234&quot;;<br>  final String account2 = &quot;1235&quot;; <br>  database.inTransaction(new TransactionCallback&lt;Integer&gt;() { // we don't use nominal return value for anything<br>    public Integer inTransaction(Handle h, TransactionStatus status) {      <br>      // transfer money as a transaction<br>      h.createStatement(&quot;update ACCOUNT set BALANCE = BALANCE - 10 where ACCOUNT_ID = :account1&quot;)<br>        .bind(0, account1).execute();<br>      h.createStatement(&quot;update ACCOUNT set BALANCE = BALANCE + 10 where ACCOUNT_ID = :account2&quot;)<br>         .bind(0, account2).execute();<br>      }<br>    }<br>  }<br></pre>
+    <p>
+      So how does this differ from &quot;withHandle&quot;? Transaction is basically 
+      committed if execution terminates normally (no exception), but rolled 
+      back if an exception is thrown by code within callback block. This is 
+      the intuitive way of handling things, although not something basic JDBC 
+      would guarantee.
+    </p>
+    <p>
+      <b>6. Life is a Batch</b>
+    </p>
+    <p>
+      One simple way to improve efficiency of database code in Java is to use 
+      batches. As with other basic operations, JDBC does not offer much 
+      convenience support, so jDBI can simplify things here as well
+    </p>
+    <pre>final List&lt;User&gt; users = figureOutUsersToCreate(); // however these are determined<br>int inserted = database.inTransaction(new TransactionCallback&lt;Integer&gt;() {<br>  public Integer inTransaction(Handle h, TransactionStatus status) {
+    PreparedBatch b = h.prepareBatch(&quot;insert into USER (FIRST_NAME, LAST_NAME) values (?, ?)&quot;);<br>    for (User user : users) {<br>      b = b.add() // start new batch entry<br>        .bind(0, user.getFirstName())<br>        .bind(1, user.getLastName());<br>    }<br>    int[] stmtResults = b.execute(); // should be all 1s; let's count for fun<br>    int count = 0;<br>    for (int c : stmtResults) {<br>      count += c;<br>    }<br>    return count;<br>  }<br>});</pre>
+    <p>
+      which is relatively simple; the only gotcha comes with differing values 
+      that difference JDBC drivers return for updates (for example, MySQL has 
+      most bizarre values ever; when using 'merge' statement, inserting one 
+      row can return 1, 2 or even 3 as value!).
+    </p>
+    <p>
+      Nonetheless, jDBI makes process little bit more tolerable; and still 
+      transparent and efficient (no excessive magic involved)
+    </p>
+    <p>
+      <b>7. Anything more?</b>
+    </p>
+    <p>
+      There is lots more to learn -- like how to call stored procedures; how 
+      to deal with database-specific access and so on -- but so far I have 
+      only used quite basic functionality. So if you need other features, make 
+      sure to check out <a href="http://kasparov.skife.org/blog/src/java/jdbi/">author's 
+      blog</a> and <a href="http://jdbi.org/apidocs/index.html">Javadocs</a>.
+    </p></p>
+
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Wednesday, April 14, 2010 11:02 PM </span>
+<br />     Categories: <a href=""></a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/04/entry_391.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/04/entry_391.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/04/entry_391.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+
+
+   
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /**
+    * var disqus_identifier; [Optional but recommended: Define a unique identifier (e.g. post id or slug) for this thread] 
+    */
+  (function() {
+   var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+   dsq.src = 'http://cowtalk.disqus.com/embed.js';
+   (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>(enable JavaScript to view the <a href="http://disqus.com/?ref_noscript=cowtalk">comments powered by Disqus)</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  </div>
+</div>
+<div id="beta">
+  <div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+
+<!-- /SiteSearch Google -->
+<hr />
+</div>
+
+     <div class="module-archives module">   
+          <h2 class="module-header">Last posts</h2>
+          <div class="module-content">
+               <ul class="module-list">
+                <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/04/entry_391.html">Simpler Java database access with jDBI</a></li>
+               </ul>
+          </div>
+     </div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+
+     <div class="module-categories module">
+          <h2 class="module-header">Categories</h2>
+          <div class="module-content">
+        <ul>
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+          
+               <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+          
+        </ul>
+          </div>
+     </div>
+<div class="module-syndicate module">
+     <div class="module-content">
+          <a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+          [<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+     </div>
+
+</div>
+
+<div class="module-about module">
+  <h2 class="module-header">Sponsored By</h2>
+  <div class="module-content">
+  </div>
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+<hr />
+
+     <h2 class="module-header">Related Blogs</h2>
+          <div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+
+<div class="module-powered module">
+     <h2 class="module-header">Powered By</h2>
+
+     <div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a> and
+     </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>

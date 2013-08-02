@@ -1,0 +1,597 @@
+<html lang="en">
+<head>
+<title>February 2007</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('/styles/iconic/iconic-style.css');
+/*@import url('http://googlelite.free.fr/iconic.css');*/
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Saturday, February 24, 2007 </h2>
+
+<div class="entry" id="post-32">
+			<h3 class="entry-header">Reflection considered slow -- but how slow is slow?</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      One commonly held notion, with respect to Java performance (or lack 
+      thereof), is that the dynamic field access and method dispatching via 
+      Reflection is slow. This turns out to be true (see below). The relative 
+      slowness is due to multiple factors, some of this could be addressed (if 
+      this was a very high priority performance problem), and some of which 
+      would be hard or impossible to eliminate. But it is probably reasonable 
+      to assume that the relative performance difference between straight 
+      access and Reflection based acces is likely to remain similar for 
+      foreseeable future. Because of this, it is useful to have some ballpark 
+      idea of how much slower is access using Reflection, so that the benefits 
+      of the very dynamic (if not very convenient, as Java did not start with 
+      such dynamic dispatch with 1.0) method and field access can be balanced 
+      against increased overhead.
+    </p>
+    <p>
+      So let's see what we can find out by doing some simple 
+      micro-benchmarking (with all the caveats micro-benchmarks come equipped 
+      with)!
+    </p>
+    <p>
+      <b>1. Raw results</b>
+    </p>
+    <p>
+      Just to make it easier to discuss performance aspects, let's start with 
+      actual numbers, running a simple micro-benchmark (see <a href="http://svn.woodstox.codehaus.org/browse/~raw,r=510/woodstox/staxperf/src/java/staxperf/misc/TestReflection.java">staxperf.misc.TestReflection</a> 
+      class within StaxPerf sub-project hosted in <a href="http://woodstox.codehaus.org">Woodstox</a> 
+      svn repository).
+    </p>
+    <p>
+      System used is an AMD Athlon XP 1700+ work station, with Fedora Core 4.
+    </p>
+    <p>
+      Benchmark output when running under JDK 1.5.0:
+    </p>
+    <pre>Took 51 ms for 500000 x Reflection construct (x = 12)
+Took 26 ms for 500000 x Direct construct (x = 11)</pre>
+    <pre>    
+Took 62 ms for 2000000 x Reflection call set (x = -1)
+Took 886 ms for 2000000 x Reflection assign set (x = 15)
+Took 0 ms for 2000000 x Method set (x = 4)</pre>
+    <pre>    
+Took 49 ms for 2000000 x Reflection call get (x = -1)
+Took 464 ms for 2000000 x Reflection access get (x = -1)
+Took 0 ms for 2000000 x Method get (x = -1)</pre>
+    <p>
+      And when running under JDK 1.6.0:
+    </p>
+    <pre>Took 39 ms for 500000 x Reflection construct (x = 3)
+Took 19 ms for 500000 x Direct construct (x = 5)</pre>
+    <pre>    
+Took 61 ms for 2000000 x Reflection call set (x = -1)
+Took 391 ms for 2000000 x Reflection assign set (x = 6)
+Took 1 ms for 2000000 x Method set (x = 0)</pre>
+    <pre>    
+Took 65 ms for 2000000 x Reflection call get (x = -1)
+Took 201 ms for 2000000 x Reflection access get (x = -1)
+Took 0 ms for 2000000 x Method get (x = -1)</pre>
+    <p>
+      Number of iterations were chosen to give enough range for values: exact 
+      values (especially for cases where runtime is at or below 1 millisecond) 
+      are less important than the proportions between the cases.
+    </p>
+    <p>
+      As a general note, it seems that 1.6 is actually a bit faster for most 
+      cases.
+    </p>
+    <p>
+      These tests fall into 3 distinct groups, discussed separately below. As 
+      a general note, it also looks like JDK 1.6 is a bit faster than 1.5 
+      (which makes sense).
+    </p>
+    <p>
+      <b>2. Constructing Objects </b>
+    </p>
+    <p>
+      Object construction tests are very simple: new instances are created 
+      using a no-arg constructor, first test using <b>Class.newInstance()</b> 
+      (Reflection), and the other using simple new operator. Due to the 
+      simplicity (there are no type conversions or checking involved; 
+      something that appears to cause much/most of the overhead for other 
+      tests), difference between straight constructor calls and its Reflection 
+      counterpart is only 2-to-1. While clearly visible, for most use cases 
+      such difference is negligible: especially considering that the 
+      constructor in question is empty, and could be inlined for 
+      non-Reflection case. So in more realistic cases, where objects are 
+      bigger and there is some actual initialization code, difference appears 
+      negligible for all practical purposes.
+    </p>
+    <p>
+      It would be interesting to test if and how performance would differ, if 
+      constructor arguments needed to be passed. Based on other tests, the 
+      overhead would probably be higher.
+    </p>
+    <p>
+      At any rate, it seems that constructing objects using Reflection and 
+      no-arg constructor poses little performance problems for normal use, 
+      even if significant number of objects need to be created.
+    </p>
+    <p>
+      <b>3. Setting field values </b>
+    </p>
+    <p>
+      Another set of tests is used to test how fast is it to set 
+      field/property values. Two main approaches (independent of whether 
+      Reflection is used) are the direct field assignment (obj.x = 32), and 
+      calling a mutator (&quot;setter&quot;) method.
+    </p>
+    <p>
+      The first challenge in measuring speed of the non-Reflection vs. 
+      Reflection access is in using enough iterations to be able to measure 
+      time taken by former method. Turns out that JVM is rather fast at both 
+      doing assignments, and calling (possibly inlined) set methods. While 
+      this is good news in general, it means that the ratios we get are crude 
+      approximations. Anyway, after cranking up the counter to 2 million 
+      calls, time taken approaches one millisecond (indicating that one could 
+      do hundreds of millions of calls per second -- HotSpot must be 
+      completely inlining the calls), to give at least some perspective as to 
+      the speed ratio.
+    </p>
+    <p>
+      With the disclaimers stated above (wrt. accuracy of ratios), it appears 
+      that using Reflection is about <b>two orders of magnitude (~100 times) 
+      slower</b>, when comparing calling a setter method; and about <b>three 
+      orders of magnitude (~1000 times) if Reflection field accessor is used</b>.
+    </p>
+    <p>
+      In this case, the speed difference may actually start to matter: order 
+      of magnitude differences can not be trivially ignored. It is also quite 
+      interesting to note that there is significant speed disadvantage in 
+      doing raw Field access via Reflection, compared to calling an equivalent 
+      method. This is not very intuitive result, considering that type 
+      checking should be similar. Perhaps there are some related 
+      security/access checks that only need to be in direct field access case.
+    </p>
+    <p>
+      On the other hand, even with the &quot;slow&quot; field access method one can 
+      still execute about 2 million operations per second. So for most use 
+      cases, it is probably plenty fast enough. Plus, with Java6, it's also 
+      tad faster, at, say, almost 5 million ops.
+    </p>
+    <p>
+      <b>4. Getting field values </b>
+    </p>
+    <p>
+      Similar to setting field values, three test cases exist for the reverse 
+      use case, accessing the value of a property. Results are similar; the 
+      main difference being that accessing the value via Reflection is a bit 
+      faster than setting the value. The reason appears to be that of type 
+      checking: since get method in question does not take arguments, and set 
+      method takes one, the main performance difference is that JVM has to do 
+      type more type compatibility checking in the latter case.
+    </p>
+    <p>
+      Since the performance is similar, the performance ramifications are 
+      similar to those listed above. 
+    </p>
+    <p>
+      <b>5. Reasons for slow field access using Reflection</b>
+    </p>
+    <p>
+      Although it is not surprising that Reflection-based field access 
+      (get/set) is slower, it is somewhat surprising that it is measured in 
+      orders of magnitude. Why does this happen? Using the default JDK 
+      profiler points at type assignability checks as being the hot spots, 
+      followed by some security checks (for field sets); whereas most normal 
+      code can be statically analyzed by class loader, to ensure no illegal 
+      access is tried by bytecode, same can not be done in advance for 
+      Reflection access. It may also be that Reflection operations just 
+      haven't been very high on JVM optimizers' work lists: they fall on the 
+      wrong side of 80/20 split.
+    </p>
+    <p>
+      <b>6. But does it matter?</b>
+    </p>
+    <p>
+      Even though there is a clear speed disadvantage to using Reflection 
+      (except for the simple no-arg constructor), how much does it matter? For 
+      most use cases, not much. For it to matter, these operations have to be 
+      done in significant numbers, and for on-going time-limited operation 
+      (like handling a heavy load of a web service).
+    </p>
+    <p>
+      One of use cases where it just might matter is that of data binding 
+      (usually xml to/from Java objects) used with web services. Since all 
+      requests and responses are generally bound to objects, for each request, 
+      and each field is (in general) separately set when constructed, and 
+      accessed when serialized, the trade-off between Reflection-based access 
+      and code generation may become significant. Some data 
+      binding/serialization toolkits rely extensively on Reflection (<a href="http://xstream.codehaus.org">XStream</a>, 
+      for example, has multiple backends, but the default one uses Reflection 
+      field access), whereas others (like <a href="http://jibx.sourceforge.net/">JibX</a>) 
+      appear to use dynamic code generation. One would expect latter to be 
+      more performance; but once again, the degree to which this would matter 
+      is open to debate (or preferably, performance benchmarking and 
+      profiling!).
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Saturday, February 24, 2007 9:00 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2007/02/entry_32.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2007/02/entry_32.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2007/02/entry_32.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2007/02/entry_32.html">Reflection considered slow -- but how slow is slow?</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>
