@@ -42,6 +42,197 @@ window.google_analytics_uacct = "UA-140287-10";
 <!-- entry -->
 
    
+     <h2 class="date-header">Saturday, August 03, 2013 </h2>
+<div class="entry" id="post-478">
+     <h3 class="entry-header">Jackson 2.1 was released... quite a while ago :)</h3>
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Ok, so I have not been an active blogger for a while. Like, since about 
+      a year ago. I am hoping to catch up a bit, so let's start with 
+      intermediate Jackson releases that have gone out the door since I last 
+      wrote about Jackson.
+    </p>
+    <p>
+      <b>1. Jackson 2.1</b>
+    </p>
+    <p>
+      Version 2.1 was released almost a year ago, October 2012. After big bang 
+      of 2.0 release -- what with all the crazy new features like Object Id 
+      handling (for fully cyclic object graphs), 2.1 was expected to be more 
+      minor release in every way.
+    </p>
+    <p>
+      But, that was not to be... instead, 2.1 packed an impressive set of 
+      improvements of its own.<br>Focus was on general usability: improved 
+      ergonomics, bit of performance improvements (for data-binding) and the 
+      usual array of bug fixes that required bigger changes in internals (and 
+      occasionally additional API) than what can be done in a patch release.<br>
+    </p>
+    <p>
+      For more complete handling of what exactly was added, you can check out 
+      my <a href="https://github.com/FasterXML/jackson-docs/wiki/Presentation-Jackson-2.1-Overview">Jackson 
+      2.1 Overview</a> presentation I gave at <a href="http://www.wordnik.com/">Wordnik</a> 
+      (thanks Tony and folks!). Note that links to this and other 
+      presentations can be found from <a href="https://github.com/FasterXML/jackson-docs">Jackson 
+      Docs</a> github repo.<br>For full list of changes, check <a href="http://wiki.fasterxml.com/JacksonRelease21">2.1 
+      Release Notes</a>.
+    </p>
+    <p>
+      But here's a Reader's Digest version.
+    </p>
+    <p>
+      <b>2. Shape-shifting</b>
+    </p>
+    <p>
+      <i>@JsonFormat</i> annotation was added in Jackson 2.0, but was not used 
+      by many datatypes. With 2.1, there are interesting (and back then, 
+      experimental; but it is much more stable now!) new features to let you 
+      change the &quot;shape&quot; (JSON Structure) of some of common Java datatypes:
+    </p>
+    <ul>
+      <li>
+        Serialize Enums as JSON Objects instead of Strings: useful for 
+        serialization, but can not deserialize back (how would that work? 
+        Enums are singletons)
+      </li>
+      <li>
+        Collections (Sets, Lists) as JSON Objects (instead of arrays): useful 
+        for custom Collections that add extra properties -- can also 
+        deserialize, with proper use of @JsonCreator annotations (or custom 
+        deserializer)
+      </li>
+      <li>
+        POJOs as Arrays! Instead of having name/value pairs, you will get JSON 
+        arrays where position indicates which property is being used (make 
+        sure to use @JsonPropertyOrder annotation to define ordering!)
+      </li>
+    </ul>
+    <p>
+      Of these, the last option is probably the most interesting. It can make 
+      JSON as compact as CSV; and in fact can compete with binary formats in 
+      many cases, especially if values are mostly Strings.<br>A simple example 
+      would be:
+    </p>
+    <pre>  @JsonFormat(shape=JsonFormat.Shape.ARRAY)
+  @JsonPropertyOrder(alphabetic=true)
+  public class Point {
+    public int x, y;
+  }</pre>
+    <p>
+      which, when serialized, could look like:
+    </p>
+    <pre>  [ 1, 2]</pre>
+    <p>
+      instead of earlier
+    </p>
+    <pre>  { &quot;x&quot;:1, &quot;y&quot;:2 }</pre>
+    <p>
+      and obviously works for reading as well (that is, you can read such 
+      tabular data back).
+    </p>
+    <p>
+      <b>3. Chunked (partial) Binary Data reads, writes</b>
+    </p>
+    <p>
+      When dealing with really large data, granularity of <i>JsonParser</i> 
+      and <i>JsonGenerator</i> works well, except for case of long JSON 
+      Strings; for example, ones that contain Base64-encoded data. Since these 
+      values may be potentially very large, and since they are quite often 
+      just stored on disk (or read from disk to send) -- and there is no 
+      benefit from keeping the whole value in memory at all -- it makes sense 
+      to offer some way to allow streaming for values, not just between values.
+    </p>
+    <p>
+      To this end, JsonParser and JsonGenerator now do have methods that allow 
+      one to read and write large binary data chunks without retaining more 
+      than a limited amount of data in memory (one buffer-full, like 8 or 
+      16kB) at any given point. Access is provided via <i>java.io.InputStream</i> 
+      and <i>java.io.OutputStream</i>, with methods:
+    </p>
+    <p>
+      JsonParser.readBinaryValue(OutputStream)<br>JsonGenerator.writeBinary(InputStream, 
+      int expectedLength)
+    </p>
+    <p>
+      Note that while direction of arguments may look odd, it actually makes 
+      sense when you try using it: you will provide handler for content (which 
+      implements OutputStream), and source for content to write (InputStream).
+    </p>
+    <p>
+      <b>4. Format auto-detection support for data-binding</b>
+    </p>
+    <p>
+      Another innovative new feature is ability to use already existing data 
+      format auto-detection, without having to use Streaming API. Earlier 
+      versions included support for <i>JsonParser</i> auto-detecting type of 
+      input, for data formats that support this (some binary formats do not; I 
+      consider this a flaw in such formats; of text formats, CSV does not): at 
+      least JSON, XML, Smile and YAML support auto-detection.
+    </p>
+    <p>
+      You enable support through <i>ObjectReader</i> for example like so:
+    </p>
+    <pre>  ObjectMapper mapper = new ObjectMapper();
+  XmlMapper xmlMapper = new XmlMapper(); // XML is special: must start with its own mapper
+  ObjectReader reader = mapper
+    .reader(POJO.class) // for reading instances of POJO
+    .withFormatDetection(new JsonFactory(), xmlMapper.getFactory(), new SmileFactory();</pre>
+    <p>
+      and then you can use resulting reader normally:<br>
+    </p>
+    <pre>  User user = mapper.readValue(new File(&quot;input.raw&quot;), User.class);</pre>
+    <p>
+      and input that is in XML, JSON or Smile format will be property decoded, 
+      and bound to resulting class. I personally use this to support 
+      transparent usage of Smile (binary JSON) format as a pluggable 
+      optimization over JSON.
+    </p>
+    <p>
+      <b>5. Much improved XML module</b>
+    </p>
+    <p>
+      Although XML module has existed since earlier 1.x versions, 2.0 provided 
+      first solid version. But it did not include support for one commonly 
+      used JAXB feature: ability to use so-called &quot;unwrapped&quot; Lists. 2.1 fixes 
+      this and fully supports both wrapped and unwrapped Lists.
+    </p>
+    <p>
+      But beyond this feature, testing was significantly extended, and a few 
+      specific bugs were fixed. As a result version 2.1 is the first version 
+      that I can fully recommend as replacement for JAXB processing in 
+      production environments.
+    </p>
+    <p>
+      <b>6. Delegating serializer, deserializer</b>
+    </p>
+    <p>
+      Final new feature is support for so-called delegating serializers and 
+      deserializers. The basic idea is simple: instead of having to build 
+      fully custom handlers you only need to implement converters that can 
+      convert your custom types into something that Jackson can automatically 
+      handle (supports out of the box).
+    </p>
+    <p>
+      Details of this are included in <a href="https://github.com/FasterXML/jackson-docs/wiki/Presentation-Jackson-2.1-Overview">2.1 
+      presentation</a>; most commonly you will just extend <i>com.fasterxml.jackson.databind.deser.std.StdDelegatingDeserializer</i> 
+      and <i>com.fasterxml.jackson.databind.ser.std.StdDelegatingSerializer</i>.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, August 03, 2013 6:48 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+
+
+   
      <h2 class="date-header">Saturday, August 18, 2012 </h2>
 <div class="entry" id="post-477">
      <h3 class="entry-header">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</h3>
@@ -2010,278 +2201,6 @@ mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeVal
 
 
    
-     <h2 class="date-header">Thursday, March 29, 2012 </h2>
-<div class="entry" id="post-468">
-     <h3 class="entry-header">Jackson 2.0: CSV-compatible as well</h3>
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      (note: for general information on Jackson 2.0.0, see the previous 
-      article, &quot;<a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_466.html">Jackson 
-      2.0.0 released</a>&quot;; or, for XML support, see &quot;<a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_467.html">Not 
-      just for JSON any more -- also in XML</a>&quot;)
-    </p>
-    <p>
-      Now that I talked about XML, it is good to follow up with another 
-      commonly used, if somewhat humble data format: Comma-Separated Values 
-      (&quot;CSV&quot; for friends and foes).
-    </p>
-    <p>
-      As you may have guessed... Jackson 2.0 supports CSV as well, via <a href="https://github.com/FasterXML/jackson-dataformat-csv">jackson-dataformat-csv</a> 
-      project, hosted at GitHub
-    </p>
-    <p>
-      For attention-span-challenged individuals, checkout <a href="https://github.com/FasterXML/jackson-dataformat-csv">Project 
-      Page</a>: it contains tutorial that can get you started right away.<br>For 
-      others, let's have a slight detour talking through design, so that 
-      additional components involved make some sense.
-    </p>
-    <p>
-      <b>1. In the beginning there was a prototype</b>
-    </p>
-    <p>
-      After completing Jackson 1.8, I got to one of my wishlist projects: that 
-      of being able to process CSV using Jackson. The reason for this is 
-      simple: while simplistic and under-specified, CSV is very commonly used 
-      for exchanging tabular datasets.<br>In fact, it (in variant forms, 
-      &quot;pipe-delimited&quot;, &quot;tab-delimited&quot; etc) may well be the most widely used 
-      data format for things like Map/Reduce (Hadoop) jobs, analytics 
-      processing pipelines, and all kinds of scripting systems running on Unix.
-    </p>
-    <p>
-      <b>2. Problem: not &quot;self-describing&quot;</b>
-    </p>
-    <p>
-      One immediate challenge is that of lacking information on meaning of 
-      data, beyond basic division between rows and columns for data. Compared 
-      to JSON, for example, one neither necessarily knows which &quot;property&quot; a 
-      value is for, nor actual expected type of the value. All you might know 
-      is that row 6 has 12 values, expressed as Strings that look vaguely like 
-      numbers or booleans.
-    </p>
-    <p>
-      But then again, sometimes you do have name mapping as the first row of 
-      the document: if so, it represents column names. You still don't have 
-      datatype declarations but at least it is a start.
-    </p>
-    <p>
-      Ideally any library that supports CSV reading and writing should support 
-      different commonly used variations; from optional header line (mentioned 
-      above) to different separators (while name implies just comma, other 
-      characters are commonly used, such as tabs and pipe symbol) and possibly 
-      quoting/escaping mechanisms (some variants allow backslash escaping).<br>And 
-      finally, it would be nice to expose both &quot;raw&quot; sequence and high-level 
-      data-binding to/from POJOs, similar to how Jackson works with JSON.
-    </p>
-    <p>
-      <b>3. So expose basic &quot;Schema&quot; abstraction</b>
-    </p>
-    <p>
-      To unify different ways of defining mapping between property names and 
-      columns, Jackson now supports general concept of a Schema. While 
-      interface itself is little more than a tag interface (to make it 
-      possible to pass an opaque type-specific Schema instance through 
-      factories), data-format specific subtypes can and do extend 
-      functionality as appropriate.
-    </p>
-    <p>
-      In case of CSV, Schema (use of which is optional -- more on &quot;raw&quot; access 
-      later on) defines:
-    </p>
-    <ol>
-      <li>
-        Names of columns, in order -- this is mandatory
-      </li>
-      <li>
-        Scalar datatypes columns have: these are coarse types, and this 
-        information is optional
-      </li>
-    </ol>
-    <p>
-      Note that the reason that type information is strictly optional is that 
-      when it is missing, all data is exposed as Strings; and Jackson 
-      databinding has extensive set of standard coercions, meaning that things 
-      like numbers are conveniently converted as necessary. Specifying type 
-      information, then, can help in validating contents and possibly 
-      improving performance.
-    </p>
-    <p>
-      <b>4. Constructing &quot;CSV Schema&quot; objects</b><br>
-    </p>
-    <p>
-      How does one get access to these Schema objects? Two ways: build 
-      manually, or construct from a type (Class).
-    </p>
-    <p>
-      Let's start with latter, using same POJO type as with earlier XML 
-      example:
-    </p>
-    <hr>
-    
-
-    <pre>  public enum Gender { MALE, FEMALE };
-  // Note: MUST ensure a stable ordering; either alphabetic, or explicit
-  // (JDK does not guarantee order of properties)
-  @JsonPropertyOrder({ &quot;name&quot;, &quot;gender&quot;, &quot;verified&quot;, &quot;image&quot; })
-   public class User {
-   public Gender gender;
-   public String name;
-   public boolean verified;
-   public byte[] image;
-  }<br>  // note: we could use std ObjectMapper; but CsvMapper has convenience methods
-  CsvMapper mapper = new CsvMapper();
-  CsvSchema schema = mapper.schemaFor(User.class);</pre>
-    <hr>
-    
-
-    <p>
-      or, if we wanted to do this manually, we would do (omitting types, for 
-      now):
-    </p>
-    <hr>
-    
-
-    <pre>  CsvSchema schema = CsvSchema.builder()<br>   .addColumn(&quot;name&quot;) 
-   .addColumn(&quot;gender&quot;)<br>   .addColumn(&quot;verified&quot;)<br>   .addColumn(&quot;image&quot;)<br>   .build();</pre>
-    <hr>
-    
-
-    <p>
-      And there is, in fact, the third source: reading it from the header 
-      line. I will leave that as an exercise for readers (check the project 
-      home page).
-    </p>
-    <p>
-      Usage is identical, regardless of the source. Schemas can be used for 
-      both reading and writing; for writing they are only mandatory if output 
-      of the header line is requested.
-    </p>
-    <p>
-      <b>5. And databinding we go!</b>
-    </p>
-    <p>
-      Let's consider the case of reading CSV data from file called 
-      &quot;Users.csv&quot;, entry by entry. Further, we assume there is no header row 
-      to use or skip (if there is, the first entry would be bound from that -- 
-      there is no way for parser auto-detect a header row, since its structure 
-      is no different from rest of data).
-    </p>
-    <p>
-      One way to do this would be:
-    </p>
-    <hr>
-    
-
-    <pre>  MappingIterator&lt;Entry&gt; it = mapper<br>    .reader(User.class)<br>    .with(schema)<br>    .readValues(new File(&quot;Users.csv&quot;());<br>  List&lt;User&gt; users = new ArrayList&lt;User&gt;();<br>  while (it.hasNextValue()) {<br>    User user = it.nextValue();<br>    // do something?<br>    list.add(user);<br>  }<br>  // done! (FileReader gets closed when we hit the end etc)</pre>
-    <hr>
-    
-
-    <p>
-      Assuming we wanted instead to write CSV, we would use something like 
-      this. Note that here we DO want to add the explicit header line for fun:
-    </p>
-    <hr>
-    
-
-    <pre>  // let's force use of Unix linefeeds:<br>  ObjectWriter writer = mapper<br>    .writer(schema.withLineSeparator(&quot;\n&quot;));<br>  writer.writeValue(new File(&quot;ModifiedUsers.csv&quot;), users);</pre>
-    <hr>
-    one feature that we took advantage of here is that CSV generator basically 
-    ignores any and all array markers; meaning that there is no difference 
-    whether we try writing an array, List or just basic sequence of objects.
-
-    <p>
-      <b>6. Data-binding (POJOs) vs &quot;Raw&quot; access</b>
-    </p>
-    <p>
-      Although full data binding is convenient, sometimes we might just want 
-      to deal with a sequence of arrays with String values. You can think of 
-      this as an alternative to &quot;JSON Tree Model&quot;; an untyped primitive but 
-      very flexible data structure.
-    </p>
-    <p>
-      All you really have to do is to omit definition of the schema (which 
-      will then change observe token sequence); and make sure not to enable 
-      handling of header line<br>For this, code to use (for reading) looks 
-      something like:
-    </p>
-    <hr>
-    
-
-    <pre>  CsvMapper mapper = new CsvMapper();<br>  MappingIterator&lt;Object[]&gt; it = mapper<br>   .reader(Object[].class)<br>   .readValues(
-   &quot;1,null\nfoobar\n7,true\n&quot;);<br>  Object[] data = it.nextValue();<br>  assertEquals(2, data.length);<br>  // since we have no schema, everything exposed as Strings, really<br>  assertEquals(&quot;1&quot;, data[0]);<br>  assertEquals(&quot;null&quot;, data[1]);</pre>
-    <hr>
-    
-
-    <p>
-      Finally, note that use of raw entries is the only way to deal with data 
-      that has arbitrary number of columns (unless you just want to add 
-      maximum number of bogus columns -- it is ok to have less data than 
-      columns).
-    </p>
-    <p>
-      <b>7. Sequences vs Arrays</b>
-    </p>
-    <p>
-      One potential inconvenience with access is that by default CSV is 
-      exposed as a sequence of &quot;JSON&quot; Objects. This works if you want to read 
-      entries one by one.
-    </p>
-    <p>
-      But you can also configure parser to expose data as an Array of Objects, 
-      to make it convenient to read all the data as a Java array or Collection 
-      (as mentioned earlier, this is NOT required when writing data, as array 
-      markers have no effect on generation).
-    </p>
-    <p>
-      I will not go into details, beyond pointing out that the configuration 
-      to enable addition &quot;virtual array wrapper&quot; is:
-    </p>
-    <hr>
-    
-
-    <pre>mapper.ensable(CsvParser.Feature.WRAP_AS_ARRAY);</pre>
-    <hr>
-    and after this you can bind entries as if they came in as an array: both 
-    &quot;raw&quot; ones (Object[][]) and typed (List&lt;User&gt; and so on).
-
-    <p>
-      <b>8. Limitations</b>
-    </p>
-    <p>
-      Compared to JSON, CSV is more limited data format. So does this limit 
-      usage of Jackson CSV reader?
-    </p>
-    <p>
-      Yes. The main limitation is that column values need to essentially be 
-      scalar values (strings, numbers, booleans). If you do need more 
-      structured types, you will need to work around this, usually by adding 
-      custom serializers and deserializers: these can then convert structured 
-      types into scalar values and back. However, if you end up doing lots of 
-      this kind of work, you may consider whether CSV is the right format for 
-      you.
-    </p>
-    <p>
-      <b>9. Test Drive!</b>
-    </p>
-    <p>
-      As with all the other JSON alternatives, CSV extension is really looking 
-      forward to more users! Let us know how things work.
-    </p></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Thursday, March 29, 2012 7:37 PM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_468.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_468.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_468.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-
-
-   
             </div>
         </div>
         <div id="beta">
@@ -2325,7 +2244,7 @@ mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeVal
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                   <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_476.html">Forcing escaping of HTML characters (less-than, ampersand) in JSON using Jackson</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html">Doing actual non-blocking, incremental HTTP access with async-http-client</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_474.html">Jackson Data-binding: Did I mention it can do YAML as well?</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_473.html">What me like YAML? (Confessions of a JSON advocate)</a></li>
+                   <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_476.html">Forcing escaping of HTML characters (less-than, ampersand) in JSON using Jackson</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html">Doing actual non-blocking, incremental HTTP access with async-http-client</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_474.html">Jackson Data-binding: Did I mention it can do YAML as well?</a></li>
                </ul>
           </div>
      </div>
@@ -2346,6 +2265,8 @@ google_ad_height = 240;
           <h2 class="module-header">Archives</h2>
           <div class="module-content">
                <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2013_08-31-2013.html'>August 2013</a></li>
               
                 <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
               

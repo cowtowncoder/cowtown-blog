@@ -43,6 +43,196 @@ window.google_analytics_uacct = "UA-140287-10";
 <!-- entry -->
 
    
+     <h2 class="date-header">Saturday, August 03, 2013 </h2>
+<div class="entry" id="post-478">
+     <h3 class="entry-header">Jackson 2.1 was released... quite a while ago :)</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Ok, so I have not been an active blogger for a while. Like, since about 
+      a year ago. I am hoping to catch up a bit, so let's start with 
+      intermediate Jackson releases that have gone out the door since I last 
+      wrote about Jackson.
+    </p>
+    <p>
+      <b>1. Jackson 2.1</b>
+    </p>
+    <p>
+      Version 2.1 was released almost a year ago, October 2012. After big bang 
+      of 2.0 release -- what with all the crazy new features like Object Id 
+      handling (for fully cyclic object graphs), 2.1 was expected to be more 
+      minor release in every way.
+    </p>
+    <p>
+      But, that was not to be... instead, 2.1 packed an impressive set of 
+      improvements of its own.<br>Focus was on general usability: improved 
+      ergonomics, bit of performance improvements (for data-binding) and the 
+      usual array of bug fixes that required bigger changes in internals (and 
+      occasionally additional API) than what can be done in a patch release.<br>
+    </p>
+    <p>
+      For more complete handling of what exactly was added, you can check out 
+      my <a href="https://github.com/FasterXML/jackson-docs/wiki/Presentation-Jackson-2.1-Overview">Jackson 
+      2.1 Overview</a> presentation I gave at <a href="http://www.wordnik.com/">Wordnik</a> 
+      (thanks Tony and folks!). Note that links to this and other 
+      presentations can be found from <a href="https://github.com/FasterXML/jackson-docs">Jackson 
+      Docs</a> github repo.<br>For full list of changes, check <a href="http://wiki.fasterxml.com/JacksonRelease21">2.1 
+      Release Notes</a>.
+    </p>
+    <p>
+      But here's a Reader's Digest version.
+    </p>
+    <p>
+      <b>2. Shape-shifting</b>
+    </p>
+    <p>
+      <i>@JsonFormat</i> annotation was added in Jackson 2.0, but was not used 
+      by many datatypes. With 2.1, there are interesting (and back then, 
+      experimental; but it is much more stable now!) new features to let you 
+      change the &quot;shape&quot; (JSON Structure) of some of common Java datatypes:
+    </p>
+    <ul>
+      <li>
+        Serialize Enums as JSON Objects instead of Strings: useful for 
+        serialization, but can not deserialize back (how would that work? 
+        Enums are singletons)
+      </li>
+      <li>
+        Collections (Sets, Lists) as JSON Objects (instead of arrays): useful 
+        for custom Collections that add extra properties -- can also 
+        deserialize, with proper use of @JsonCreator annotations (or custom 
+        deserializer)
+      </li>
+      <li>
+        POJOs as Arrays! Instead of having name/value pairs, you will get JSON 
+        arrays where position indicates which property is being used (make 
+        sure to use @JsonPropertyOrder annotation to define ordering!)
+      </li>
+    </ul>
+    <p>
+      Of these, the last option is probably the most interesting. It can make 
+      JSON as compact as CSV; and in fact can compete with binary formats in 
+      many cases, especially if values are mostly Strings.<br>A simple example 
+      would be:
+    </p>
+    <pre>  @JsonFormat(shape=JsonFormat.Shape.ARRAY)
+  @JsonPropertyOrder(alphabetic=true)
+  public class Point {
+    public int x, y;
+  }</pre>
+    <p>
+      which, when serialized, could look like:
+    </p>
+    <pre>  [ 1, 2]</pre>
+    <p>
+      instead of earlier
+    </p>
+    <pre>  { &quot;x&quot;:1, &quot;y&quot;:2 }</pre>
+    <p>
+      and obviously works for reading as well (that is, you can read such 
+      tabular data back).
+    </p>
+    <p>
+      <b>3. Chunked (partial) Binary Data reads, writes</b>
+    </p>
+    <p>
+      When dealing with really large data, granularity of <i>JsonParser</i> 
+      and <i>JsonGenerator</i> works well, except for case of long JSON 
+      Strings; for example, ones that contain Base64-encoded data. Since these 
+      values may be potentially very large, and since they are quite often 
+      just stored on disk (or read from disk to send) -- and there is no 
+      benefit from keeping the whole value in memory at all -- it makes sense 
+      to offer some way to allow streaming for values, not just between values.
+    </p>
+    <p>
+      To this end, JsonParser and JsonGenerator now do have methods that allow 
+      one to read and write large binary data chunks without retaining more 
+      than a limited amount of data in memory (one buffer-full, like 8 or 
+      16kB) at any given point. Access is provided via <i>java.io.InputStream</i> 
+      and <i>java.io.OutputStream</i>, with methods:
+    </p>
+    <p>
+      JsonParser.readBinaryValue(OutputStream)<br>JsonGenerator.writeBinary(InputStream, 
+      int expectedLength)
+    </p>
+    <p>
+      Note that while direction of arguments may look odd, it actually makes 
+      sense when you try using it: you will provide handler for content (which 
+      implements OutputStream), and source for content to write (InputStream).
+    </p>
+    <p>
+      <b>4. Format auto-detection support for data-binding</b>
+    </p>
+    <p>
+      Another innovative new feature is ability to use already existing data 
+      format auto-detection, without having to use Streaming API. Earlier 
+      versions included support for <i>JsonParser</i> auto-detecting type of 
+      input, for data formats that support this (some binary formats do not; I 
+      consider this a flaw in such formats; of text formats, CSV does not): at 
+      least JSON, XML, Smile and YAML support auto-detection.
+    </p>
+    <p>
+      You enable support through <i>ObjectReader</i> for example like so:
+    </p>
+    <pre>  ObjectMapper mapper = new ObjectMapper();
+  XmlMapper xmlMapper = new XmlMapper(); // XML is special: must start with its own mapper
+  ObjectReader reader = mapper
+    .reader(POJO.class) // for reading instances of POJO
+    .withFormatDetection(new JsonFactory(), xmlMapper.getFactory(), new SmileFactory();</pre>
+    <p>
+      and then you can use resulting reader normally:<br>
+    </p>
+    <pre>  User user = mapper.readValue(new File(&quot;input.raw&quot;), User.class);</pre>
+    <p>
+      and input that is in XML, JSON or Smile format will be property decoded, 
+      and bound to resulting class. I personally use this to support 
+      transparent usage of Smile (binary JSON) format as a pluggable 
+      optimization over JSON.
+    </p>
+    <p>
+      <b>5. Much improved XML module</b>
+    </p>
+    <p>
+      Although XML module has existed since earlier 1.x versions, 2.0 provided 
+      first solid version. But it did not include support for one commonly 
+      used JAXB feature: ability to use so-called &quot;unwrapped&quot; Lists. 2.1 fixes 
+      this and fully supports both wrapped and unwrapped Lists.
+    </p>
+    <p>
+      But beyond this feature, testing was significantly extended, and a few 
+      specific bugs were fixed. As a result version 2.1 is the first version 
+      that I can fully recommend as replacement for JAXB processing in 
+      production environments.
+    </p>
+    <p>
+      <b>6. Delegating serializer, deserializer</b>
+    </p>
+    <p>
+      Final new feature is support for so-called delegating serializers and 
+      deserializers. The basic idea is simple: instead of having to build 
+      fully custom handlers you only need to implement converters that can 
+      convert your custom types into something that Jackson can automatically 
+      handle (supports out of the box).
+    </p>
+    <p>
+      Details of this are included in <a href="https://github.com/FasterXML/jackson-docs/wiki/Presentation-Jackson-2.1-Overview">2.1 
+      presentation</a>; most commonly you will just extend <i>com.fasterxml.jackson.databind.deser.std.StdDelegatingDeserializer</i> 
+      and <i>com.fasterxml.jackson.databind.ser.std.StdDelegatingSerializer</i>.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, August 03, 2013 6:48 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
      <h2 class="date-header">Thursday, May 24, 2012 </h2>
 <div class="entry" id="post-475">
      <h3 class="entry-header">Doing actual non-blocking, incremental HTTP access with async-http-client</h3>
@@ -2014,181 +2204,6 @@ static class Writer&lt;E&gt; extends DataWriter&lt;E&gt;
      </div>
 </div>
    
-     <h2 class="date-header">Monday, February 28, 2011 </h2>
-<div class="entry" id="post-446">
-     <h3 class="entry-header">Jackson: not just for JSON, Smile or BSON any more -- Now With XML, too!</h3>
-     
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      (NOTE: see the newer article on &quot;<a href="/blog/archives/2012/03/entry_467.html">Jackson 
-      2.0 with XML</a>&quot;)
-    </p>
-    <p>
-      One of first significant new Jackson extension projects (result of <a href="/blog/archives/2011/02/entry_441.html">Jackson 
-      1.7</a> release which made it much easier to provide <a href="/blog/archives/2011/02/entry_442.html">modular 
-      extensions</a>) is <a href="https://github.com/FasterXML/jackson-xml-databind">jackson-xml-databind</a>, 
-      hosted at GitHub. Although this extension is still in its pre-1.0 
-      development phase, the latest released version is fully usable as is and 
-      is even in some limited production use by some brave developers (running 
-      on Google AppEngine, of all things!).
-    </p>
-    <p>
-      So it is probably a good idea to now give a brief overview of what this 
-      project is all about.
-    </p>
-    <p>
-      <b>1. What is jackson-xml-databind?</b>
-    </p>
-    <p>
-      <i>Jackson-xml-databind</i> comes in a small package (jar is only about 
-      55 kB) , and is used with Jackson data binding functionality 
-      (jackson-mapper jar). It provides basic replacement for <i>JsonFactory</i>, 
-      <i>JsonParser</i> and <i>JsonGenerator</i> components of Jackson 
-      Streaming API, and allows reading and writing of XML instead of JSON, in 
-      context of generic Jackson data binding functionality. In addition, core 
-      ObjectMapper is also sub-classed to provide customized versions of 
-      couple of other provider types, so typically all usage is done by 
-      creating com.fasterxml.jackson.xml.XmlMapper instead of ObjectMapper, 
-      and using it for data binding.
-    </p>
-    <p>
-      <b>2. What is it used for?</b>
-    </p>
-    <p>
-      This package is used to read XML and convert it to POJOs, as well as to 
-      write POJOs as XML. In this respect it is very similar to JAXB (<i>javax.xml.bind</i>) 
-      package; and an alternative for many other Java XML data binding 
-      packages such as XStream and JibX. Given Jackson support for JAXB 
-      annotations, it can be especially conveniently used as a JAXB 
-      replacement in many cases.
-    </p>
-    <p>
-      Functionality supported is in some ways a subset of JAXB, and in other 
-      ways a superset: XML-specific functionality is more limited (no explicit 
-      support for XML Schema), but general data binding functionality is 
-      arguably more powerful (since it is full set of Jackson functionality).
-    </p>
-    <p>
-      Two obvious benefits of this package compared to JAXB or other existing 
-      XML data binding solutions (like XStream) are superior performance -- 
-      with fast Stax XML parser, this is likely the fastest data binding 
-      solution on Java platform (see <a href="https://github.com/eishay/jvm-serializers/wiki">jvm-serializers</a> 
-      for results) -- and extensive and customizable data POJO conversion 
-      functionality, using all existing Jackson annotations and configuration 
-      options. The main downside currently is potential immaturity of the 
-      package; however, this only applies to interaction between mature XML 
-      packages (stax implementation) and Jackson data binder (which is also 
-      fairly mature at this point).
-    </p>
-    <p>
-      <b>3. So how do I use it?</b>
-    </p>
-    <p>
-      If you know how to use Jackson with JSON, you know almost everything you 
-      need to use this package. The only other thing you need to know is that 
-      there has to be a Stax XML parser/generator implementation available. 
-      While JDK 1.6 provides one implementation, your best best is using 
-      something bit more efficient, such as <a href="http://woodstox.codehaus.org">Woodstox</a> 
-      or <a href="http://wiki.fasterxml.com/AaltoHome">Aalto</a>. Both should 
-      work fine; Aalto is faster of two, but Woodstox is a more mature choice. 
-      So you will probably want to include one of these Stax implementations 
-      when using jackson-xml-databind.
-    </p>
-    <p>
-      Other than this, all you need to do is to construct XmlMapper:
-    </p>
-    <pre>  XmlMapper mapper = new XmlMapper(); // can also specify XmlFactory to 
-  use, to override Stax factories used</pre>
-    <p>
-      and use it like you would any other ObjectMapper, like so:
-    </p>
-    <pre>  User user = new User(); // from Jackson-in-five-minutes sample<br>  String xml = mapper.writeValueAsString(user);</pre>
-    <p>
-      and what you would get is something like:
-    </p>
-    <pre>&lt;User&gt;
-  &lt;name&gt;
-    &lt;first&gt;Joe&lt;/first&gt;
-    &lt;last&gt;Sixpack&lt;/last&gt;
-  &lt;/name&gt;
-  &lt;verified&gt;true&lt;/verified&gt;
-  &lt;gender&gt;MALE&lt;/gender&gt;
-  &lt;userImage&gt;AQIDBAU=&lt;/userImage&gt;
-&lt;/User&gt;</pre>
-    <p>
-      which is equivalent of JSON serialization that would look like:
-    </p>
-    <pre>{
-  &quot;name&quot;:{
-    &quot;first&quot;:&quot;Joe&quot;,
-    &quot;last&quot;:&quot;Sixpack&quot;
-  },
-  &quot;verified&quot;:true,
-  &quot;gender&quot;:&quot;MALE&quot;,
-  &quot;userImage&quot;:&quot;AQIDBAU=&quot;
-}</pre>
-    <p>
-      Pretty neat eh?
-    </p>
-    <p>
-      Oh, and reverse direction obviously works similarly:
-    </p>
-    <pre>  User user = mapper.readValue(xml, User.class);</pre>
-    <p>
-      There is really nothing extra-ordinary in it usage; just another way to 
-      use Jackson for slicing and dicing your POJOs.
-    </p>
-    <p>
-      <b>4. Limitations</b>
-    </p>
-    <p>
-      While existing version works pretty well in general, there are some 
-      limitations. These mostly stem from the basic difference between XML and 
-      JSON logical models; and specifically affect handling of Lists/arrays. 
-      XmlMapper for example only allows so-called &quot;wrapped&quot; lists (for now); 
-      meaning that there is one wrapper XML element for each List or array 
-      property, and separate element for each List item.
-    </p>
-    <p>
-      Compared to JAXB (and related to JAXB annotation support), no DOM 
-      support is included; meaning, it is not possible to use converters that 
-      take or produce DOM Elements.
-    </p>
-    <p>
-      With respect to Jackson functionality, while polymorphic type 
-      information does work, some combinations of settings may not work as 
-      expected.
-    </p>
-    <p>
-      And given project's pre-1.0 status, testing is not yet as complete as it 
-      needs to be, so other rough edges may also be found. But with help of 
-      user community I am sure we can polish these up pretty quickly.
-    </p>
-    <p>
-      <b>5. Feedback time!</b>
-    </p>
-    <p>
-      So what is needed most at this point? Users, usage, and resulting bug 
-      (or, possibly, success) reports! Seriously, more usage there is, faster 
-      we can get the project up to 1.0 release.
-    </p>
-    <p>
-      Happy hacking!
-    </p></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Monday, February 28, 2011 9:28 PM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_446.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_446.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_446.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-   
             </div>
         </div>
 <div id="beta">
@@ -2232,7 +2247,7 @@ static class Writer&lt;E&gt; extends DataWriter&lt;E&gt;
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html">Doing actual non-blocking, incremental HTTP access with async-http-client</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_474.html">Jackson Data-binding: Did I mention it can do YAML as well?</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html">Java Type Erasure not a Total Loss -- use Java Classmate for resolving generic signatures</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html">Notes on upgrading Jackson from 1.9 to 2.0</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_468.html">Jackson 2.0: CSV-compatible as well</a></li>
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html">Doing actual non-blocking, incremental HTTP access with async-http-client</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_474.html">Jackson Data-binding: Did I mention it can do YAML as well?</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html">Java Type Erasure not a Total Loss -- use Java Classmate for resolving generic signatures</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html">Notes on upgrading Jackson from 1.9 to 2.0</a></li>
                </ul>
           </div>
      </div>
@@ -2285,6 +2300,8 @@ static class Writer&lt;E&gt; extends DataWriter&lt;E&gt;
           <h2 class="module-header">Archives</h2>
           <div class="module-content">
                <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2013_08-31-2013.html'>August 2013</a></li>
               
                 <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
               

@@ -1,6 +1,6 @@
 <html lang="en">
 <head>
-<title>Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</title>
+<title>Jackson 2.1 was released... quite a while ago :)</title>
  <meta name="keywords" content="CowTalk" />
  <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
 
@@ -48,384 +48,192 @@ window.google_analytics_uacct = "UA-140287-10";
    
    
 
-     <h2 class="date-header">Saturday, August 18, 2012 </h2>
+     <h2 class="date-header">Saturday, August 03, 2013 </h2>
 
-<div class="entry" id="post-477">
-<h3 class="entry-header">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</h3>
+<div class="entry" id="post-478">
+<h3 class="entry-header">Jackson 2.1 was released... quite a while ago :)</h3>
      <div class="entry-content">
           <div class="entry-body">
           
                <p><p>
-      <b>1. Background</b>
+      Ok, so I have not been an active blogger for a while. Like, since about 
+      a year ago. I am hoping to catch up a bit, so let's start with 
+      intermediate Jackson releases that have gone out the door since I last 
+      wrote about Jackson.
     </p>
     <p>
-      The default Java serialization provided by JDK is a two-edged sword: on 
-      one hand, it is a simple, convenient way to &quot;freeze and thaw&quot; Objects 
-      you have, handling about any kind of Java object graphs. It is possibly 
-      the most powerful serialization mechanism on Java platform, bar none.
+      <b>1. Jackson 2.1</b>
     </p>
     <p>
-      But on the other hand, its shortcomings are well-document (and I hope, 
-      well-known) at this point. Problems include:
-    </p>
-    <ul>
-      <li>
-        Poor space-efficiency (especially for small data), due to inclusion of 
-        all class metadata: that is, size of output can be huge, larger than 
-        about any alternative, including XML
-      </li>
-      <li>
-        Poor performance (especially for small data), partly due to size 
-        inefficiency
-      </li>
-      <li>
-        Brittleness: smallest changes to class definitions may break 
-        compatibility, preventing deserialization. This makes it a poor choice 
-        for both data exchange between (Java) systems as well as long-term 
-        storage
-      </li>
-    </ul>
-    <p>
-      Still, the convenience factor has led to many systems using JDK 
-      serialization to be the default serialization method to use.
+      Version 2.1 was released almost a year ago, October 2012. After big bang 
+      of 2.0 release -- what with all the crazy new features like Object Id 
+      handling (for fully cyclic object graphs), 2.1 was expected to be more 
+      minor release in every way.
     </p>
     <p>
-      Is there anything we could do to address downsides listed above? Plenty, 
-      actually. Although there is no way to do much more for the default 
-      implementation (JDK serialization implementation is in fact ridiculously 
-      well optimized for what it tries to achieve -- it's just that the goal 
-      is very ambitious), one can customize what gets used by making objects 
-      implement j<b>ava.io.Externalizable</b> interface. If so, JDK will 
-      happily use alternate implementation under the hood.
+      But, that was not to be... instead, 2.1 packed an impressive set of 
+      improvements of its own.<br>Focus was on general usability: improved 
+      ergonomics, bit of performance improvements (for data-binding) and the 
+      usual array of bug fixes that required bigger changes in internals (and 
+      occasionally additional API) than what can be done in a patch release.<br>
     </p>
     <p>
-      Now: although writing custom serializers may be fun sometimes -- and for 
-      specific case, you can actually write very efficient solution as well, 
-      given enough time -- it would be nice if you could use an existing 
-      component to address listed short-comings.
+      For more complete handling of what exactly was added, you can check out 
+      my <a href="https://github.com/FasterXML/jackson-docs/wiki/Presentation-Jackson-2.1-Overview">Jackson 
+      2.1 Overview</a> presentation I gave at <a href="http://www.wordnik.com/">Wordnik</a> 
+      (thanks Tony and folks!). Note that links to this and other 
+      presentations can be found from <a href="https://github.com/FasterXML/jackson-docs">Jackson 
+      Docs</a> github repo.<br>For full list of changes, check <a href="http://wiki.fasterxml.com/JacksonRelease21">2.1 
+      Release Notes</a>.
     </p>
     <p>
-      And that's what we'll do! Here's one possible way to improve on all 
-      problems listed above:
-    </p>
-    <ol>
-      <li>
-        Use an efficient Jackson serializer (to produce either JSON, or 
-        perhaps more interestingly, <a href="http://wiki.fasterxml.com/SmileFormat">Smile</a> 
-        binary data)
-      </li>
-      <li>
-        Wrap it in nice java.io.Externalizable, to make it transparent to code 
-        using JDK serialization (albeit not transparent for maintainers of the 
-        class -- but we will try minimizing amount of intrusive code)
-      </li>
-    </ol>
-    <p>
-      <b>2. Challenges with java.io.Externalizable</b>
+      But here's a Reader's Digest version.
     </p>
     <p>
-      First things first: while conceptually simple, there are couple of 
-      rather odd design decisions that make use of java.io.Externalizable bit 
-      tricky:
-    </p>
-    <ol>
-      <li>
-        Instead of passing instances of <b>java.io.InputStream</b>, <b>java.io.OutputStream</b>, 
-        instead <b>java.io.ObjectOutput</b> and <b>java.io.ObjectInput</b> are 
-        used; and they do NOT extend stream versions (even though they define 
-        mostly same methods!). This means additional wrapping is needed
-      </li>
-      <li>
-        <b>Externalizable.readExternal()</b> requires updating of the object 
-        itself, not that of constructing new instances: most serialization 
-        frameworks do not support such operation
-      </li>
-      <li>
-        How to access external serialization library, as no context is passed 
-        to either of methods?
-      </li>
-    </ol>
-    <p>
-      These are not fundamental problems for Jackson: first one requires use 
-      of adapter classes (see below), second that we need to use &quot;updating 
-      reader&quot; approach that Jackson was supported for a while (yay!). And to 
-      solve the third part, we have at least two choices: use of ThreadLocal 
-      for passing an ObjectMapper; or, use of a static helper class (approach 
-      shown below)
-    </p>
-    <div>
-      
-    </div>
-    <div>
-      So here are the helper classes we need:
-    </div>
-    <div>
-      <hr>
-      
-    </div>
-    <pre>final static class ExternalizableInput extends InputStream
-{
-  private final ObjectInput in;
-
-  public ExternalizableInput(ObjectInput in) {
-   this.in = in;
-  }
-
-  @Override
-  public int available() throws IOException {
-    return in.available();
-  }
-
-  @Override
-  public void close() throws IOException {
-    in.close();
-  }
-
-  @Override
-  public boolean  markSupported() {
-    return false;
-  }
-
-  @Override
-  public int read() throws IOException {
-   return in.read();
-  }
-
-  @Override
-  public int read(byte[] buffer) throws IOException {
-    return in.read(buffer);
-  }
-
-  @Override
-  public int read(byte[] buffer, int offset, int len) throws IOException {
-    return in.read(buffer, offset, len);
-  }
-
-  @Override
-  public long skip(long n) throws IOException {
-   return in.skip(n);
-  }
-}<br><br>final static class ExternalizableOutput extends OutputStream
-{
-  private final ObjectOutput out;
-
-  public ExternalizableOutput(ObjectOutput out) {
-   this.out = out;
-  }
-
-@Override
-public void flush() throws IOException {
-out.flush();
-}
-
-@Override
-public void close() throws IOException {
-out.close();
-}
-
-@Override
-public void write(int ch) throws IOException {
-out.write(ch);
-}
-
-@Override
-public void write(byte[] data) throws IOException {
-out.write(data);
-}
-
-@Override
-public void write(byte[] data, int offset, int len) throws IOException {
-out.write(data, offset, len);
-}
-}<br><br>/* Use of helper class here is unfortunate, but necessary; alternative would<br> * be to use ThreadLocal, and set instance before calling serialization.<br> * Benefit of that approach would be dynamic configuration; however, this<br> * approach is easier to demonstrate.<br> */<br>class MapperHolder {
-  private final ObjectMapper mapper = new ObjectMapper();
-  private final static MapperHolder instance = new MapperHolder();
-  public static ObjectMapper mapper() { return instance.mapper; }
-}<br></pre>
-    <hr>
-    
-
-    <p>
-      and given these classes, we can implement 
-      Jackson-for-default-serialization solution.
+      <b>2. Shape-shifting</b>
     </p>
     <p>
-      <b>3. Let's Do a Serialization!</b>
-    </p>
-    <p>
-      So with that, here's a class that is serializable using Jackson JSON 
-      serializer:
-    </p>
-    <hr>
-    
-
-    <pre>  static class MyPojo implements Externalizable
-  {
-        public int id;
-        public String name;
-        public int[] values;
-
-        public MyPojo() { } // for deserialization
-        public MyPojo(int id, String name, int[] values)
-        {
-            this.id = id;
-            this.name = name;
-            this.values = values;
-        }
-
-        public void readExternal(ObjectInput in) throws IOException {
-            MapperHolder.mapper().readerForUpdating(this).readValue(new ExternalizableInput(in));<br>        }
-        public void writeExternal(ObjectOutput oo) throws IOException {
-            MapperHolder.mapper().writeValue(new ExternalizableOutput(oo), this);
-        }<br>  }
-</pre>
-    <hr>
-    
-
-    <p>
-      to use that class, use JDK serialization normally:
-    </p>
-    <div>
-      <hr>
-      
-    </div>
-    <pre>  // serialize as bytes (to demonstrate):<br>  MyPojo input = new MyPojo(13, &quot;Foobar&quot;, new int[] { 1, 2, 3 } );
-  ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-  ObjectOutputStream obs = new ObjectOutputStream(bytes);
-  obs.writeObject(input);
-  obs.close();
-  byte[] ser = bytes.toByteArray();<br><br>  // and to get it back:<br>  ObjectInputStream ins = new ObjectInputStream(new ByteArrayInputStream(ser));
-  MyPojo output = (MyPojo) ins.readObject();<br>  ins.close();</pre>
-    <hr>
-    
-
-    <p>
-      And that's it.
-    </p>
-    <p>
-      <b>4. So what's the benefit?</b>
-    </p>
-    <p>
-      At this point, you may be wondering if and how this would actually help 
-      you. Since JDK serialization is using binary format; and since 
-      (allegedly!) textual formats are generally more verbose than binary 
-      formats, how could this possibly help with size of performance?
-    </p>
-    <p>
-      Turns out that if you test out code above and compare it with the case 
-      where class does NOT implement Externalizable, sizes are:
+      <i>@JsonFormat</i> annotation was added in Jackson 2.0, but was not used 
+      by many datatypes. With 2.1, there are interesting (and back then, 
+      experimental; but it is much more stable now!) new features to let you 
+      change the &quot;shape&quot; (JSON Structure) of some of common Java datatypes:
     </p>
     <ul>
       <li>
-        Default JDK serialization: 186 bytes
+        Serialize Enums as JSON Objects instead of Strings: useful for 
+        serialization, but can not deserialize back (how would that work? 
+        Enums are singletons)
       </li>
       <li>
-        Serialization as embedded JSON: 130 bytes
+        Collections (Sets, Lists) as JSON Objects (instead of arrays): useful 
+        for custom Collections that add extra properties -- can also 
+        deserialize, with proper use of @JsonCreator annotations (or custom 
+        deserializer)
+      </li>
+      <li>
+        POJOs as Arrays! Instead of having name/value pairs, you will get JSON 
+        arrays where position indicates which property is being used (make 
+        sure to use @JsonPropertyOrder annotation to define ordering!)
       </li>
     </ul>
     <p>
-      Whoa! Quite unexpected result? JSON-based alternative <i>30% SMALLER</i> 
-      than JDK serialization!
+      Of these, the last option is probably the most interesting. It can make 
+      JSON as compact as CSV; and in fact can compete with binary formats in 
+      many cases, especially if values are mostly Strings.<br>A simple example 
+      would be:
+    </p>
+    <pre>  @JsonFormat(shape=JsonFormat.Shape.ARRAY)
+  @JsonPropertyOrder(alphabetic=true)
+  public class Point {
+    public int x, y;
+  }</pre>
+    <p>
+      which, when serialized, could look like:
+    </p>
+    <pre>  [ 1, 2]</pre>
+    <p>
+      instead of earlier
+    </p>
+    <pre>  { &quot;x&quot;:1, &quot;y&quot;:2 }</pre>
+    <p>
+      and obviously works for reading as well (that is, you can read such 
+      tabular data back).
     </p>
     <p>
-      Actually, not really. The problem with JDK serialization is not the way 
-      data is stored, but rather the fact that in addition to (compact) data, 
-      much of Class definition metadata is included. This metadata is needed 
-      to guard against Class incompatibilities (which it can do pretty well), 
-      but it comes with a cost. And that cost is particularly high for small 
-      data.
+      <b>3. Chunked (partial) Binary Data reads, writes</b>
     </p>
     <p>
-      Similarly, performance typically follows data size: while I don't have 
-      publishable results (I may do that for a future post), I expect 
-      embedded-JSON to also perform significantly better for single-object 
-      serialization use cases.
+      When dealing with really large data, granularity of <i>JsonParser</i> 
+      and <i>JsonGenerator</i> works well, except for case of long JSON 
+      Strings; for example, ones that contain Base64-encoded data. Since these 
+      values may be potentially very large, and since they are quite often 
+      just stored on disk (or read from disk to send) -- and there is no 
+      benefit from keeping the whole value in memory at all -- it makes sense 
+      to offer some way to allow streaming for values, not just between values.
     </p>
     <p>
-      <b>5. Further ideas: Smile!</b>
+      To this end, JsonParser and JsonGenerator now do have methods that allow 
+      one to read and write large binary data chunks without retaining more 
+      than a limited amount of data in memory (one buffer-full, like 8 or 
+      16kB) at any given point. Access is provided via <i>java.io.InputStream</i> 
+      and <i>java.io.OutputStream</i>, with methods:
     </p>
     <p>
-      But perhaps you think we should be able to do better, size-wise (and 
-      perhaps performance) than using JSON?
+      JsonParser.readBinaryValue(OutputStream)<br>JsonGenerator.writeBinary(InputStream, 
+      int expectedLength)
     </p>
     <p>
-      Absolutely. Since the results are not exactly readable (to use 
-      Externalizable, bit of binary data will be used to indicate class name, 
-      and little bit of stream metadata), we probably do not greatly care what 
-      the actual underlying format is.<br>With this, an obvious choice would 
-      be to use <a href="http://wiki.fasterxml.com/SmileFormat">Smile data 
-      format</a>, binary counterpart to JSON, a format that Jackson supports 
-      100% with <a href="https://github.com/FasterXML/jackson-dataformat-smile">Smile 
-      Module</a>.
+      Note that while direction of arguments may look odd, it actually makes 
+      sense when you try using it: you will provide handler for content (which 
+      implements OutputStream), and source for content to write (InputStream).
     </p>
     <p>
-      The only change that is needed is to replace the first line from 
-      &quot;MapperHolder&quot; to read:
+      <b>4. Format auto-detection support for data-binding</b>
     </p>
     <p>
-       <i> private final ObjectMapper mapper = new ObjectMapper(new 
-      SmileFactory());</i>
+      Another innovative new feature is ability to use already existing data 
+      format auto-detection, without having to use Streaming API. Earlier 
+      versions included support for <i>JsonParser</i> auto-detecting type of 
+      input, for data formats that support this (some binary formats do not; I 
+      consider this a flaw in such formats; of text formats, CSV does not): at 
+      least JSON, XML, Smile and YAML support auto-detection.
     </p>
     <p>
-      and we will see even reduced size, as well as faster reading and writing 
-      -- Smile is typically 30-40% smaller in size, and 30-50% faster to 
-      process than JSON.
+      You enable support through <i>ObjectReader</i> for example like so:
+    </p>
+    <pre>  ObjectMapper mapper = new ObjectMapper();
+  XmlMapper xmlMapper = new XmlMapper(); // XML is special: must start with its own mapper
+  ObjectReader reader = mapper
+    .reader(POJO.class) // for reading instances of POJO
+    .withFormatDetection(new JsonFactory(), xmlMapper.getFactory(), new SmileFactory();</pre>
+    <p>
+      and then you can use resulting reader normally:<br>
+    </p>
+    <pre>  User user = mapper.readValue(new File(&quot;input.raw&quot;), User.class);</pre>
+    <p>
+      and input that is in XML, JSON or Smile format will be property decoded, 
+      and bound to resulting class. I personally use this to support 
+      transparent usage of Smile (binary JSON) format as a pluggable 
+      optimization over JSON.
     </p>
     <p>
-      <b>6. Even More compact? Consider Jackson 2.1, &quot;POJO as array!&quot;</b>
+      <b>5. Much improved XML module</b>
     </p>
     <p>
-      But wait! In very near future, we may be able to do EVEN BETTER! Jackson 
-      2.1 (see the <a href="https://github.com/FasterXML/jackson-docs/wiki/Presentation-Jackson-2.1-Preview">Sneak 
-      Peek</a>) will introduce one interesting feature that will further 
-      reduce size of JSON/Smile Object serialization. By using following 
-      annotation:
+      Although XML module has existed since earlier 1.x versions, 2.0 provided 
+      first solid version. But it did not include support for one commonly 
+      used JAXB feature: ability to use so-called &quot;unwrapped&quot; Lists. 2.1 fixes 
+      this and fully supports both wrapped and unwrapped Lists.
     </p>
     <p>
-        <i>@JsonFormat(shape=JsonFormat.Shape.OBJECT)   </i>
+      But beyond this feature, testing was significantly extended, and a few 
+      specific bugs were fixed. As a result version 2.1 is the first version 
+      that I can fully recommend as replacement for JAXB processing in 
+      production environments.
     </p>
     <p>
-      you can further reduce the size: this occurs as the property names are 
-      excluded from serialization (think of output similar to CSV, just using 
-      JSON Arrays).
+      <b>6. Delegating serializer, deserializer</b>
     </p>
     <p>
-      For our toy use case, size is reduced further from 130 bytes to 109; 
-      further reduction of almost 20%. But wait! It gets better -- same will 
-      be true for Smile as well, since while it can reduce space in general, 
-      it still has to retain some amount of name information normally; but 
-      with POJO-as-Arrays it will use same exclusion!
+      Final new feature is support for so-called delegating serializers and 
+      deserializers. The basic idea is simple: instead of having to build 
+      fully custom handlers you only need to implement converters that can 
+      convert your custom types into something that Jackson can automatically 
+      handle (supports out of the box).
     </p>
     <p>
-      <b>7. But how about actual real-life results?</b>
-    </p>
-    <p>
-      At this point I am actually planning on doing something based on code I 
-      showed above. But planning is in early stages so I do not yet have 
-      results from &quot;real data&quot;; meaning objects of more realistic sizes. But I 
-      hope to get that soon: the use case is that of storing entities (data 
-      for which is read from DB) in memcache. Existing system is getting 
-      CPU-bound both from basic serialization/deserialization activity, but 
-      especially from higher number of GCs. I fully expect the new approach to 
-      help with this; and most importantly, be quite easy to deploy: this 
-      because I do not have to change any of code that actually 
-      serializes/deserializes Beans -- I just have to modify Beans themselves 
-      a bit.
-    </p>
-    <p>
-      
-    </p>
-    <p>
-      
+      Details of this are included in <a href="https://github.com/FasterXML/jackson-docs/wiki/Presentation-Jackson-2.1-Overview">2.1 
+      presentation</a>; most commonly you will just extend <i>com.fasterxml.jackson.databind.deser.std.StdDelegatingDeserializer</i> 
+      and <i>com.fasterxml.jackson.databind.ser.std.StdDelegatingSerializer</i>.
     </p></p>
 
      <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, August 18, 2012 4:26 PM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
+          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, August 03, 2013 6:48 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
 <br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html#links">links to this post</a></BlogItemBacklinksEnabled> 
 
      </p>
           </div>
@@ -492,7 +300,7 @@ out.write(data, offset, len);
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li>
+                <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li>
                </ul>
           </div>
      </div>

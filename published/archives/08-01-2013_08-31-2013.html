@@ -1,0 +1,572 @@
+<html lang="en">
+<head>
+<title>August 2013</title>
+ <meta name="keywords" content="CowTalk" />
+ <meta name="description" content="CowTalk - Moo-able Type for Cowtowncoder.com" />
+
+ 
+<style type="text/css">
+@import url('../stylesheets/iconic/iconic-style.css');
+
+/************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
+**/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
+*************************************************************************
+
+body {margin-top: 32px !important} 
+*/
+
+/* Let's not hide list markers... */
+UL { list-style-type: disc; margin: 6; }
+/* Also, better display for code: */
+pre { overflow: auto; }
+
+</style>
+<script type="text/javascript" src="http://googlelite.free.fr/player.js"></script>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-140287-10";
+</script>
+</head>
+<body class="layout-two-column-right">
+	<div id="container">
+		<div id="container-inner" class="pkg">
+<!-- banner -->
+<div id="banner">
+	<div id="banner-inner" class="pkg">
+		<h1 id="banner-header"><a href="http://www.cowtowncoder.com/blog/blog.html" accesskey="1">CowTalk</a></h1>
+		<h2 id="banner-description">Moo-able Type for Cowtowncoder.com</h2>
+	</div>
+</div>
+			<div id="pagebody">
+				<div id="pagebody-inner" class="pkg">
+					<div id="alpha">
+						<div id="alpha-inner" class="pkg">
+<!-- entry -->
+   
+	<h2 class="date-header">Saturday, August 03, 2013 </h2>
+
+<div class="entry" id="post-478">
+			<h3 class="entry-header">Jackson 2.1 was released... quite a while ago :)</h3>
+	
+	<div class="entry-content">
+		<div class="entry-body">
+		
+			<p><p>
+      Ok, so I have not been an active blogger for a while. Like, since about 
+      a year ago. I am hoping to catch up a bit, so let's start with 
+      intermediate Jackson releases that have gone out the door since I last 
+      wrote about Jackson.
+    </p>
+    <p>
+      <b>1. Jackson 2.1</b>
+    </p>
+    <p>
+      Version 2.1 was released almost a year ago, October 2012. After big bang 
+      of 2.0 release -- what with all the crazy new features like Object Id 
+      handling (for fully cyclic object graphs), 2.1 was expected to be more 
+      minor release in every way.
+    </p>
+    <p>
+      But, that was not to be... instead, 2.1 packed an impressive set of 
+      improvements of its own.<br>Focus was on general usability: improved 
+      ergonomics, bit of performance improvements (for data-binding) and the 
+      usual array of bug fixes that required bigger changes in internals (and 
+      occasionally additional API) than what can be done in a patch release.<br>
+    </p>
+    <p>
+      For more complete handling of what exactly was added, you can check out 
+      my <a href="https://github.com/FasterXML/jackson-docs/wiki/Presentation-Jackson-2.1-Overview">Jackson 
+      2.1 Overview</a> presentation I gave at <a href="http://www.wordnik.com/">Wordnik</a> 
+      (thanks Tony and folks!). Note that links to this and other 
+      presentations can be found from <a href="https://github.com/FasterXML/jackson-docs">Jackson 
+      Docs</a> github repo.<br>For full list of changes, check <a href="http://wiki.fasterxml.com/JacksonRelease21">2.1 
+      Release Notes</a>.
+    </p>
+    <p>
+      But here's a Reader's Digest version.
+    </p>
+    <p>
+      <b>2. Shape-shifting</b>
+    </p>
+    <p>
+      <i>@JsonFormat</i> annotation was added in Jackson 2.0, but was not used 
+      by many datatypes. With 2.1, there are interesting (and back then, 
+      experimental; but it is much more stable now!) new features to let you 
+      change the &quot;shape&quot; (JSON Structure) of some of common Java datatypes:
+    </p>
+    <ul>
+      <li>
+        Serialize Enums as JSON Objects instead of Strings: useful for 
+        serialization, but can not deserialize back (how would that work? 
+        Enums are singletons)
+      </li>
+      <li>
+        Collections (Sets, Lists) as JSON Objects (instead of arrays): useful 
+        for custom Collections that add extra properties -- can also 
+        deserialize, with proper use of @JsonCreator annotations (or custom 
+        deserializer)
+      </li>
+      <li>
+        POJOs as Arrays! Instead of having name/value pairs, you will get JSON 
+        arrays where position indicates which property is being used (make 
+        sure to use @JsonPropertyOrder annotation to define ordering!)
+      </li>
+    </ul>
+    <p>
+      Of these, the last option is probably the most interesting. It can make 
+      JSON as compact as CSV; and in fact can compete with binary formats in 
+      many cases, especially if values are mostly Strings.<br>A simple example 
+      would be:
+    </p>
+    <pre>  @JsonFormat(shape=JsonFormat.Shape.ARRAY)
+  @JsonPropertyOrder(alphabetic=true)
+  public class Point {
+    public int x, y;
+  }</pre>
+    <p>
+      which, when serialized, could look like:
+    </p>
+    <pre>  [ 1, 2]</pre>
+    <p>
+      instead of earlier
+    </p>
+    <pre>  { &quot;x&quot;:1, &quot;y&quot;:2 }</pre>
+    <p>
+      and obviously works for reading as well (that is, you can read such 
+      tabular data back).
+    </p>
+    <p>
+      <b>3. Chunked (partial) Binary Data reads, writes</b>
+    </p>
+    <p>
+      When dealing with really large data, granularity of <i>JsonParser</i> 
+      and <i>JsonGenerator</i> works well, except for case of long JSON 
+      Strings; for example, ones that contain Base64-encoded data. Since these 
+      values may be potentially very large, and since they are quite often 
+      just stored on disk (or read from disk to send) -- and there is no 
+      benefit from keeping the whole value in memory at all -- it makes sense 
+      to offer some way to allow streaming for values, not just between values.
+    </p>
+    <p>
+      To this end, JsonParser and JsonGenerator now do have methods that allow 
+      one to read and write large binary data chunks without retaining more 
+      than a limited amount of data in memory (one buffer-full, like 8 or 
+      16kB) at any given point. Access is provided via <i>java.io.InputStream</i> 
+      and <i>java.io.OutputStream</i>, with methods:
+    </p>
+    <p>
+      JsonParser.readBinaryValue(OutputStream)<br>JsonGenerator.writeBinary(InputStream, 
+      int expectedLength)
+    </p>
+    <p>
+      Note that while direction of arguments may look odd, it actually makes 
+      sense when you try using it: you will provide handler for content (which 
+      implements OutputStream), and source for content to write (InputStream).
+    </p>
+    <p>
+      <b>4. Format auto-detection support for data-binding</b>
+    </p>
+    <p>
+      Another innovative new feature is ability to use already existing data 
+      format auto-detection, without having to use Streaming API. Earlier 
+      versions included support for <i>JsonParser</i> auto-detecting type of 
+      input, for data formats that support this (some binary formats do not; I 
+      consider this a flaw in such formats; of text formats, CSV does not): at 
+      least JSON, XML, Smile and YAML support auto-detection.
+    </p>
+    <p>
+      You enable support through <i>ObjectReader</i> for example like so:
+    </p>
+    <pre>  ObjectMapper mapper = new ObjectMapper();
+  XmlMapper xmlMapper = new XmlMapper(); // XML is special: must start with its own mapper
+  ObjectReader reader = mapper
+    .reader(POJO.class) // for reading instances of POJO
+    .withFormatDetection(new JsonFactory(), xmlMapper.getFactory(), new SmileFactory();</pre>
+    <p>
+      and then you can use resulting reader normally:<br>
+    </p>
+    <pre>  User user = mapper.readValue(new File(&quot;input.raw&quot;), User.class);</pre>
+    <p>
+      and input that is in XML, JSON or Smile format will be property decoded, 
+      and bound to resulting class. I personally use this to support 
+      transparent usage of Smile (binary JSON) format as a pluggable 
+      optimization over JSON.
+    </p>
+    <p>
+      <b>5. Much improved XML module</b>
+    </p>
+    <p>
+      Although XML module has existed since earlier 1.x versions, 2.0 provided 
+      first solid version. But it did not include support for one commonly 
+      used JAXB feature: ability to use so-called &quot;unwrapped&quot; Lists. 2.1 fixes 
+      this and fully supports both wrapped and unwrapped Lists.
+    </p>
+    <p>
+      But beyond this feature, testing was significantly extended, and a few 
+      specific bugs were fixed. As a result version 2.1 is the first version 
+      that I can fully recommend as replacement for JAXB processing in 
+      production environments.
+    </p>
+    <p>
+      <b>6. Delegating serializer, deserializer</b>
+    </p>
+    <p>
+      Final new feature is support for so-called delegating serializers and 
+      deserializers. The basic idea is simple: instead of having to build 
+      fully custom handlers you only need to implement converters that can 
+      convert your custom types into something that Jackson can automatically 
+      handle (supports out of the box).
+    </p>
+    <p>
+      Details of this are included in <a href="https://github.com/FasterXML/jackson-docs/wiki/Presentation-Jackson-2.1-Overview">2.1 
+      presentation</a>; most commonly you will just extend <i>com.fasterxml.jackson.databind.deser.std.StdDelegatingDeserializer</i> 
+      and <i>com.fasterxml.jackson.databind.ser.std.StdDelegatingSerializer</i>.
+    </p></p>
+
+	<p class="entry-footer">
+		<span class="post-footers">Posted by Tatu Saloranta  at Saturday, August 03, 2013 6:48 PM </span>
+<br />	Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html#links">links to this post</a></BlogItleaemBacklinksEnabled> 
+
+	</p>
+		</div>
+	</div>
+</div>
+   
+            </div>
+        </div>
+        <div id="beta">
+         	<div id="beta-inner" class="pkg">
+<!-- sidebar -->
+
+
+<!-- Search -->
+<div class="module-search module">
+<h2 class="module-header">Search</h2>
+<hr />
+
+<!-- SiteSearch Google -->
+
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-right" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-1467773697956887:yd8k3mcue4v" />
+        <input type="hidden" name="ie" value="UTF-8" />
+        <input type="text" name="q" size="24" />
+        <input type="submit" name="sa" value="Search" />
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="http://www.google.com/images/poweredby_transparent/poweredby_FFFFFF.gif" alt="Google" />
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+<!-- /SiteSearch Google -->
+</div>
+<hr />
+<div class="module-archives module">
+  <h2 class="module-header">Last posts</h2>
+  <div class="module-content">
+    <ul class="module-list">
+<li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Google AdSense, medium one (200x200) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-200x200-1 */
+google_ad_slot = "3247601086";
+google_ad_width = 200;
+google_ad_height = 200;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+     
+<div class="module-categories module">
+  <h2 class="module-header">Categories</h2>
+		<div class="module-content">
+        <ul>
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_database.html">Database</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_environment.html">Environment</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_fooddrink.html">Food+Drink</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_general.html">General</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_music.html">Music</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_silly.html">Silly</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_staxmate.html">StaxMate</a><br />
+		
+			<a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a><br />
+		
+        </ul>
+		</div>
+	</div>
+<div class="module-syndicate module">
+	<div class="module-content">
+		<a href="http://www.cowtowncoder.com/blog/rss.xml">Subscribe to this blog's feed</a><br />
+
+		[<a href="http://help.blogger.com/bin/answer.py?answer=697">What is this?</a>]
+	</div>
+
+</div>
+
+<div class="module-archives module">
+          <h2 class="module-header">Archives</h2>
+          <div class="module-content">
+               <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2013_08-31-2013.html'>August 2013</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2012_05-31-2012.html'>May 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html'>April 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2012_03-31-2012.html'>March 2012</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2011_12-31-2011.html'>December 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2011_10-31-2011.html'>October 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2011_09-30-2011.html'>September 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2011_08-31-2011.html'>August 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2011_07-31-2011.html'>July 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2011_05-31-2011.html'>May 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2011_04-30-2011.html'>April 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2011_03-31-2011.html'>March 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2011_02-28-2011.html'>February 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2011_01-31-2011.html'>January 2011</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2010_12-31-2010.html'>December 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2010_11-30-2010.html'>November 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2010_10-31-2010.html'>October 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2010_09-30-2010.html'>September 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2010_08-31-2010.html'>August 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2010_07-31-2010.html'>July 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2010_06-30-2010.html'>June 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2010_05-31-2010.html'>May 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2010_04-30-2010.html'>April 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2010_03-31-2010.html'>March 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2010_02-28-2010.html'>February 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2010_01-31-2010.html'>January 2010</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2009_12-31-2009.html'>December 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2009_11-30-2009.html'>November 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2009_10-31-2009.html'>October 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2009_09-30-2009.html'>September 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2009_08-31-2009.html'>August 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2009_07-31-2009.html'>July 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2009_06-30-2009.html'>June 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2009_05-31-2009.html'>May 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2009_04-30-2009.html'>April 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2009_03-31-2009.html'>March 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2009_02-28-2009.html'>February 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2009_01-31-2009.html'>January 2009</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2008_12-31-2008.html'>December 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2008_11-30-2008.html'>November 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2008_10-31-2008.html'>October 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2008_09-30-2008.html'>September 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2008_08-31-2008.html'>August 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2008_07-31-2008.html'>July 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2008_06-30-2008.html'>June 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2008_05-31-2008.html'>May 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2008_04-30-2008.html'>April 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/03-01-2008_03-31-2008.html'>March 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2008_02-29-2008.html'>February 2008</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/12-01-2007_12-31-2007.html'>December 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2007_11-30-2007.html'>November 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2007_10-31-2007.html'>October 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2007_09-30-2007.html'>September 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2007_08-31-2007.html'>August 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2007_07-31-2007.html'>July 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2007_06-30-2007.html'>June 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/05-01-2007_05-31-2007.html'>May 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/04-01-2007_04-30-2007.html'>April 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/02-01-2007_02-28-2007.html'>February 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/01-01-2007_01-31-2007.html'>January 2007</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2006_11-30-2006.html'>November 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2006_10-31-2006.html'>October 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2006_09-30-2006.html'>September 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2006_08-31-2006.html'>August 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/07-01-2006_07-31-2006.html'>July 2006</a></li>
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/06-01-2006_06-30-2006.html'>June 2006</a></li>
+              
+               </ul>
+          </div>
+</div>
+
+<!-- Google AdSense, smallish one (120x240) -->
+<script type="text/javascript">
+google_ad_client = "pub-1467773697956887";
+/* cowtown-blog-120x240-1 */
+google_ad_slot = "0198703199";
+google_ad_width = 120;
+google_ad_height = 240;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<!-- /Google AdSense -->
+<hr />
+
+<h2 class="module-header">Related Blogs</h2>
+<div class="module-content">
+(by Author (topics))
+               <ul class="module-list">
+<li class="module-list-item"><a href="http://netzooid.com/blog/">Dan D</a>
+<br />(XFire, Mule)
+</li>
+<li class="module-list-item"><a href="http://jfarcand.wordpress.com/">Jean-Francois A</a><br /> (Ajax, Comet, Async HTTP)
+</li>
+<li class="module-list-item"><a href="http://jazzjuice.blogspot.com/">Josh C</a><br />(Judge Mental)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/kohsuke/">Kohsuke K</a><br />(Relax NG, Sun MSV)
+</li>
+<li class="module-list-item"><a href="http://saxonica.blogharbor.com/">Michael K</a><br />(xslt, xquery)
+</li>
+<li class="module-list-item"><a href="http://mult.ifario.us/a">Paul B</a><br />(Haskell, RSS)
+</li>
+<li class="module-list-item"><a href="http://weblogs.java.net/blog/spericas/">Santiago P-G</a><br />(Glassfish, java.net, JAXP, Xalan)
+</li>
+               </ul>
+          </div>
+</div>
+<div class="module-powered module">
+	<h2 class="module-header">Powered By</h2>
+
+	<div class="module-content"><!-- powered by -->
+<a href="http://thingamablog.sourceforge.net/"><img
+ alt="Powered by Thingamablog" src="http://thingamablog.sourceforge.net/images/powered.gif"></a>,
+ <br /><a href="http://blogger-templates.blogspot.com">Blogger Templates</a>.
+  </div>
+</div>
+
+<!-- Author desc -->
+<div class="module-photo module">
+     <div class="module-content"><img src="/picture_library/cowtowncoder.jpg"></div>
+</div>
+<div class="module-about module">
+     <h2 class="module-header">About me</h2>
+     <div class="module-content">
+       <ul class="module-list">
+         <li class="module-list-item">I am known as <strong>Cowtowncoder</strong></li>
+         <li class="module-list-item">Contact me at<a href="mailto:cowtowncoder">@yahoo.com</a></li>
+       </ul>
+Check my <a href="/author-cowtowncoder.html">profile</a> to learn more.
+     </div>
+</div>
+
+<!-- Discus comments -->
+<script type="text/javascript">
+//<![CDATA[
+(function() {
+	var links = document.getElementsByTagName('a');
+	var query = '?';
+	for(var i = 0; i < links.length; i++) {
+	if(links[i].href.indexOf('#disqus_thread') >= 0) {
+		query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
+	}
+	}
+	document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/cowtalk/get_num_replies.js' + query + '"></' + 'script>');
+})();
+//]]>
+</script>
+<!-- GA -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-140287-10");
+pageTracker._trackPageview();
+} catch(err) {}</script>     
+</body>
+</html>

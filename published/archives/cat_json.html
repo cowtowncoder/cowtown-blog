@@ -43,6 +43,196 @@ window.google_analytics_uacct = "UA-140287-10";
 <!-- entry -->
 
    
+     <h2 class="date-header">Saturday, August 03, 2013 </h2>
+<div class="entry" id="post-478">
+     <h3 class="entry-header">Jackson 2.1 was released... quite a while ago :)</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Ok, so I have not been an active blogger for a while. Like, since about 
+      a year ago. I am hoping to catch up a bit, so let's start with 
+      intermediate Jackson releases that have gone out the door since I last 
+      wrote about Jackson.
+    </p>
+    <p>
+      <b>1. Jackson 2.1</b>
+    </p>
+    <p>
+      Version 2.1 was released almost a year ago, October 2012. After big bang 
+      of 2.0 release -- what with all the crazy new features like Object Id 
+      handling (for fully cyclic object graphs), 2.1 was expected to be more 
+      minor release in every way.
+    </p>
+    <p>
+      But, that was not to be... instead, 2.1 packed an impressive set of 
+      improvements of its own.<br>Focus was on general usability: improved 
+      ergonomics, bit of performance improvements (for data-binding) and the 
+      usual array of bug fixes that required bigger changes in internals (and 
+      occasionally additional API) than what can be done in a patch release.<br>
+    </p>
+    <p>
+      For more complete handling of what exactly was added, you can check out 
+      my <a href="https://github.com/FasterXML/jackson-docs/wiki/Presentation-Jackson-2.1-Overview">Jackson 
+      2.1 Overview</a> presentation I gave at <a href="http://www.wordnik.com/">Wordnik</a> 
+      (thanks Tony and folks!). Note that links to this and other 
+      presentations can be found from <a href="https://github.com/FasterXML/jackson-docs">Jackson 
+      Docs</a> github repo.<br>For full list of changes, check <a href="http://wiki.fasterxml.com/JacksonRelease21">2.1 
+      Release Notes</a>.
+    </p>
+    <p>
+      But here's a Reader's Digest version.
+    </p>
+    <p>
+      <b>2. Shape-shifting</b>
+    </p>
+    <p>
+      <i>@JsonFormat</i> annotation was added in Jackson 2.0, but was not used 
+      by many datatypes. With 2.1, there are interesting (and back then, 
+      experimental; but it is much more stable now!) new features to let you 
+      change the &quot;shape&quot; (JSON Structure) of some of common Java datatypes:
+    </p>
+    <ul>
+      <li>
+        Serialize Enums as JSON Objects instead of Strings: useful for 
+        serialization, but can not deserialize back (how would that work? 
+        Enums are singletons)
+      </li>
+      <li>
+        Collections (Sets, Lists) as JSON Objects (instead of arrays): useful 
+        for custom Collections that add extra properties -- can also 
+        deserialize, with proper use of @JsonCreator annotations (or custom 
+        deserializer)
+      </li>
+      <li>
+        POJOs as Arrays! Instead of having name/value pairs, you will get JSON 
+        arrays where position indicates which property is being used (make 
+        sure to use @JsonPropertyOrder annotation to define ordering!)
+      </li>
+    </ul>
+    <p>
+      Of these, the last option is probably the most interesting. It can make 
+      JSON as compact as CSV; and in fact can compete with binary formats in 
+      many cases, especially if values are mostly Strings.<br>A simple example 
+      would be:
+    </p>
+    <pre>  @JsonFormat(shape=JsonFormat.Shape.ARRAY)
+  @JsonPropertyOrder(alphabetic=true)
+  public class Point {
+    public int x, y;
+  }</pre>
+    <p>
+      which, when serialized, could look like:
+    </p>
+    <pre>  [ 1, 2]</pre>
+    <p>
+      instead of earlier
+    </p>
+    <pre>  { &quot;x&quot;:1, &quot;y&quot;:2 }</pre>
+    <p>
+      and obviously works for reading as well (that is, you can read such 
+      tabular data back).
+    </p>
+    <p>
+      <b>3. Chunked (partial) Binary Data reads, writes</b>
+    </p>
+    <p>
+      When dealing with really large data, granularity of <i>JsonParser</i> 
+      and <i>JsonGenerator</i> works well, except for case of long JSON 
+      Strings; for example, ones that contain Base64-encoded data. Since these 
+      values may be potentially very large, and since they are quite often 
+      just stored on disk (or read from disk to send) -- and there is no 
+      benefit from keeping the whole value in memory at all -- it makes sense 
+      to offer some way to allow streaming for values, not just between values.
+    </p>
+    <p>
+      To this end, JsonParser and JsonGenerator now do have methods that allow 
+      one to read and write large binary data chunks without retaining more 
+      than a limited amount of data in memory (one buffer-full, like 8 or 
+      16kB) at any given point. Access is provided via <i>java.io.InputStream</i> 
+      and <i>java.io.OutputStream</i>, with methods:
+    </p>
+    <p>
+      JsonParser.readBinaryValue(OutputStream)<br>JsonGenerator.writeBinary(InputStream, 
+      int expectedLength)
+    </p>
+    <p>
+      Note that while direction of arguments may look odd, it actually makes 
+      sense when you try using it: you will provide handler for content (which 
+      implements OutputStream), and source for content to write (InputStream).
+    </p>
+    <p>
+      <b>4. Format auto-detection support for data-binding</b>
+    </p>
+    <p>
+      Another innovative new feature is ability to use already existing data 
+      format auto-detection, without having to use Streaming API. Earlier 
+      versions included support for <i>JsonParser</i> auto-detecting type of 
+      input, for data formats that support this (some binary formats do not; I 
+      consider this a flaw in such formats; of text formats, CSV does not): at 
+      least JSON, XML, Smile and YAML support auto-detection.
+    </p>
+    <p>
+      You enable support through <i>ObjectReader</i> for example like so:
+    </p>
+    <pre>  ObjectMapper mapper = new ObjectMapper();
+  XmlMapper xmlMapper = new XmlMapper(); // XML is special: must start with its own mapper
+  ObjectReader reader = mapper
+    .reader(POJO.class) // for reading instances of POJO
+    .withFormatDetection(new JsonFactory(), xmlMapper.getFactory(), new SmileFactory();</pre>
+    <p>
+      and then you can use resulting reader normally:<br>
+    </p>
+    <pre>  User user = mapper.readValue(new File(&quot;input.raw&quot;), User.class);</pre>
+    <p>
+      and input that is in XML, JSON or Smile format will be property decoded, 
+      and bound to resulting class. I personally use this to support 
+      transparent usage of Smile (binary JSON) format as a pluggable 
+      optimization over JSON.
+    </p>
+    <p>
+      <b>5. Much improved XML module</b>
+    </p>
+    <p>
+      Although XML module has existed since earlier 1.x versions, 2.0 provided 
+      first solid version. But it did not include support for one commonly 
+      used JAXB feature: ability to use so-called &quot;unwrapped&quot; Lists. 2.1 fixes 
+      this and fully supports both wrapped and unwrapped Lists.
+    </p>
+    <p>
+      But beyond this feature, testing was significantly extended, and a few 
+      specific bugs were fixed. As a result version 2.1 is the first version 
+      that I can fully recommend as replacement for JAXB processing in 
+      production environments.
+    </p>
+    <p>
+      <b>6. Delegating serializer, deserializer</b>
+    </p>
+    <p>
+      Final new feature is support for so-called delegating serializers and 
+      deserializers. The basic idea is simple: instead of having to build 
+      fully custom handlers you only need to implement converters that can 
+      convert your custom types into something that Jackson can automatically 
+      handle (supports out of the box).
+    </p>
+    <p>
+      Details of this are included in <a href="https://github.com/FasterXML/jackson-docs/wiki/Presentation-Jackson-2.1-Overview">2.1 
+      presentation</a>; most commonly you will just extend <i>com.fasterxml.jackson.databind.deser.std.StdDelegatingDeserializer</i> 
+      and <i>com.fasterxml.jackson.databind.ser.std.StdDelegatingSerializer</i>.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, August 03, 2013 6:48 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
      <h2 class="date-header">Saturday, August 18, 2012 </h2>
 <div class="entry" id="post-477">
      <h3 class="entry-header">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</h3>
@@ -2450,178 +2640,6 @@ public class Value {
      </div>
 </div>
    
-     <h2 class="date-header">Wednesday, September 28, 2011 </h2>
-<div class="entry" id="post-461">
-     <h3 class="entry-header">Advanced filtering with Jackson, Json Filters</h3>
-     
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      I wrote a bit earlier on &quot;<a href="/blog/archives/2011/02/entry_443.html">filtering 
-      properties with Jackson</a>&quot;. While it was comprehensive in that all 
-      main methods of filtering were covered, there wasn't much depth. 
-      Specifically, only very basic usage of Json Filters (<i>@JsonFilter</i> 
-      annotation, <i>SimpleFilterProvider</i> as provider) was considered. 
-      This approach does allow more dynamic filtering than, say, <i>@JsonView</i>, 
-      but it is still somewhat limited. So let's consider more advanced 
-      customizability.
-    </p>
-    <p>
-      <b>1. Refresher on Json Filters</b>
-    </p>
-    <p>
-      Ok, so the basic idea with Json Filters is that:
-    </p>
-    <ol>
-      <li>
-        Classes can have an associated Filter Id, which defines logical filter 
-        to use.
-      </li>
-      <li>
-        A provider is needed to get the actual filter instance to use, given 
-        id: this will be configured by assigning a FilterProvider (such as 
-        'SimpleFilterProvider') to ObjectMapper or ObjectWriter.
-      </li>
-      <li>
-        Jackson will dynamically (and efficiently) resolve filter given class 
-        uses, dynamically, allowing per-call reconfiguration of filtering.
-      </li>
-    </ol>
-    <p>
-      From this it is clear that there are 2 main things you can configure: 
-      mechanism that is used to find Filter id of a given class, and mechanism 
-      used for mapping this id to actual filter used (implementation of which 
-      can be as complicated as you want).
-    </p>
-    <p>
-      So let's have a look at both parts.
-    </p>
-    <p>
-      <b>2. Configuring mapping from id to filter instance</b>
-    </p>
-    <p>
-      Of mechanisms, latter one may be easier to understand and use: one just 
-      has to implement '<i>FilterProvider</i>', which has but one method to 
-      implement:
-    </p>
-    <pre>  public abstract class FilterProvider {
-    public abstract BeanPropertyFilter findFilter(Object filterId);
-  }</pre>
-    <p>
-      given this, 'SimpleFilterProvider' is little more than a <i>Map&lt;String,BeanPropertyFilter&gt;</i>, 
-      except for adding couple of convenience factory methods that build 
-      'SimpleBeanPropertyFilter' instances given property names, so you 
-      typically just instantiate one with calls like:
-    </p>
-    <pre>  SimpleBeanPropertyFilter filter = SimpleBeanPropertyFilter.filterOutAllExcept(&quot;a&quot;));</pre>
-    <p>
-      which would out all properties except for one named &quot;a&quot;. This filter is 
-      then configured with ObjectMapper like so:
-    </p>
-    <pre>  FilterProvider fp = new SimpleFilterProvider().addFilter(&quot;onlyAFilter&quot;, filter);
-  objectMapper.writer(fp).writeValueAsString(pojo);</pre>
-    <p>
-      which would, then, apply to any Java type configured to use filter with 
-      id &quot;onlyAFilter&quot;.
-    </p>
-    <p>
-      <b>3. Configuring discovery of filter id</b>
-    </p>
-    <p>
-      From above example we know we need to indicate classes that are to use 
-      our &quot;onlyAFilter&quot;. The default mechanism is to use:
-    </p>
-    <pre>  @JsonFilter(&quot;onlyAFilter&quot;)
-  public class FilteredPOJO {
-    //...
-  }</pre>
-    <p>
-      But this is just the default. How so? The way Jackson figures out its 
-      annotation-based configuration is actually indirect, and fully 
-      customizable: all interaction is through configured '<i>AnnotationIntrospector'</i> 
-      object, which amongst other things defines this method:
-    </p>
-    <pre>  public Object findFilterId(AnnotatedClass ac);</pre>
-    <p>
-      which is called when serializer needs to determine id of the filter to 
-      apply (if any) for given class. Since the default implementation 
-      (org.codehaus.jackson.map.introspect.JacksonAnnotationIntrospector) has 
-      everything else working fine, what we can do is to sub-class it and 
-      override this method.<br>For example:
-    </p>
-    <pre>  public class MyFilteringIntrospector extends JacksonAnnotationIntrospector
-  {
-    @Override
-    public Object findFilterId(AnnotatedClass ac) {
-      // First, let's consider @JsonFilter by calling superclass
-      Object id = super.findFilterId(ac);
-      // but if not found, use our own heuristic; say, just use class name as filter id, if there's &quot;Filter&quot; in name:
-      if (id == null) {
-        String name = ac.getName();
-        if (name.indexOf(&quot;Filter&quot;) &gt;= 0) {
-          id = name;
-        }
-      }
-      return id;
-    }
-  }</pre>
-    <p>
-      Above functionality is just to show what is possible, not that it makes 
-      sense. Alternatively you could of course define your own annotations to 
-      check; or have List of known class names, check class definition or 
-      interfaces type implements. The main point is just that you are not 
-      limited to using <i>@JsonFilter</i> annotation, but can use pretty much 
-      any logic you want, within limits of your coding skills.
-    </p>
-    <p>
-      The only caveat is that the resolution from Class to matching id is only 
-      guaranteed to be called once per ObjectMapper; so any variation in 
-      filtering of specific class needs to happen at either mapping of id to 
-      filter, or within filter itself.
-    </p>
-    <p>
-      <b>4. Don't be afraid of sub-classing (Jackson)AnnotationIntrospector</b>
-    </p>
-    <p>
-      Actually, the key take away might as well be the fact that 
-      AnnotationIntrospector is designed to be customizable. It was initially 
-      created to allow easy reuse of JAXB annotations (via <i>JAXBAnnotationIntrospector</i>; 
-      combining things with <i>AnnotationIntrospector.Pair</i>); but it is 
-      also a very powerful general-purpose customization mechanism. But at 
-      this point quite underused one at that.
-    </p>
-    <p>
-      <b>5. Addendum</b>
-    </p>
-    <p>
-      Some additional notes based on feedback I received:
-    </p>
-    <ul>
-      <li>
-        Custom <i>BeanPropertyFilter</i> implementations are obviously 
-        powerful too: not only can they completely change what (if anything) 
-        gets written for property, they can base this on all configuration 
-        accessible via <i>SerializerProvider</i> which is passed to 
-        serializeAsField(): for example, it can check to see what 
-        serialization view is available by calling '<i>provider.getSerializationView()</i>'.
-      </li>
-    </ul>
-    <p>
-      
-    </p></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Wednesday, September 28, 2011 7:38 PM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/09/entry_461.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/09/entry_461.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/09/entry_461.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-   
             </div>
         </div>
 <div id="beta">
@@ -2665,7 +2683,7 @@ public class Value {
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_476.html">Forcing escaping of HTML characters (less-than, ampersand) in JSON using Jackson</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_474.html">Jackson Data-binding: Did I mention it can do YAML as well?</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_473.html">What me like YAML? (Confessions of a JSON advocate)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html">Take your JSON processing to Mach 3 with Jackson 2.0, Afterburner</a></li>
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_476.html">Forcing escaping of HTML characters (less-than, ampersand) in JSON using Jackson</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_474.html">Jackson Data-binding: Did I mention it can do YAML as well?</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_473.html">What me like YAML? (Confessions of a JSON advocate)</a></li>
                </ul>
           </div>
      </div>
@@ -2718,6 +2736,8 @@ public class Value {
           <h2 class="module-header">Archives</h2>
           <div class="module-content">
                <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2013_08-31-2013.html'>August 2013</a></li>
               
                 <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
               
