@@ -390,13 +390,15 @@ window.google_analytics_uacct = "UA-140287-10";
       <b>7.3 Polymorphic type support</b>
     </p>
     <p>
-      One feature that I was hoping to avoid (kind of similar, in that sense, 
-      to data-binding itself) was support for one of core Object Serialization 
-      concepts: that of type.<br>What I mean here is that given a single 
-      static (declared) type, one will still be able to deserialize instances 
-      of multiple types. The challenge is that when serializing things there 
-      is no problem -- type is available from instance being serialized -- but 
-      to deserialize properly, additional information is needed.
+      One feature that I was hoping to avoid having to implement (kind of 
+      similar, in that sense, to data-binding itself) was support for one of 
+      core Object Serialization concepts (but not necessarily data-binding 
+      concept; data is not polymorphic, classes are): that of type metadata.<br>What 
+      I mean here is that given a single static (declared) type, one will 
+      still be able to deserialize instances of multiple types. The challenge 
+      is that when serializing things there is no problem -- type is available 
+      from instance being serialized -- but to deserialize properly, 
+      additional information is needed.
     </p>
     <p>
       There are multiple problems in trying to support this with JSON: 
@@ -413,14 +415,19 @@ window.google_analytics_uacct = "UA-140287-10";
       powerful and configurable enough.<br>It took multiple months to figure 
       it all out; but in the end I was satisfied with my design. Polymorphic 
       type handling was included in <a href="http://wiki.fasterxml.com/JacksonRelease15">Jackson 
-      1.5</a>; less than one year after release of 1.0.
+      1.5</a>; less than one year after release of 1.0. And still most Java 
+      JSON libraries have no support at all for polymorphic types: or at most 
+      support fixed use of Java class name -- I know how much work it can be, 
+      but at least one could learn from existing implementations (which is 
+      more than I had)
     </p>
     <p>
       <b>7.4 No more monkey code -- Mr Bean can implement your classes</b>
     </p>
     <p>
-      Of all advanced features, this is my own personal favorite: and 
-      something I had actually hoped to tackle even before 1.0 release.
+      Of all the advanced features Jackson offers, this is my own personal 
+      favorite: and something I had actually hoped to tackle even before 1.0 
+      release.
     </p>
     <p>
       For full description, go ahead and read &quot;<a href="http://www.cowtowncoder.com/blog/archives/2011/08/entry_459.html">Mr 
@@ -435,21 +442,21 @@ window.google_analytics_uacct = "UA-140287-10";
     <p>
       Mr Bean was included in <a href="http://wiki.fasterxml.com/JacksonRelease16">Jackson 
       1.6</a> -- which was a release FULL of good, innovative new stuff. The 
-      reason it took such a long time for me to build was actually hesitation 
-      -- it is the first time I used Java bytecode generation. But after 
-      starting to write code I learnt that it was surprisingly easy to do; and 
-      I just wished I had started earlier.<br>Part of simplicity was due to 
-      the fact that literally the only thing to generate were accessors 
-      (setters and/or getters): everything else is handled by Jackson, by 
-      introspecting resulting class, without having to even know there is 
-      anything special about dynamically generated implementation class.
+      reason it took such a long time for me to build was hesitation -- it is 
+      the first time I used Java bytecode generation. But after starting to 
+      write code I learnt that it was surprisingly easy to do; and I just 
+      wished I had started earlier.<br>Part of simplicity was due to the fact 
+      that literally the only thing to generate were accessors (setters and/or 
+      getters): everything else is handled by Jackson, by introspecting 
+      resulting class, without having to even know there is anything special 
+      about dynamically generated implementation class.
     </p>
     <p>
       <b>7.5 Binary JSON (Smile format)</b>
     </p>
     <p>
-      Another important milestone with Jackson 1.6 was introduction of a new 
-      binary data format called <a href="http://wiki.fasterxml.com/SmileFormat">Smile</a>.
+      Another important milestone with Jackson 1.6 was introduction of a 
+      (then-) new binary data format called <a href="http://wiki.fasterxml.com/SmileFormat">Smile</a>.
     </p>
     <p>
       Smile was borne out of my frustration with all the hype surrounding 
@@ -622,9 +629,6 @@ window.google_analytics_uacct = "UA-140287-10";
       I hope to write more about Jackson future ... in (near I hope) future. I 
       hope above gave you more perspective on &quot;where's Jackson been?&quot;; and 
       perhaps can hint at where it is going as well.
-    </p>
-    <p>
-      
     </p></p>
      <p class="entry-footer">
           <span class="post-footers">Posted by Tatu Saloranta  at Thursday, August 08, 2013 7:40 PM </span>
