@@ -62,44 +62,55 @@ window.google_analytics_uacct = "UA-140287-10";
       the first public version of Jackson, I have not actually written much 
       about events surrounding Jackson development -- I have written about its 
       features, usage, and other important things. But not that much about how 
-      it came about.<br>Given that I still remember fairly well how things 
-      worked out; and since I have secondary archives (like this blog, 
-      Maven/SVN/Github repositories) available, it would be good time to do 
-      some auto-biography.
+      it came about.<br>
+    </p>
+    <p>
+      Since still remember fairly well how things worked out, and have 
+      secondary archives (like this blog, Maven/SVN/Github repositories) 
+      available for fact-checking the timeline, it seems like high time to 
+      write a short(ish) historical document on the most popular OSS project I 
+      have authored.
     </p>
     <p>
       <b>1. Beginning: first there was Streaming</b>
     </p>
     <p>
       Sometime in early 2007, I was working at Amazon.com, and had 
-      successfully used XML as the underlying data format for couple of web 
+      successfully used XML as the underying data format for couple of web 
       services. This was partly due to having written <a href="http://wiki.fasterxml.com/WoodstoxHome">Woodstox</a>, 
-      a high-performance Java XML parser. But while I was actually relatively 
-      content with the way things worked, and had learnt to appreciate 
+      a high-performance Java XML parser. I was actually relatively content 
+      with the way things worked with XML, and had learnt to appreciate 
       benefits of open, standard, text-based data format (including 
       developer-debuggability, interoperability and -- when done properly -- 
-      even simplicity). But I had also been bitten a few times by XML 
-      data-binding solutions like JAXB.
+      even simplicity).<br>But I had also been bitten a few times by XML 
+      data-binding solutions like JAXB; and was frustrated both by 
+      complexities of some tools, and by direction that XML-centric developers 
+      were taking, focusing unnecessarily in the format (XML) itself, instead 
+      of how to solve actual development problems.
     </p>
     <p>
       So when I happened to read about JSON data format, I immediately saw 
       potential benefits: the main one being that since it was a <b>Data Format</b> 
       -- and not a (Textual) <b>Markup Format</b> (like XML) -- it should be 
-      much easier to convert between JSON and (Java) objects. Other things 
-      that were claimed as benefits, like slightly more compact size 
+      much easier to convert between JSON and (Java) objects. And if that was 
+      simpler, perhaps tools could actually do more; offer more intuitive and 
+      powerful functionality, instead of fighting with complex monsters like 
+      XML Schema or (heaven forbid) lead devs to XSLT.<br>Other features of 
+      JSON that were claimed as benefits, like slightly more compact size 
       (marginally so), or better readabilty (subjective) I didn't really 
-      consider that important. As importantly, having had spent lots of time 
-      writing low-level components necessary for tokenizing content (I started 
-      writing Woodstox in late 2003, around time Stax API was finalized, so at 
-      that point I had spent more than four years in &quot;XML World&quot;), I figured 
-      that writing a simple streaming tokenizer and generator should be easy.
+      consider particularly impresive.<br>Beyond appreciating good fit of JSON 
+      for web service use case, I figured that writing a simple streaming 
+      tokenizer and generator should be easy: after all, I had spent lots of 
+      time writing low-level components necessary for tokenizing content (I 
+      started writing Woodstox in late 2003, around time Stax API was 
+      finalized)
     </p>
     <p>
-      Turns out it was: I got something working and quite similar to Stax in 
-      about two weeks. In a month I had things working well enough that the 
-      library could be used for something. And then it was ready to be 
-      released (&quot;release early, release often&quot;); and rest is history, as they 
-      say.
+      Turns out I was right: I got a streaming parser working and  in about 
+      two weeks (and generator in less than a week). In a month I had things 
+      working well enough that the library could be used for something. And 
+      then it was ready to be released (&quot;release early, release often&quot;); and 
+      rest is history, as they say.
     </p>
     <p>
       Another reason for writing Jackson, which I have occasionally mentioned, 
@@ -130,24 +141,24 @@ window.google_analytics_uacct = "UA-140287-10";
       <b>2. With a FAST Streaming library...</b>
     </p>
     <p>
-      Having written (and quickly published as an Open Source Library; <a href="http://www.cowtowncoder.com/blog/archives/2007/08/entry_45.html">released 
-      August 2007</a>) streaming components of Jackson, I spent some time 
+      Having written (and quickly published in <a href="http://www.cowtowncoder.com/blog/archives/2007/08/entry_45.html">August 
+      2007</a>) streaming-only version of Jackson, I spent some time 
       optimizing and measuring things, as well as writing some code to see how 
-      data turns out. But my initial thinking was to wrap things up relatively 
-      soon, and &quot;let Someone Else write the Important Pieces&quot;. And by 
-      &quot;important pieces&quot; I mostly meant a data-binding layer; something like 
-      what JAXB and XMLBeans are to XML Streaming components (SAX/Stax).
+      convenient library is to use. But my initial thinking was to wrap things 
+      up relatively soon, and &quot;let Someone Else write the Important Pieces&quot;. 
+      And by &quot;important pieces&quot; I mostly meant a data-binding layer; something 
+      like what JAXB and XMLBeans are to XML Streaming components (SAX/Stax).
     </p>
     <p>
       The main reasons for my hesitation were two-fold: I thought that
     </p>
     <ol>
       <li>
-        Writing a data-binding library will be lots of work, even if JSON 
+        writing a data-binding library will be lots of work, even if JSON 
         lends itself much more easily to doing that; and
       </li>
       <li>
-        To do binding efficiently, I would have to use code-generation; 
+        to do binding efficiently, I would have to use code-generation; 
         Reflection API was &quot;known&quot; to be unbearably slow
       </li>
     </ol>
@@ -227,7 +238,10 @@ window.google_analytics_uacct = "UA-140287-10";
       overhead actually was NOT all that big -- it seemed to add maybe 30-40% 
       time; some of which might be due to other overhead beside Reflection 
       access (Reflection is just used for dynamically calling get-methods or 
-      accessing field values).
+      accessing field values). This was such a non-issue for the longest time, 
+      that it took multiple years for me to go back to the idea of generating 
+      accessor code (for curious, <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html">Afterburner 
+      Module</a> is the extension that finally does this).
     </p>
     <p>
       My decision to start with Serialization (without considering the other 
@@ -610,9 +624,6 @@ window.google_analytics_uacct = "UA-140287-10";
       I hope to write more about Jackson future ... in (near I hope) future. I 
       hope above gave you more perspective on &quot;where's Jackson been?&quot;; and 
       perhaps can hint at where it is going as well.
-    </p>
-    <p>
-      
     </p>
     <p>
       
