@@ -6,8 +6,8 @@
 <description>Moo-able Type for Cowtowncoder.com</description>
 <language>en-US</language>
 <copyright>Copyright 2013</copyright>
-<lastBuildDate>Thu, 08 Aug 2013 23:06:29 -0700</lastBuildDate>
-<pubDate>Thu, 08 Aug 2013 23:06:29 -0700</pubDate>
+<lastBuildDate>Thu, 08 Aug 2013 23:13:44 -0700</lastBuildDate>
+<pubDate>Thu, 08 Aug 2013 23:13:44 -0700</pubDate>
 <generator>http://thingamablog.sf.net</generator>
 <docs>http://en.wikipedia.org/wiki/Rss</docs>
 
@@ -70,8 +70,8 @@
       finalized)
     &lt;/p&gt;
     &lt;p&gt;
-      Turns out I was right: I got a streaming parser working and  in about 
-      two weeks (and generator in less than a week). In a month I had things 
+      Turns out I was right: I got a streaming parser working and in about two 
+      weeks (and generator in less than a week). In a month I had things 
       working well enough that the library could be used for something. And 
       then it was ready to be released (&amp;quot;release early, release often&amp;quot;); and 
       rest is history, as they say.
@@ -269,14 +269,14 @@
       Tree Model -- is the only mode in existence.
     &lt;/p&gt;
     &lt;p&gt;
-      &lt;b&gt;7. Trailing New Blazes: adding Advanced Features &lt;/b&gt;
+      &lt;b&gt;7. Trailblazing: finally getting to add Advanced Features &lt;/b&gt;
     &lt;/p&gt;
     &lt;p&gt;
       Up until version 1.0 (&lt;a href=&quot;http://www.cowtowncoder.com/blog/archives/2009/05/entry_264.html&quot;&gt;released 
       May 2009&lt;/a&gt;), I don't consider my work to be particularly new or 
       innovative: I was using good ideas from past implementations and my 
       experience in building better parsers, generators, tree models and data 
-      binders. Implementations were ahead of competition in both XML and JSON 
+      binders. I felt Jackson was ahead of competition in both XML and JSON 
       space; but perhaps the only truly advanced thing was that of generic 
       type resolution, and even there, I had more to learn yet (eventually I 
       wrote &lt;a href=&quot;https://github.com/cowtowncoder/java-classmate&quot;&gt;Java 
@@ -588,9 +588,6 @@
       I hope to write more about Jackson future ... in (near I hope) future. I 
       hope above gave you more perspective on &amp;quot;where's Jackson been?&amp;quot;; and 
       perhaps can hint at where it is going as well.
-    &lt;/p&gt;
-    &lt;p&gt;
-      
     &lt;/p&gt;
     &lt;p&gt;
       
