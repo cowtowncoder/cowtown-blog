@@ -6,7 +6,7 @@
 
  
 <style type="text/css">
-@import url('../stylesheets/iconic/iconic-style.css');
+@import url('../../../blog/stylesheets/iconic/iconic-style.css');
 
 /************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
 **/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
@@ -42,6 +42,596 @@ window.google_analytics_uacct = "UA-140287-10";
                               <div id="alpha-inner" class="pkg">
 <!-- entry -->
 
+   
+     <h2 class="date-header">Thursday, August 08, 2013 </h2>
+<div class="entry" id="post-479">
+     <h3 class="entry-header">Brief History of Jackson the JSON processor</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      (Disclaimer: this article talks about <a href="https://github.com/FasterXML/jackson">Jackson 
+      JSON processor</a> -- not other Jacksons, like American cities or 
+      presidents -- those others can be found from Wikipedia)
+    </p>
+    <p>
+      <b>0. Background</b>
+    </p>
+    <p>
+      It occurred to me that although it is almost six years since I released 
+      the first public version of Jackson, I have not actually written much 
+      about events surrounding Jackson development -- I have written about its 
+      features, usage, and other important things. But not that much about how 
+      it came about.<br>Given that I still remember fairly well how things 
+      worked out; and since I have secondary archives (like this blog, 
+      Maven/SVN/Github repositories) available, it would be good time to do 
+      some auto-biography.
+    </p>
+    <p>
+      <b>1. Beginning: first there was Streaming</b>
+    </p>
+    <p>
+      Sometime in early 2007, I was working at Amazon.com, and had 
+      successfully used XML as the underlying data format for couple of web 
+      services. This was partly due to having written <a href="http://wiki.fasterxml.com/WoodstoxHome">Woodstox</a>, 
+      a high-performance Java XML parser. But while I was actually relatively 
+      content with the way things worked, and had learnt to appreciate 
+      benefits of open, standard, text-based data format (including 
+      developer-debuggability, interoperability and -- when done properly -- 
+      even simplicity). But I had also been bitten a few times by XML 
+      data-binding solutions like JAXB.
+    </p>
+    <p>
+      So when I happened to read about JSON data format, I immediately saw 
+      potential benefits: the main one being that since it was a <b>Data Format</b> 
+      -- and not a (Textual) <b>Markup Format</b> (like XML) -- it should be 
+      much easier to convert between JSON and (Java) objects. Other things 
+      that were claimed as benefits, like slightly more compact size 
+      (marginally so), or better readabilty (subjective) I didn't really 
+      consider that important. As importantly, having had spent lots of time 
+      writing low-level components necessary for tokenizing content (I started 
+      writing Woodstox in late 2003, around time Stax API was finalized, so at 
+      that point I had spent more than four years in &quot;XML World&quot;), I figured 
+      that writing a simple streaming tokenizer and generator should be easy.
+    </p>
+    <p>
+      Turns out it was: I got something working and quite similar to Stax in 
+      about two weeks. In a month I had things working well enough that the 
+      library could be used for something. And then it was ready to be 
+      released (&quot;release early, release often&quot;); and rest is history, as they 
+      say.
+    </p>
+    <p>
+      Another reason for writing Jackson, which I have occasionally mentioned, 
+      was what I saw as a sorry state of JSON tools -- my personal pet peeve 
+      was use of org.json's reference implementation. While it was fine as a 
+      proof-of-concept, I consider(ed) it a toy library, too simplistic, 
+      underpowered thing for &quot;real&quot; work. Other alternatives just seemed to 
+      short-change one aspect or another: I was especially surprised to find 
+      total lack of modularity (streaming vs higher levels) and scant support 
+      for true data-binding -- solutions tended to either assume unusual 
+      conventions or require lots of seemingly unnecessary code to be written. 
+      If I am to write code, I'd rather do it via efficient streaming 
+      interface; or if not, get a powerful and convenient data-binding. Not a 
+      half-assed XML-influenced tree model, which was en vogue (and sadly, 
+      often still is).
+    </p>
+    <p>
+      And the last thing regarding ancient history: the name. I actually do 
+      not remember story behind it -- obviously it is a play on JSON. And I 
+      vaguely recall toying with the idea of calling library &quot;Jason&quot;, but 
+      deciding that might sound too creepy (I knew a few Jasons, and didn't 
+      want confusion). Compared to Woodstox -- where I actually remember that 
+      my friend Kirk P gave the idea (related to Snoopy's friend, bird named 
+      Woodstock!) -- I actually don't really know who to give credit to the 
+      idea, or inspiration to it.
+    </p>
+    <p>
+      <b>2. With a FAST Streaming library...</b>
+    </p>
+    <p>
+      Having written (and quickly published as an Open Source Library; <a href="http://www.cowtowncoder.com/blog/archives/2007/08/entry_45.html">released 
+      August 2007</a>) streaming components of Jackson, I spent some time 
+      optimizing and measuring things, as well as writing some code to see how 
+      data turns out. But my initial thinking was to wrap things up relatively 
+      soon, and &quot;let Someone Else write the Important Pieces&quot;. And by 
+      &quot;important pieces&quot; I mostly meant a data-binding layer; something like 
+      what JAXB and XMLBeans are to XML Streaming components (SAX/Stax).
+    </p>
+    <p>
+      The main reasons for my hesitation were two-fold: I thought that
+    </p>
+    <ol>
+      <li>
+        Writing a data-binding library will be lots of work, even if JSON 
+        lends itself much more easily to doing that; and
+      </li>
+      <li>
+        To do binding efficiently, I would have to use code-generation; 
+        Reflection API was &quot;known&quot; to be unbearably slow
+      </li>
+    </ol>
+    <p>
+      Turns out that I was 50% right: data-binding has consumed vast majority 
+      of time I have spent with Jackson. But I was largely wrong with respect 
+      to Reflection. But more on that in a bit.
+    </p>
+    <p>
+      In short term (during summer and autumn of 2008) I did write &quot;simple&quot; 
+      data-binding, to bind Java Lists and Maps to/from token streams; and I 
+      also wrote a simple Tree Model, latter of which has been rewritten since 
+      then.
+    </p>
+    <p>
+      <b>3. ... but No One Built It, So I did</b>
+    </p>
+    <p>
+      Jackson the library did get relatively high level of publicity from 
+      early on. This was mostly due to my earlier work on Woodstox, and its 
+      adoption by all major second-generation Java SOAP stacks (CXF nee XFire; 
+      Axis 2). Given my reputation for producing fast parsers, generators, 
+      there was interest in using what I had written for JSON. But early 
+      adopters used things as is; and no one did (to my knowledge) try to 
+      build higher-level abstractions that I eagerly wanted to be written.
+    </p>
+    <p>
+      But that alone might not have been enough to push me to try my luck 
+      writing data-binding. What was needed was a development that made me 
+      irritated enough to dive in deep... and sure enough, something did 
+      emerge.
+    </p>
+    <p>
+      So what was the trigger? It was the idea of using XML APIs to process 
+      JSON (that is, use adapters to expose JSON content as if it was XML). 
+      While most developers who wrote such tools consider this to be a 
+      stop-gap solution to ease transition, many developers did not seem to 
+      know this.<br>I thought (and still think) that this is an <b>OBVIOUSLY</b> 
+      bad idea; and initially did not spend much time refuting merits of the 
+      idea -- why bother, as anyone should see the problem? I assumed that any 
+      sane Java developer would obviously see that &quot;Format Impedance&quot; -- 
+      difference between JSON's Object (or Frame) structure and XML Hierarchic 
+      model -- is a major obstacle, and would render use of JSON even MORE 
+      CUMBERSOME than using XML.
+    </p>
+    <p>
+      And yet I saw people suggesting use of tools like Jettison (JSON via 
+      Stax API), even integrating this into otherwise good frameworks (JAX-RS 
+      like Jersey). Madness!
+    </p>
+    <p>
+      Given that developers appeared intent ruining the good thing, I figured 
+      I need to show the Better Way; just talking about that would not be 
+      enough.<br>So, late in 2008, around time I moved on from Amazon, I 
+      started working on a first-class Java/JSON data-binding solution. This 
+      can be thought of as &quot;real&quot; start of Jackson as we know it today; bit 
+      over one year after the first release.
+    </p>
+    <p>
+      <b>4. Start data-binding by writing Serialization side</b>
+    </p>
+    <p>
+      The first Jackson version to contain real data-binding was 0.9.5, 
+      released December of 2008. Realizing that this was going to be a big 
+      undertaking, I first focused on simpler problem of serializing POJOs as 
+      JSON (that is, taking values of Java objects, writing equivalent JSON 
+      output).<br>Also, to make it likely that I actually complete the task, I 
+      decided to simply use Reflection &quot;at first&quot;; performance should really 
+      matter only once thing actually works. Besides, this way I would have 
+      some idea as to magnitude of the overhead: having written a fair bit of 
+      manual JSON handling code, it would be easy to compare performance of 
+      hand-written, and fully automated data-binder.
+    </p>
+    <p>
+      I think serializer took about a month to work to some degree, and a week 
+      or two to weed out bugs. The biggest surprise to me was that Reflection 
+      overhead actually was NOT all that big -- it seemed to add maybe 30-40% 
+      time; some of which might be due to other overhead beside Reflection 
+      access (Reflection is just used for dynamically calling get-methods or 
+      accessing field values).
+    </p>
+    <p>
+      My decision to start with Serialization (without considering the other 
+      direction, deserialization) was good one for the project, I believe, but 
+      it did have one longer-term downside: much of the code between two parts 
+      was disjoint. Partly this was due to my then view that there are many 
+      use cases where only one side is needed -- for example, Java service 
+      only every writing JSON output, but not necessarily reading (simple 
+      query parameters and URL path go a long way). But big part was that I 
+      did not want to slow down writing of serialization by having to also 
+      consider challenges in deserialization.<br>And finally, I had some bad 
+      memories from JAXB, where requirements to have both getters AND setters 
+      was occasionally a pain-in-the-buttocks, for write-only use cases. I did 
+      not want to repeat mistakes of others.
+    </p>
+    <p>
+      Perhaps the biggest practical result of almost complete isolation 
+      between serialization and deserialization side was that sometimes 
+      annotations needed to be added in multiple places; like indicating both 
+      setter and getter what the JSON property name should be. Over time I 
+      realized that this was not a good things; but the problem itself was 
+      only resolved in Jackson 1.9, much later.
+    </p>
+    <p>
+      <b>5. And wrap it up with Deserialization</b>
+    </p>
+    <p>
+      After serialization (and resulting 0.9.5) release, I continued work with 
+      deserialization, and perhaps surprisingly finished it slightly faster 
+      than serialization. Or perhaps it is not that surprising; even without 
+      working on deserialization concepts earlier, I had nonetheless tackled 
+      many of issues I would need to solve, including that of using Reflection 
+      efficiently and conveniently; and that of resolving generic types (which 
+      is a hideously tricky problem in Java, as readers of my blog should <a href="http://www.cowtowncoder.com/blog/archives/2008/12/entry_126.html">know 
+      by now</a>).
+    </p>
+    <p>
+      Result of this was 0.9.6 release in January 2009.
+    </p>
+    <p>
+      <b>6. And then on to Writing Documentation</b>
+    </p>
+    <p>
+      After managing to get the first fully functional version of data-binding 
+      available, I realized that the next blocker would be lack of 
+      documentation. So far I had blogged occasionally about Jackson usage; 
+      but for the most part I had relied on resourcefulness of the early 
+      adopters, those hard-working hardy pioneers of development. But if 
+      Jackson was to become the King of JSON on Java platform, I would need to 
+      do more for it users.
+    </p>
+    <p>
+      Looking blog at my blog archive I can see that some of the most 
+      important and most read articles on the site are from January of 2009. 
+      Beyond the obvious introductions to various operating modes (like &quot;<a href="http://www.cowtowncoder.com/blog/archives/2009/01/entry_137.html">Method 
+      2, Data Binding</a>&quot;), I am especially proud of &quot;<a href="http://www.cowtowncoder.com/blog/archives/2009/01/entry_131.html">There 
+      are Three Ways to Process Json!</a>&quot; -- an article that I think is still 
+      relevant. And something I wish every Java JSON developer would read, 
+      even if they didn't necessarily agree with all of it. I am surprised how 
+      many developers blindly assume that one particular view -- often the 
+      Tree Model -- is the only mode in existence.
+    </p>
+    <p>
+      <b>7. Trailing New Blazes: adding Advanced Features </b>
+    </p>
+    <p>
+      Up until version 1.0 (<a href="http://www.cowtowncoder.com/blog/archives/2009/05/entry_264.html">released 
+      May 2009</a>), I don't consider my work to be particularly new or 
+      innovative: I was using good ideas from past implementations and my 
+      experience in building better parsers, generators, tree models and data 
+      binders. Implementations were ahead of competition in both XML and JSON 
+      space; but perhaps the only truly advanced thing was that of generic 
+      type resolution, and even there, I had more to learn yet (eventually I 
+      wrote <a href="https://github.com/cowtowncoder/java-classmate">Java 
+      ClassMate</a>, which I consider the first Java library to actually get 
+      generic type resolution right -- more so than Jackson itself).
+    </p>
+    <p>
+      This lack of truly new, advanced (from my point of view) features was 
+      mostly since there was so much to do, all the foundational code, 
+      implementing all basic and intermediate things that were (or should have 
+      been) expected from a Java data-binding library. I did have ideas, but 
+      in many cases had postponed those until I felt I had time to spare on 
+      &quot;nice-to-have&quot; things, or features that were more speculative and might 
+      not even work; either functionally, or with respect to developers 
+      finding them useful.
+    </p>
+    <p>
+      So at this point, I figured I would have the luxury of aiming higher; 
+      not just making a bit Better Mousetrap, but something that is... 
+      Something Else altogether. And with following 1.x versions, I started 
+      implementing things that I consider somewhat advanced, pushing the 
+      envelope a bit. I could talk or write for hours on various features; 
+      what follows is just a sampling. For slightly longer take, read my 
+      earlier &quot;<a href="http://www.cowtowncoder.com/blog/archives/2010/11/entry_434.html">7 
+      Killer Features of Jackson</a>&quot;.
+    </p>
+    <p>
+      <b>7.1 Support for JAXB annotations</b>
+    </p>
+    <p>
+      With Jackson 1.1, I also started considering interoperability. And 
+      although I thought that compatibility with XML is a Bad Idea, when done 
+      at API level, I thought that certain aspects could be useful: 
+      specifically, ability to use (a subset of) JAXB annotations for 
+      customizing data-binding.<br>
+    </p>
+    <p>
+      Since I did not think that JAXB annotations could suffice alone to cover 
+      all configuration needs, I had to figure a way for JAXB and Jackson 
+      annotations to co-exist. The result is concept of &quot;Annotation 
+      Introspector&quot;, and it is something I am actually proud of: even if 
+      supporting JAXB annotations has been lots of work, and caused various 
+      frustrations (mostly as JAXB is XML-specific, and some concepts do not 
+      translate well), I think the mechanism used for isolating annotation 
+      access from rest of the code has worked very well. It is one area that I 
+      managed to design right the first time.
+    </p>
+    <p>
+      It is also worth mentioning that beyond ability to use alternative 
+      &quot;annotation sets&quot;, Jackson's annotation handling logic has always been 
+      relatively advanced: for example, whereas standard JDK annotation 
+      handling does not support overriding (that is; annotations are not 
+      &quot;inherited&quot; from overridden methods), Jackson supports inheritance of 
+      Class, Method and even Constructor annotations. This has proven like a 
+      good decision, even if implementing it for 1.0 was lots of work.<br>
+    </p>
+    <p>
+      <b>7.2 Mix-in annotations</b>
+    </p>
+    <p>
+      One of challenges with Java Annotations is the fact that one has to be 
+      able to modify classes that are annotated. Beyond requiring actual 
+      access to sources, this can also add unnecessary and unwanted 
+      dependencies from value classes to annotations; and in case of Jackson, 
+      these dependencies are in wrong direction, from design perspective.
+    </p>
+    <p>
+      But what if one could just loosely associate annotations, instead of 
+      having to forcible add them in classes? This was the thought exercise I 
+      had; and led to what I think was the first implementation in Java of &quot;<a href="http://www.cowtowncoder.com/blog/archives/2009/08/entry_305.html">mix-in 
+      annotations</a>&quot;. I am happy that 4 years since introduction (they were 
+      added in <a href="http://wiki.fasterxml.com/JacksonRelease12">Jackson 1.2</a>), 
+      mix-in annotations are one of most loved Jackson features; and something 
+      that I still consider innovative.
+    </p>
+    <p>
+      <b>7.3 Polymorphic type support</b>
+    </p>
+    <p>
+      One feature that I was hoping to avoid (kind of similar, in that sense, 
+      to data-binding itself) was support for one of core Object Serialization 
+      concepts: that of type.<br>What I mean here is that given a single 
+      static (declared) type, one will still be able to deserialize instances 
+      of multiple types. The challenge is that when serializing things there 
+      is no problem -- type is available from instance being serialized -- but 
+      to deserialize properly, additional information is needed.
+    </p>
+    <p>
+      There are multiple problems in trying to support this with JSON: 
+      starting with obvious problem of JSON not having separation of data and 
+      metadata (with XML, for example, it is easy to &quot;hide&quot; metadata as 
+      attributes). But beyond this question, there are various alternatives 
+      for type identifiers (logical name or physical Java class?), as well as 
+      alternative inclusion mechanisms (additional property? What name? Or, 
+      use wrapper Array or Object).
+    </p>
+    <p>
+      I spent lots of time trying to figure out a system that would satisfy 
+      all the constraints I put; keep things easy to use, simple, and yet 
+      powerful and configurable enough.<br>It took multiple months to figure 
+      it all out; but in the end I was satisfied with my design. Polymorphic 
+      type handling was included in <a href="http://wiki.fasterxml.com/JacksonRelease15">Jackson 
+      1.5</a>; less than one year after release of 1.0.
+    </p>
+    <p>
+      <b>7.4 No more monkey code -- Mr Bean can implement your classes</b>
+    </p>
+    <p>
+      Of all advanced features, this is my own personal favorite: and 
+      something I had actually hoped to tackle even before 1.0 release.
+    </p>
+    <p>
+      For full description, go ahead and read &quot;<a href="http://www.cowtowncoder.com/blog/archives/2011/08/entry_459.html">Mr 
+      Bean aka Abstract Type Materialization</a>&quot;; but the basic idea is, once 
+      again, simple: why is it that even if you can define interface of your 
+      data type as a simple interface, you still need to write monkey to code 
+      around it? Other languages have solutions there; and some later Java 
+      Frameworks like Lombok have presented some alternatives. But I am still 
+      not aware of a general-purpose Java library for doing what Mr Bean does 
+      (NOTE: you CAN actually use Mr Bean outside of Jackson too!).
+    </p>
+    <p>
+      Mr Bean was included in <a href="http://wiki.fasterxml.com/JacksonRelease16">Jackson 
+      1.6</a> -- which was a release FULL of good, innovative new stuff. The 
+      reason it took such a long time for me to build was actually hesitation 
+      -- it is the first time I used Java bytecode generation. But after 
+      starting to write code I learnt that it was surprisingly easy to do; and 
+      I just wished I had started earlier.<br>Part of simplicity was due to 
+      the fact that literally the only thing to generate were accessors 
+      (setters and/or getters): everything else is handled by Jackson, by 
+      introspecting resulting class, without having to even know there is 
+      anything special about dynamically generated implementation class.
+    </p>
+    <p>
+      <b>7.5 Binary JSON (Smile format)</b>
+    </p>
+    <p>
+      Another important milestone with Jackson 1.6 was introduction of a new 
+      binary data format called <a href="http://wiki.fasterxml.com/SmileFormat">Smile</a>.
+    </p>
+    <p>
+      Smile was borne out of my frustration with all the hype surrounding 
+      Google's protobuf format: there was tons of hyperbole caused by the fact 
+      that Google was opening up the data format they were using internally. 
+      Protobuf itself is a simple and very reasonable binary data format, 
+      suitable for encoding datagrams used for RPC. I call it &quot;best of 80s 
+      datagram technology&quot;; not as an insult, but as a nod to maturity of the 
+      idea -- it is automating things that back in 80s (and perhaps earlier) 
+      were hand-coded whenever data communication was needed. Nothing wrong in 
+      there.
+    </p>
+    <p>
+      But my frustration had more to do with creeping aspects of pre-mature 
+      optimization; and the myopic view that binary formats were the only way 
+      to achieve acceptable performance for high-volume communication. I 
+      maintain that this is not true for general case.<br>
+    </p>
+    <p>
+      At the same time, there are valid benefits from proper use of efficient 
+      binary encodings. And one approach that seemed attractive to me was that 
+      of using <i>alternative physical encoding</i> for representing existing 
+      logical data model. This idea is hardly new; and it had been 
+      demonstrated with XML, with BNUX, Fast Infoset and other approaches (all 
+      that predate later sad effort known as EXI). But so far this had not 
+      been tried with JSON -- sure, there is BSON, but it is not 1-to-1 
+      mappable to JSON (despite what its name suggest), it is just another odd 
+      (and very verbose) binary format.<br>So I thought that I should be able 
+      to come up with a decent binary serialization format for JSON.
+    </p>
+    <p>
+      Timing for this effort was rather good, as I had joined <a href="http://ning.com">Ning</a> 
+      earlier that year, and had actual use case for Smile. At Ning Smile was 
+      dynamically used for some high-volume systems, such as log aggregation 
+      (think of systems like Kafka, Splunk). Smile turns out to work 
+      particularly well when coupled with ultra-fast compression like LZF 
+      (implemented at and for Ning as well!).
+    </p>
+    <p>
+      And beyond Ning, I had the fortune of working with creative genius(es) 
+      behind <a href="http://www.elasticsearch.org/">ElasticSearch</a>; this 
+      was a match made in heaven, as they were just looking for an efficient 
+      binary format to complement their use of JSON as external data format.
+    </p>
+    <p>
+      And what about the name? I think I need to credit mr. Sunny Gleason on 
+      this; we brainstormed the idea, and it came about directly when we 
+      considered what &quot;magic cookie&quot; (first 4 bytes used to identify format) 
+      to use -- using a smiley seemed like a crazy enough idea to work. So 
+      Smile encoded data literally &quot;Starts With a Smile!&quot; (check it out!)
+    </p>
+    <p>
+      <b>7.6 Modularity via Jackson Modules</b>
+    </p>
+    <p>
+      One more major area of innovation with Jackson 1.x series was that of 
+      introduction of &quot;Module&quot; concept in <a href="http://wiki.fasterxml.com/JacksonRelease17">Jackson 
+      1.7</a>. From design/architectural perspective, it is the most important 
+      change during Jackson development.
+    </p>
+    <p>
+      The background to modules was my realization that I neither can nor want 
+      to be the person trying to provide Jackson support for all useful Java 
+      libraries; for datatypes like Joda, or Collection types of Guava. But 
+      neither should users be left on their own, to have to write handlers for 
+      things that do not (and often, can not) work out of the box.
+    </p>
+    <p>
+      But if not me or users, who would do it? The answer of &quot;someone else&quot; 
+      does not sound great, until you actually think about it a bit. While I 
+      think that the ideal case is that the library maintainers (of Joda, 
+      Guava, etc) would do it, I think that the most <b>likely</b> case is 
+      that &quot;someone with an itch&quot; -- developer who happens to need JSON 
+      serialization of, say, Joda datetime types -- is the person who can add 
+      this support. The challenge, then, is that of co-operation: how could 
+      this work be turned to something reusable, modular... something that 
+      could essentially be released as a &quot;mini-library&quot; of its own?
+    </p>
+    <p>
+      This is where the simple interface known as Module comes in: it is 
+      simply just a way to package necessary implementations of Jackson 
+      handlers (serializers, deserializers, other components they rely on for 
+      interfacing with Jackson), and to register them with Jackson, without 
+      Jackson having any a priori knowledge of the extension in question. You 
+      can think them of Jackson equivalent of plug-ins.
+    </p>
+    <p>
+      <b>8. Jackson 2.x</b>
+    </p>
+    <p>
+      Although there were more 1.x releases after 1.6, all introducing 
+      important and interesting new features, focus during those releases 
+      started to move towards bigger challenges regarding development. It was 
+      also challenging to try to keep things backwards-compatible, as some 
+      earlier API design (and occasionally implementation) decisions proved to 
+      be sub-optimal. With this in mind, I started thinking about possibility 
+      of making bigger change, making a major, somewhat backwards-incompatible 
+      change.
+    </p>
+    <p>
+      The idea of 2.0 started maturing at around time of releasing Jackson 
+      1.8; and so version 1.9 was designed with upcoming &quot;bigger change&quot; in 
+      mind. It turns out that future-proofing is hard, and I don't know how 
+      much all the planning helped. But I am glad that I thought through 
+      multiple possible scenarios regarding potential ways versioning could be 
+      handled.
+    </p>
+    <p>
+      The most important decision -- and one I think I did get right -- was to 
+      change the Java and Maven packages Jackson 2.x uses: it should be (and 
+      is!) possible to have both Jackson 1.x and Jackson 2.x implementations 
+      in classpath, without conflicts. I have to thank my friend Brian 
+      McCallister for this insight -- he convinced me that this is the only 
+      sane way to go. And he is right. The alternative of just using the same 
+      package name is akin to playing Russian Roulette: things MIGHT work, or 
+      might not work. But you are actually playing with code of other people; 
+      and they can't really be sure whether it will work for them without 
+      trying... and often find out too late if it doesn't.
+    </p>
+    <p>
+      So although it is more work all around for cases where things would have 
+      worked; it is definitely much, much less work and pain for cases where 
+      you would have had problems with backwards compatibility. In fact, 
+      amount of work is quite constant; and most changes are mechanical.
+    </p>
+    <p>
+      <a href="http://wiki.fasterxml.com/JacksonRelease20Features">Jackson 2.0</a> 
+      took its time to complete; and was released February 2012.
+    </p>
+    <p>
+      <b>9. Jackson goes XML, CSV, YAML... and more</b>
+    </p>
+    <p>
+      One of biggest changes with Jackson 2.x has been the huge increase in 
+      number of Modules. Many of these handle specific datatype libraries, 
+      which is the original use case. Some modules implement new 
+      functionality; Mr Bean, for example, which was introduced in 1.6 was 
+      re-packaged as a Module in later releases.
+    </p>
+    <p>
+      But one of those Crazy Ideas (&quot;what if...&quot;) that I had somewhere during 
+      1.x development was to consider possibility of supporting data formats 
+      other than JSON.<br>It started with the obvious question of how to 
+      support Smile format; but that was relatively trivial (although it did 
+      need some changes to underlying system, to reduce deep coupling with 
+      physical JSON content). Adding Smile support lead me to realize that the 
+      only JSON-specific handling occurs at streaming API level: everything 
+      above this level only deals with Token Streams. So what if... we simply 
+      implemented alternative backends that can produce/consume token streams? 
+      Wouldn't this allow data-binding to be used on data formats like YAML, 
+      BSON and perhaps even XML?
+    </p>
+    <p>
+      Turns out it can, indeed -- and at this point, Jackson supports half a 
+      dozen data formats beyond JSON (see <a href="https://github.com/FasterXML/jackson">here</a>); 
+      and more will be added over time.
+    </p>
+    <p>
+      <b>10. What Next?</b>
+    </p>
+    <p>
+      As of writing this entry I am working on Jackson 2.3; and list of 
+      possible things to work on is as long as ever. Once upon a time (around 
+      finalizing 1.0) I was under false impression that maybe I will be able 
+      to wrap up work in a release or two, and move on. But given how many 
+      feature-laden versions I have released since then, I no longer thing 
+      that Jackson will be &quot;complete&quot; any time soon.
+    </p>
+    <p>
+      I hope to write more about Jackson future ... in (near I hope) future. I 
+      hope above gave you more perspective on &quot;where's Jackson been?&quot;; and 
+      perhaps can hint at where it is going as well.
+    </p>
+    <p>
+      
+    </p>
+    <p>
+      
+    </p>
+    <p>
+      
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Thursday, August 08, 2013 7:40 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
    
      <h2 class="date-header">Tuesday, February 15, 2011 </h2>
 <div class="entry" id="post-445">
@@ -1109,92 +1699,6 @@ window.google_analytics_uacct = "UA-140287-10";
      </div>
 </div>
    
-     <h2 class="date-header">Friday, March 26, 2010 </h2>
-<div class="entry" id="post-383">
-     <h3 class="entry-header">Welcome HP, So Long Dell (and don't let the door hit you in the ass on your way out)</h3>
-     
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      (warning: this is another rant. Sorry!)
-    </p>
-    <p>
-      Here's another improvement in my daily life: after more than a year of 
-      space-shuttle-lift-off noise, short-but-brutish uptimes, and countless 
-      curses, family's lean old Dell XP &quot;work&quot;station is out for good. Its 
-      only agreeable attribute was its slim neat looks (and sort of neat 
-      mechanism used for case, allowing its easy opening -- too bad there's 
-      not much to do even if you can open it easily). Good riddance, music to 
-      my ears.
-    </p>
-    <p>
-      The replacement, HP Pavilion Slimline, actually looks every bit as good 
-      as its predecessor. But otherwise the two are polar opposites: new box 
-      is quiet, as reliable as expected (i.e., &quot;just works&quot;), and its only 
-      design flaw is that it comes with an OS written by a company based in 
-      Redmond. But that I can live with, since it's not my work machine. :-)<br>And 
-      even Windows seems to have improved a bit between versions (new one has 
-      Windows 7, previous one whatever preceded Vista).<br>
-    </p>
-    <p>
-      Anyway: I just thought I'll share my distaste with Dell products (maybe 
-      I should actually include &quot;not-so-good&quot; lists on my semi-professional 
-      home page?) now that I am getting rid of them.
-    </p>
-    <p>
-      It all started couple of years ago, when I decided to stop wasting my 
-      time on building my own PCs from components (which made sense after 
-      college, could save some money). I figured that with time I spent 
-      building PCs, and then troubleshooting problems with components,  it 
-      just didn't make a whole lot of sense. And so I thought I'd go with 
-      something that other customers in general had found usable: back then 
-      Dell had highest customer ratings of all PC companies; and save for one 
-      friend of mine (who had already fought with Dell's phone &quot;support&quot; 
-      people, due to problems with memory chips that were failing; and that no 
-      amount of rebooting would ever fix), I wasn't aware of huge problems 
-      with the company or its products.
-    </p>
-    <p>
-      What I found out by experience makes me suspect that the company that 
-      had gotten good reviews had been abducted by aliens, and replaced by an 
-      ersatz replica or something. Correlation between happy customers and 
-      company that produced crap I bought just is not there. I am not talking 
-      about customer support (no point calling them wrt. badly designed piece 
-      of hardware, IMO, it is not not something a script-reading underpaid 
-      remote helper can help a lot with), but rather about quality of 
-      hardware. My experience beyond PC fiasco was that their products are 
-      competitively priced, but have low quality. For example, laser printer 
-      that I bought to replace trusty old Apple writer (which, after having 
-      bought second hand, served us for 8 years; for total lifetime of 
-      probably 15 years; and would have worked well but I couldn't find new 
-      toner cartridges for reasonable prices any more!) was inexpensive, and 
-      worked fine for a while. Like, maybe a year. And then broke down. The 
-      only thing left are LCD monitors, which I have to admit were reasonably 
-      priced, and still work. In fact both are still in active use. So I guess 
-      they do produce something other than lemons.
-    </p>
-    <p>
-      Thinking about that last sentence: I guess I could put my feelings into 
-      fitting slogan: <b>Dell -- General Motors of Computers</b>.<br>Feel free 
-      to quote.
-    </p>
-    <p>
-      ps. I am happy to admit that after kicking that incompetent CEO of 
-      theirs out, HP seems to have done nice comeback. Good for them, and us.
-    </p></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Friday, March 26, 2010 10:37 PM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_philosophic.html">Philosophic</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_rant.html">Rant</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2010/03/entry_383.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2010/03/entry_383.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2010/03/entry_383.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-   
             </div>
         </div>
 <div id="beta">
@@ -1238,7 +1742,7 @@ window.google_analytics_uacct = "UA-140287-10";
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_445.html">Basic flaw with most binary formats: missing identifiable prefix (protobuf, Thrift, BSON, Avro, MsgPack)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_444.html">On prioritizing my Open Source projects, retrospect #2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_442.html">Why do modularity, extensibility, matter?</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/01/entry_438.html">On Perception of Java Verbosity</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2010/12/entry_417.html">Experiments with advertising, Adsense vs Adbrite, experience so far</a></li>
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_445.html">Basic flaw with most binary formats: missing identifiable prefix (protobuf, Thrift, BSON, Avro, MsgPack)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_444.html">On prioritizing my Open Source projects, retrospect #2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/02/entry_442.html">Why do modularity, extensibility, matter?</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2011/01/entry_438.html">On Perception of Java Verbosity</a></li>
                </ul>
           </div>
      </div>
@@ -1291,6 +1795,8 @@ window.google_analytics_uacct = "UA-140287-10";
           <h2 class="module-header">Archives</h2>
           <div class="module-content">
                <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2013_08-31-2013.html'>August 2013</a></li>
               
                 <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2012_08-31-2012.html'>August 2012</a></li>
               

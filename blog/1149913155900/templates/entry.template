@@ -5,7 +5,7 @@
  <meta name="description" content="<$BlogTitle$> - <$BlogDescription$>" />
 
 <style type="text/css">
-@import url('../stylesheets/iconic/iconic-style.css');
+@import url('../../../stylesheets/iconic/iconic-style.css');
 
 /************** REMOVE THIS TO UNHIDE THE BLOGGER NAVBAR ****************
 **/       #b-navbar {height:0px;visibility:hidden;display:none}       /**
