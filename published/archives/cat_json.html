@@ -43,6 +43,199 @@ window.google_analytics_uacct = "UA-140287-10";
 <!-- entry -->
 
    
+     <h2 class="date-header">Tuesday, August 13, 2013 </h2>
+<div class="entry" id="post-480">
+     <h3 class="entry-header">On Jackson 2.2</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Here's another thing I need to write about, from my &quot;todo bloklog&quot; (blog 
+      backlog): overview of Jackson 2.2 release.<br>As usual, <a href="http://wiki.fasterxml.com/JacksonRelease22">official 
+      2.2 release notes</a> are worth checking out for more detailed listing.<br>
+    </p>
+    <p>
+      <b>1. Overview</b>
+    </p>
+    <p>
+      Jackson 2.2.0 was released in April, 2013 -- that is, four months ago -- 
+      and the latest patch version currently available is 2.2.2. It has proven 
+      a nice, stable release, and is currently used by frameworks such as <a href="https://github.com/codahale/dropwizard">DropWizard</a> 
+      (my current favorite Java service platform). This is also the current 
+      stable version, as the development for 2.3 is not yet complete.
+    </p>
+    <p>
+      As opposed to earlier releases (2.0 major, 2.1 minor) which overflowed 
+      with new functionality, focus with 2.2 was to really stabilize 
+      functionality and close as many open bugs as possible; especially ones 
+      related to new 2.x functionality.<br>Related to this, we wanted to 
+      improve parity (coverage of features to different parts; that is, that 
+      both serialization and deserialization support things; that 
+      Map/Node/POJO handling would be as similar as possible).
+    </p>
+    <p>
+      <b>2. Enhancements to serializer, deserializer processing</b>
+    </p>
+    <p>
+      One problem area, with respect to writing custom handlers for structured 
+      non-POJO types (esp. container types: arrays, Collections, Maps), was 
+      that <i>BeanSerializerModifier</i> and <i>BeanDeserializerModifier</i> 
+      handlers could only be used for POJO types.<br>
+    </p>
+    <p>
+      But custom handling is needed for container types too; and especially so 
+      when adding support for third-party libraries like Trove, Guava and 
+      HPPC. 2.2 extended these interfaces to allow post-processing 
+      serializers/deserializers for all types (also including scalar types).
+    </p>
+    <p>
+      Ability to post-process (de)serializers of all types should reduce the 
+      need for writing custom (de)serializers from scratch: it is possible -- 
+      for example -- to take the default (de)serializer, and use 
+      post-processor to create (de)serializer that delegates to the standard 
+      version for certain cases, or for certain part of processing.
+    </p>
+    <p>
+      <b>3. Converters </b>
+    </p>
+    <p>
+      The biggest new feature was adding annotation-based support for adding 
+      things called &quot;Converters&quot;. It can be seen as sort of further extension 
+      for the idea that one should be able to refine handling with small(er) 
+      component, instead of having to write custom handlers from scratch.
+    </p>
+    <p>
+      The basic idea is simple: to serialize custom types (that Jackson would 
+      not know how to handle correctly) one can write converters that know how 
+      to take a custom type and convert it into an intermediate object that 
+      Jackson already knows how to serialize. This intermediate form could be 
+      simple <i>java.util.Map</i> or <i>JsonNode </i>(tree model), or even 
+      just another more traditional POJO.
+    </p>
+    <p>
+      And for deserialization, do the reverse: let Jackson deserialize JSON 
+      into this intermediate type; and call converter to get to the custom 
+      type.
+    </p>
+    <p>
+      Typically you will write one or two converters (one if you just need 
+      converter for either serialization or deserialization; two if both); and 
+      then either annotate the type that needs converter(s); or property of 
+      that type that needs converter(s):
+    </p>
+    <hr>
+    
+
+    <pre>@JsonSerialize(converter=SerializationConverter.class)<br>@JsonDeserialize(converter=DeserializationConverter.class)<br>public class Point {<br>  private int x, y;<br>  public MyPoint(int x, int y) {<br>   this.x = x;<br>   this.y = y;<br>  }<br>  public int x() { return x; }<br>  public int y() { return y; } <br>}<br><br>class SerializationConverter extends StdConverter&lt;ConvertingBean, int[]&gt; {<br>   public int[] convert(MyPoint p) {<br>     return new int[] { p.x(), p.y() };<br>   }<br>}<br>// similarly for DeserializationConverter: StdConverter is convenient base class</pre>
+    <div>
+      <hr>
+      
+    </div>
+    <div>
+      
+    </div>
+    <div>
+      This feature was inspired by similar concept in JAXB, and should have 
+      been included a long time ago (actually, 2.1 already added internal 
+      support for converters; 2.2 just added annotation and connected the 
+      dots).
+    </div>
+    <div>
+      
+    </div>
+    <div>
+      One thing worth noting regarding above is that use of <i>StdConverter</i> 
+      is strongly recommended; although you may directly implement Converter 
+      there is usually little need. Also note that although example associated 
+      converters directly with the type, you can also add them to property 
+      definition; this can be useful when dealing with third-party types 
+      (although you can also use mix-in annotations for those cases).
+    </div>
+    <p>
+      <b>4. Android</b>
+    </p>
+    <p>
+      One &quot;unusual&quot; area for improvements was work to try to make Jackson run 
+      better on Android platform. Android has its set of quirks; and although 
+      Jackson was already working well from functionality perspective, there 
+      were obvious performance problems. This was especially true for 
+      data-binding, where initial startup overhead has been problematic.
+    </p>
+    <p>
+      One simple improvement was elimination of file VERSION.txt. While it 
+      seemed harmless enough thing for J2SE, Android's package loader has 
+      surprising overhead when loading resources from within a jar -- at least 
+      on some versions, contents of jar are retained in memory basically 
+      DOUBLING amount of memory needed. 2.2 replaced text-file based version 
+      discovery with simple class generation (as part of build, that is, 
+      static source generation).
+    </p>
+    <p>
+      Version 2.2 also contained significant amount of internal refactorings, 
+      to try to reduce startup overhead, by both simplifying set up of 
+      (de)serializers, and to try to improve lazy-loading aspects.<br>One 
+      challenge, however, is that we still do not have a good set of 
+      benchmarks to actually verify effects of these changes. So while the 
+      intent was to improve startup performance, we do not have solid numbers 
+      to report, yet.
+    </p>
+    <p>
+      On plus side, there is some on-going work to do more performance 
+      measurements; and I hope to write more about these efforts once related 
+      work is made public (it is not yet; I am not driving these efforts, but 
+      have helped).
+    </p>
+    <p>
+      <b>5. JAX-RS: additional caching</b>
+    </p>
+    <p>
+      Another area of performance improvements was that of JAX-RS provider. 
+      Earlier versions did reuse internal `ObjectMapper`, but had to do more 
+      per-call annotation processing. 2.2 added simple caching of results of 
+      annotation introspection, and should help reduce overhead.
+    </p>
+    <p>
+      One other important change was structural: before 2.2, there were 
+      multiple separate github projects (three; one for JSON, another for 
+      Smile, third for XML). With 2.2 we now have a single Github project, <a href="https://github.com/FasterXML/jackson-jaxrs-providers">jackson-jaxrs-providers</a>, 
+      with multiple Maven sub-projects that share code via a base package. 
+      This should simplify development, and reduce likelihood of getting cut'n 
+      paste errors.
+    </p>
+    <p>
+      <b>6. AfterBurner becomes Production Ready</b>
+    </p>
+    <p>
+      One more big milestone concerned <a href="https://github.com/FasterXML/jackson-module-afterburner">Afterburner</a> 
+      module (what is it? Check out <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html">this 
+      earlier entry</a>). With a little help from my friends (special thanks 
+      to Steven Schlansker for his significant contributions!), all known 
+      issues were addressed and new checks added, such that we can now 
+      consider Afterburner production ready.
+    </p>
+    <p>
+      Given that use of Afterburner can give you 30-50% boost in throughput, 
+      when using data-binding, it might be good time to check it out.
+    </p>
+    <p>
+      
+    </p>
+    <p>
+      
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, August 13, 2013 10:37 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
      <h2 class="date-header">Thursday, August 08, 2013 </h2>
 <div class="entry" id="post-479">
      <h3 class="entry-header">Brief History of Jackson the JSON processor</h3>
@@ -2370,418 +2563,6 @@ mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeVal
      </div>
 </div>
    
-     <h2 class="date-header">Monday, March 26, 2012 </h2>
-<div class="entry" id="post-466">
-     <h3 class="entry-header">Jackson 2.0.0 released: going GitHub, handling cyclic graphs, builder style...</h3>
-     
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      After furious weeks of coding and testing, the first major version of 
-      upgrade of Jackson is here: 2.0 was just released, and available (from <a href="http://wiki.fasterxml.com/JacksonDownload">Download</a> 
-      page, for example)
-    </p>
-    <p>
-      <b>1. Major Upgrade? </b>
-    </p>
-    <p>
-      So how does this upgrade differ from &quot;minor&quot; upgrades (like, from 1.8 to 
-      1.9)? Difference is not based on amount of new functionality introduced 
-      -- most Jackson 'minor' releases have contained as much new stuff as 
-      major releases of other projects -- although 2.0 does indeed pack up 
-      lots of goodies.
-    </p>
-    <p>
-      Rather, major version bump indicates that code that uses Jackson 1.x is 
-      neither backwards nor forwards compatible with Jackson 2.0.<br>That is, 
-      you can not just replace 1.9 jars with 2.0 and hope that things work. 
-      They will not.
-    </p>
-    <p>
-      Why not? 2.0 code differs from 1.x with respect to packaging, such that:
-    </p>
-    <ol>
-      <li>
-        Java package used is &quot;com.fasterxml.jackson&quot; (instead of 
-        &quot;org.codehaus.jackson&quot;)
-      </li>
-      <li>
-        Maven group ids begin with &quot;com.fasterxml.jackson&quot; (instead of 
-        &quot;org.codehaus.jackson&quot;)
-      </li>
-      <li>
-        Maven artifact ids have change a bit too (core has been split into 
-        &quot;core&quot; and &quot;annotations&quot;, for example)
-      </li>
-    </ol>
-    <p>
-      These are actually not big changes in and of itself: you just need to 
-      change Maven dependencies, and for Java package, change import 
-      statements. While some amount of work, these are mechanical changes. But 
-      it does mean that upgrade is not basic plug-n-play operation.
-    </p>
-    <p>
-      In addition, some classes have moved within package hierarchy, to better 
-      align functional areas. Some have been refactored or carved (most 
-      notably, <b>SerializationConfig.Feature</b> is now simply <b><i>SerializationFeature</i></b>, 
-      and <b>DeserializationConfig.Feature </b>is now <b><i>DeserializationFeature</i></b>). 
-      Most cases of types moving should be easy to solve with IDEs, but we 
-      will also try to collect some sort of upgrade guide.
-    </p>
-    <p>
-      For more details on packaging changes, check out &quot;<a href="wiki.fasterxml.com/JacksonRelease20">Jackson 
-      2.0 release notes</a>&quot; page.
-    </p>
-    <p>
-      <b>1.1 Why changes to package names?</b>
-    </p>
-    <p>
-      The reason for choosing to move to new packages is to allow both Jackson 
-      1.x and Jackson 2.x versions to be used concurrently. While smaller 
-      projects will find it easier to just convert wholesale, many bigger 
-      systems and (especially) frameworks will find ability to do incremental 
-      upgrades useful. Without repackaging one would have to upgrade in 
-      &quot;all-or-nothing&quot; way. But with repackaging this can be avoided, and 
-      existing functionality converted gradually (within some limits; 
-      transitive dependencies may still be problematic).
-    </p>
-    <p>
-      <b>2. But wait! It is totally worth it!</b>
-    </p>
-    <p>
-      I started with the &quot;bad news&quot; first, to get that out of the way, since 
-      there is lots to like about the new version.<br>I will write more 
-      detailed articles on specific features later on, but let's start with a 
-      brief overview.
-    </p>
-    <p>
-      <b>2.1 Community improvements: Better collaboration with GitHub</b>
-    </p>
-    <p>
-      First big change is that Jackson project as a whole has moved to <a href="https://github.com/FasterXML">Github</a>. 
-      While many extension projects (modules) had already started there, now 
-      all core components have moved as well:
-    </p>
-    <ul>
-      <li>
-        <a href="https://github.com/FasterXML/jackson-core">Core streaming</a> 
-        components (JsonParser, JsonGenerator)
-      </li>
-      <li>
-        <a href="https://github.com/FasterXML/jackson-annotations">Core 
-        Annotations</a>
-      </li>
-      <li>
-        <a href="https://github.com/FasterXML/jackson-databind">Databinding</a> 
-        (POJO databinding, tree model)
-      </li>
-    </ul>
-    <p>
-      as well as standard extension components such as:
-    </p>
-    <ul>
-      <li>
-        <a href="https://github.com/FasterXML/jackson-dataformat-smile">Smile 
-        data format</a> (and <a href="https://github.com/FasterXML/jackson-dataformat-xml">XML</a>, 
-        <a href="https://github.com/FasterXML/jackson-dataformat-csv">CSV</a>!)
-      </li>
-      <li>
-        <a href="https://github.com/FasterXML/jackson-module-mrbean">Mr Bean</a> 
-        module (POJO class generation from interfaces, abstract classes)
-      </li>
-      <li>
-        <a href="https://github.com/FasterXML/jackson-module-jaxb-annotations">JAXB 
-        annotation support</a>
-      </li>
-    </ul>
-    <p>
-      and many, many more (total project count is 17!)
-    </p>
-    <p>
-      This should help make it much easier to contribute to projects; as well 
-      as make it easier for packages to evolve at appropriate pace: there is 
-      less need to synchronize &quot;big&quot; releases outside of 3 core packages, and 
-      it is much easier to give scoped access to new contributors.
-    </p>
-    <p>
-      <b>2.2 Feature: Handle Any Object Graphs, even Cyclic ones!</b>
-    </p>
-    <p>
-      One of biggest so far unsupported use case been ability to handle 
-      serialization and deserialization of cyclic graphs, and elimination of 
-      duplicates due to shared references. Although existing <i>@JsonManagedReference</i> 
-      annotation works for some cases (esp. many ORM-induced parent/child 
-      cases), there has been no general solution.
-    </p>
-    <p>
-      But now there is. Jackson 2.0 adds support for concept called &quot;<a href="http://wiki.fasterxml.com/JacksonFeatureObjectIdentity">Object 
-      Identity</a>&quot;:ability to serialize Object Id for values, use this id for 
-      secondary references; and ability to resolve these references when 
-      deserializing). This feature has many similarities to &quot;Polymorphic Type 
-      information&quot; handling which was introduced in Jackson 1.5.
-    </p>
-    <p>
-      Although full explanation of how things work deserves its own article, 
-      the basic idea is simple: you will need to annotate classes with new 
-      annotation <b>@JsonIdentityInfo</b> (or, use it for properties that 
-      reference type for which to add support), similar to how @JsonTypeInfo 
-      is used for including type id:
-    </p>
-    <hr>
-    
-
-    <pre>  @JsonIdentityInfo(generator=ObjectIdGenerators.IntSequenceGenerator.class, property=&quot;@id&quot;)
-  public class Identifiable {
-    public int value;
-
-    public Identifiable next;
-  }</pre>
-    <p>
-      and with such definition, you could serialize following cyclic two-node 
-      graph:
-    </p>
-    <pre><br>
-
-
-  Identifiable ob1 = new Identifiable();
-  ob1.value = 13;
-  Identifiable ob2 = new Identifiable();
-  ob2.value = 42;
-  // link as a cycle:
-  ob1.next = ob2;
-  ob2.next = ob1;
-
-  // and serialize!
-  String json = objectMapper.writeValueAsString(ob1);</pre>
-    <p>
-      to get JSON like:
-    </p>
-    <pre>  {
-   &quot;@id&quot; : 1,
-   &quot;value&quot; : 13,
-   &quot;next&quot; : {
-    &quot;@id&quot; : 2,
-    &quot;value&quot; : 42,
-    &quot;next&quot; : 1
-   }
-  }</pre>
-    <p>
-      and obvious deserialize it back with:
-    </p>
-    <pre>  Identifiable result = objectMapper.readValue(json, Identifiable.class);</pre>
-    <p>
-      assertSame(ob1.next.next, ob1);
-    </p>
-    <p>
-      Most details (such as id generation algorithm used, property use for 
-      inclusions etc) are configurable; more on this on a later article.<br>Until 
-      then, <a href="https://github.com/FasterXML/jackson-annotations/wiki/Documentation">Javadocs</a> 
-      should help.
-    </p>
-    <p>
-      <b>2.3 Feature: Support &quot;Builder&quot; style of POJO construction</b>
-    </p>
-    <p>
-      Another highly-requested feature has been ability to support POJOs 
-      created using &quot;Builder&quot; style. This means that POJOs are created using a 
-      separate Builder object which has methods for changing property values; 
-      and a &quot;build&quot; method that will create actual immutable POJO instance. 
-      For example, considering following hypothetical Builder class:
-    </p>
-    <hr>
-    
-
-    <pre> public class ValueBuilder {
-  private int x, y;
-
-  // can use @JsonCreator to use non-default ctor, inject values etc
-  public ValueBuilder() { }
-
-  // if name is &quot;withXxx&quot;, works as is: otherwise use @JsonProperty(&quot;x&quot;) or @JsonSetter(&quot;x&quot;)!
-  public ValueBuilder withX(int x) {
-    this.x = x;
-    return this; // or, construct new instance, return that
-  }
-  public ValueBuilder withY(int y) {
-    this.y = y;
-    return this;
-  }
-  public Value build() {
-    return new Value(x, y);
-  }
-}</pre>
-    <p>
-      and value class it creates:
-    </p>
-    <pre>@JsonDeserialize(builder=ValueBuilder.class) // important!
-public class Value {
-  private final int x, y;
-  protected Value(int x, int y) {
-    this.x = x;
-    this.y = y;
-  }
-}</pre>
-    <p>
-      we would just use it as expected, as long annotations have been used as 
-      shown above:
-    </p>
-    <pre>  Value v = objectMapper.readValue(json, Value.class);</pre>
-    <p>
-      and it &quot;just works&quot;
-    </p>
-    <p>
-      <b>2.4 Ergonomics: Simpler, more powerful configuration</b>
-    </p>
-    <p>
-      Although ObjectMapper's immutable friends -- <b><i>ObjectReader</i></b> 
-      and <b><i>ObjectWriter</i></b> -- were introduced much earlier, 2.0 will 
-      give more firepower for both, making them in many ways superior to use 
-      of <i>ObjectMapper</i>. In fact, while you can still pass ObjectMappers 
-      and create ObjectReaders, ObjectWriters on the fly, it is recommend that 
-      you use latter if possible.
-    </p>
-    <p>
-      So what was the problem solved? Basically, <u><i>ObjectMapper is 
-      thread-safe if (and only if!) it is fully configured before its first use</i></u>. 
-      This means that you can not (or, at least, not supposed) to try to 
-      change its configuration once you have used it. To further complicate 
-      things, some configuration options would work even if used after first 
-      read or write, whereas others would not, or would only work in seemingly 
-      arbitrary cases (depending on what was cached).
-    </p>
-    <p>
-      On the other hand, ObjectReader and ObjectWriter are fully immutable and 
-      thus thread-safe, but would also allow creation of newly configured 
-      instances. But while this allowed handling of some cases -- such as that 
-      of using different JSON View for deserialization -- number of methods 
-      available for reconfiguration was limited.
-    </p>
-    <p>
-      Jackson 2.0 adds significant number of new fluent methods for 
-      ObjectReader and ObjectWriter to reconfigure things; and most notably, 
-      it is now possible to change serialization and deserialization features (<i>SerializationFeature</i>, 
-      <i>DeserializationFeature</i>, as noted earlier). So, to, say, serialize 
-      a value using &quot;pretty printer&quot; you could use:
-    </p>
-    <pre>  ObjectWriter writer = ObjectMapper.writer(); // there are also many other convenience versions...
-  writer.withDefaultPrettyPrinter().writeValue(resultFile, value);</pre>
-    <p>
-      or to enable &quot;root element&quot; wrapping AND specifying alternative wrapper 
-      property name:
-    </p>
-    <pre>  String json = writer
-    .with(SerializationFeature.WRAP_ROOT_VALUE)
-    .withRootName(&quot;wrapper&quot;)
-    .writeValueAsString(value);</pre>
-    <p>
-      basically, anything that can work on per-call basis will now work 
-      through either ObjectReader (for deserialization) or ObjectWriter (for 
-      serialization).
-    </p>
-    <p>
-      <b>2.5 Feature parity: JSON Views for deserialization</b>
-    </p>
-    <p>
-      One of frustrations with Jackson 1.x has been that all filtering 
-      functionality has been limited to serialization side. Not any more: it 
-      is now possible to use JSON Views for deserialization as well:
-    </p>
-    <pre>  Value v = mapper
-   .reader(Value.class)
-   .withView(MyView.class) 
-   .readValue(json);</pre>
-    <p>
-      and if input happened to contain properties not included in the view, 
-      values would be ignored without setting matching POJO properties.
-    </p>
-    <p>
-      <b>2.6 Custom annotations using Annotation Bundles</b>
-    </p>
-    <p>
-      Another ergonomic feature is so-called &quot;annotation bundles&quot;. Basically, 
-      by addition of meta-annotation @JacksonAnnotationsInside, it is now 
-      possible to specify that annotations from a given (custom) annotations 
-      should be introspected and used same way as if annotations were directly 
-      included. So, for example you could define following annotation:
-    </p>
-    <pre>  @Retention(RetentionPolicy.RUNTIME)
-  @JacksonAnnotationsInside
-  @JsonInclude(Include.NON_NULL) // only include non-null properties
-  @JsonPropertyOrder({ &quot;id&quot;, &quot;name&quot; }) // ensure that 'id' and 'name' are always serialized before other properties
-  private @interface StdAnnotations</pre>
-    <p>
-      and use it for POJO types as a short-hand:
-    </p>
-    <pre>  @StdAnnotations
-  public class Pojo { ... }</pre>
-    <p>
-      instead of separately adding multiple annotations.
-    </p>
-    <p>
-      <b>2.7 @JsonUnwrapped.prefix / suffix</b>
-    </p>
-    <p>
-      One more cool new addition is for <i>@JsonUnwrapped</i> annotation 
-      (introduced in 1.9). It is now possibly to define prefix and/or suffix 
-      to use for &quot;unwrapped&quot; properties, like so:
-    </p>
-    <pre>  public class Box {
-    @JsonUnwrapped(prefix=&quot;topLeft&quot;) Point tl;
-    @JsonUnwrapped(prefix=&quot;bottomRight&quot;) Point br;
-  }
-  public class Point {
-    int x, y;
-  }</pre>
-    <p>
-      which would result in JSON like:
-    </p>
-    <pre>  {
-   &quot;topLeft.x&quot; : 0,
-   &quot;topLeft.y&quot; : 0,
-   &quot;bottomRight.x&quot; : 100,
-   &quot;bottomRight.y&quot; : 80  
-  }</pre>
-    <p>
-      This feature basically allows for scoping things to avoid naming 
-      collisions. It can also be used for fancier stuff, such as binding of 
-      'flat' properties into hierarchic POJOs... but more on this in a 
-      follow-up article.
-    </p>
-    <p>
-      <b>3.0 And that's most of it, Folks!</b>
-    </p>
-    <p>
-      At least for now. Stay tuned!
-    </p>
-    <p>
-      <b>EDIT</b>:
-    </p>
-    <p>
-      Links to the continuing &quot;Jackson 2.0 saga&quot;:
-    </p>
-    <ul>
-      <li>
-        <a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_467.html">XML 
-        with Jackson 2.0</a>
-      </li>
-      <li>
-        <a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_468.html">CSV 
-        with Jackson 2.0</a>
-      </li>
-    </ul></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Monday, March 26, 2012 10:19 PM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_466.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_466.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_466.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-   
             </div>
         </div>
 <div id="beta">
@@ -2825,7 +2606,7 @@ public class Value {
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_476.html">Forcing escaping of HTML characters (less-than, ampersand) in JSON using Jackson</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_474.html">Jackson Data-binding: Did I mention it can do YAML as well?</a></li>
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_476.html">Forcing escaping of HTML characters (less-than, ampersand) in JSON using Jackson</a></li>
                </ul>
           </div>
      </div>

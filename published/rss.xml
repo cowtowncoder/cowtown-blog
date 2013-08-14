@@ -6,10 +6,198 @@
 <description>Moo-able Type for Cowtowncoder.com</description>
 <language>en-US</language>
 <copyright>Copyright 2013</copyright>
-<lastBuildDate>Thu, 08 Aug 2013 23:23:54 -0700</lastBuildDate>
-<pubDate>Thu, 08 Aug 2013 23:23:54 -0700</pubDate>
+<lastBuildDate>Tue, 13 Aug 2013 23:18:05 -0700</lastBuildDate>
+<pubDate>Tue, 13 Aug 2013 23:18:05 -0700</pubDate>
 <generator>http://thingamablog.sf.net</generator>
 <docs>http://en.wikipedia.org/wiki/Rss</docs>
+
+<item>
+<title>On Jackson 2.2</title>
+<description>&lt;p&gt;
+      Here's another thing I need to write about, from my &amp;quot;todo bloklog&amp;quot; (blog 
+      backlog): overview of Jackson 2.2 release.&lt;br&gt;As usual, &lt;a href=&quot;http://wiki.fasterxml.com/JacksonRelease22&quot;&gt;official 
+      2.2 release notes&lt;/a&gt; are worth checking out for more detailed listing.&lt;br&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+      &lt;b&gt;1. Overview&lt;/b&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+      Jackson 2.2.0 was released in April, 2013 -- that is, four months ago -- 
+      and the latest patch version currently available is 2.2.2. It has proven 
+      a nice, stable release, and is currently used by frameworks such as &lt;a href=&quot;https://github.com/codahale/dropwizard&quot;&gt;DropWizard&lt;/a&gt; 
+      (my current favorite Java service platform). This is also the current 
+      stable version, as the development for 2.3 is not yet complete.
+    &lt;/p&gt;
+    &lt;p&gt;
+      As opposed to earlier releases (2.0 major, 2.1 minor) which overflowed 
+      with new functionality, focus with 2.2 was to really stabilize 
+      functionality and close as many open bugs as possible; especially ones 
+      related to new 2.x functionality.&lt;br&gt;Related to this, we wanted to 
+      improve parity (coverage of features to different parts; that is, that 
+      both serialization and deserialization support things; that 
+      Map/Node/POJO handling would be as similar as possible).
+    &lt;/p&gt;
+    &lt;p&gt;
+      &lt;b&gt;2. Enhancements to serializer, deserializer processing&lt;/b&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+      One problem area, with respect to writing custom handlers for structured 
+      non-POJO types (esp. container types: arrays, Collections, Maps), was 
+      that &lt;i&gt;BeanSerializerModifier&lt;/i&gt; and &lt;i&gt;BeanDeserializerModifier&lt;/i&gt; 
+      handlers could only be used for POJO types.&lt;br&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+      But custom handling is needed for container types too; and especially so 
+      when adding support for third-party libraries like Trove, Guava and 
+      HPPC. 2.2 extended these interfaces to allow post-processing 
+      serializers/deserializers for all types (also including scalar types).
+    &lt;/p&gt;
+    &lt;p&gt;
+      Ability to post-process (de)serializers of all types should reduce the 
+      need for writing custom (de)serializers from scratch: it is possible -- 
+      for example -- to take the default (de)serializer, and use 
+      post-processor to create (de)serializer that delegates to the standard 
+      version for certain cases, or for certain part of processing.
+    &lt;/p&gt;
+    &lt;p&gt;
+      &lt;b&gt;3. Converters &lt;/b&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+      The biggest new feature was adding annotation-based support for adding 
+      things called &amp;quot;Converters&amp;quot;. It can be seen as sort of further extension 
+      for the idea that one should be able to refine handling with small(er) 
+      component, instead of having to write custom handlers from scratch.
+    &lt;/p&gt;
+    &lt;p&gt;
+      The basic idea is simple: to serialize custom types (that Jackson would 
+      not know how to handle correctly) one can write converters that know how 
+      to take a custom type and convert it into an intermediate object that 
+      Jackson already knows how to serialize. This intermediate form could be 
+      simple &lt;i&gt;java.util.Map&lt;/i&gt; or &lt;i&gt;JsonNode &lt;/i&gt;(tree model), or even 
+      just another more traditional POJO.
+    &lt;/p&gt;
+    &lt;p&gt;
+      And for deserialization, do the reverse: let Jackson deserialize JSON 
+      into this intermediate type; and call converter to get to the custom 
+      type.
+    &lt;/p&gt;
+    &lt;p&gt;
+      Typically you will write one or two converters (one if you just need 
+      converter for either serialization or deserialization; two if both); and 
+      then either annotate the type that needs converter(s); or property of 
+      that type that needs converter(s):
+    &lt;/p&gt;
+    &lt;hr&gt;
+    
+
+    &lt;pre&gt;@JsonSerialize(converter=SerializationConverter.class)&lt;br&gt;@JsonDeserialize(converter=DeserializationConverter.class)&lt;br&gt;public class Point {&lt;br&gt;  private int x, y;&lt;br&gt;  public MyPoint(int x, int y) {&lt;br&gt;   this.x = x;&lt;br&gt;   this.y = y;&lt;br&gt;  }&lt;br&gt;  public int x() { return x; }&lt;br&gt;  public int y() { return y; } &lt;br&gt;}&lt;br&gt;&lt;br&gt;class SerializationConverter extends StdConverter&amp;lt;ConvertingBean, int[]&amp;gt; {&lt;br&gt;   public int[] convert(MyPoint p) {&lt;br&gt;     return new int[] { p.x(), p.y() };&lt;br&gt;   }&lt;br&gt;}&lt;br&gt;// similarly for DeserializationConverter: StdConverter is convenient base class&lt;/pre&gt;
+    &lt;div&gt;
+      &lt;hr&gt;
+      
+    &lt;/div&gt;
+    &lt;div&gt;
+      
+    &lt;/div&gt;
+    &lt;div&gt;
+      This feature was inspired by similar concept in JAXB, and should have 
+      been included a long time ago (actually, 2.1 already added internal 
+      support for converters; 2.2 just added annotation and connected the 
+      dots).
+    &lt;/div&gt;
+    &lt;div&gt;
+      
+    &lt;/div&gt;
+    &lt;div&gt;
+      One thing worth noting regarding above is that use of &lt;i&gt;StdConverter&lt;/i&gt; 
+      is strongly recommended; although you may directly implement Converter 
+      there is usually little need. Also note that although example associated 
+      converters directly with the type, you can also add them to property 
+      definition; this can be useful when dealing with third-party types 
+      (although you can also use mix-in annotations for those cases).
+    &lt;/div&gt;
+    &lt;p&gt;
+      &lt;b&gt;4. Android&lt;/b&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+      One &amp;quot;unusual&amp;quot; area for improvements was work to try to make Jackson run 
+      better on Android platform. Android has its set of quirks; and although 
+      Jackson was already working well from functionality perspective, there 
+      were obvious performance problems. This was especially true for 
+      data-binding, where initial startup overhead has been problematic.
+    &lt;/p&gt;
+    &lt;p&gt;
+      One simple improvement was elimination of file VERSION.txt. While it 
+      seemed harmless enough thing for J2SE, Android's package loader has 
+      surprising overhead when loading resources from within a jar -- at least 
+      on some versions, contents of jar are retained in memory basically 
+      DOUBLING amount of memory needed. 2.2 replaced text-file based version 
+      discovery with simple class generation (as part of build, that is, 
+      static source generation).
+    &lt;/p&gt;
+    &lt;p&gt;
+      Version 2.2 also contained significant amount of internal refactorings, 
+      to try to reduce startup overhead, by both simplifying set up of 
+      (de)serializers, and to try to improve lazy-loading aspects.&lt;br&gt;One 
+      challenge, however, is that we still do not have a good set of 
+      benchmarks to actually verify effects of these changes. So while the 
+      intent was to improve startup performance, we do not have solid numbers 
+      to report, yet.
+    &lt;/p&gt;
+    &lt;p&gt;
+      On plus side, there is some on-going work to do more performance 
+      measurements; and I hope to write more about these efforts once related 
+      work is made public (it is not yet; I am not driving these efforts, but 
+      have helped).
+    &lt;/p&gt;
+    &lt;p&gt;
+      &lt;b&gt;5. JAX-RS: additional caching&lt;/b&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+      Another area of performance improvements was that of JAX-RS provider. 
+      Earlier versions did reuse internal `ObjectMapper`, but had to do more 
+      per-call annotation processing. 2.2 added simple caching of results of 
+      annotation introspection, and should help reduce overhead.
+    &lt;/p&gt;
+    &lt;p&gt;
+      One other important change was structural: before 2.2, there were 
+      multiple separate github projects (three; one for JSON, another for 
+      Smile, third for XML). With 2.2 we now have a single Github project, &lt;a href=&quot;https://github.com/FasterXML/jackson-jaxrs-providers&quot;&gt;jackson-jaxrs-providers&lt;/a&gt;, 
+      with multiple Maven sub-projects that share code via a base package. 
+      This should simplify development, and reduce likelihood of getting cut'n 
+      paste errors.
+    &lt;/p&gt;
+    &lt;p&gt;
+      &lt;b&gt;6. AfterBurner becomes Production Ready&lt;/b&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+      One more big milestone concerned &lt;a href=&quot;https://github.com/FasterXML/jackson-module-afterburner&quot;&gt;Afterburner&lt;/a&gt; 
+      module (what is it? Check out &lt;a href=&quot;http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html&quot;&gt;this 
+      earlier entry&lt;/a&gt;). With a little help from my friends (special thanks 
+      to Steven Schlansker for his significant contributions!), all known 
+      issues were addressed and new checks added, such that we can now 
+      consider Afterburner production ready.
+    &lt;/p&gt;
+    &lt;p&gt;
+      Given that use of Afterburner can give you 30-50% boost in throughput, 
+      when using data-binding, it might be good time to check it out.
+    &lt;/p&gt;
+    &lt;p&gt;
+      
+    &lt;/p&gt;
+    &lt;p&gt;
+      
+    &lt;/p&gt;</description>
+<link>http://www.cowtowncoder.com/blog/archives/08-01-2013_08-31-2013.html#480</link>
+<guid>http://www.cowtowncoder.com/blog/archives/08-01-2013_08-31-2013.html#480</guid>
+
+<category>Java</category>
+
+<category>JSON</category>
+
+<category>Open Source</category>
+
+<pubDate>Tue, 13 Aug 2013 22:37:15 -0700</pubDate>
+</item>
 
 <item>
 <title>Brief History of Jackson the JSON processor</title>
@@ -2323,182 +2511,6 @@ public class HTMLCharacterEscapes extends CharacterEscapes
 <category>Open Source</category>
 
 <pubDate>Sat, 07 Apr 2012 13:51:28 -0700</pubDate>
-</item>
-
-<item>
-<title>Take your JSON processing to Mach 3 with Jackson 2.0, Afterburner</title>
-<description>&lt;p&gt;
-      (this is part on-going &amp;quot;Jackson 2.0&amp;quot; series, starting with &amp;quot;&lt;a href=&quot;/blog/archives/2012/03/entry_466.html&quot;&gt;Jackson 
-      2.0 released&lt;/a&gt;&amp;quot;)
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;1. Performance overhead of databinding&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      When using automatic data-binding Jackson offers, there is some amount 
-      of overhead compared to manually writing equivalent code that would use 
-      Jackson streaming/incremental parser and generator. But how overhead is 
-      there? The answer depends on multiple factors, including exactly how 
-      good is your hand-written code (there are a few non-obvious ways to 
-      optimize things, compared to data-binding where there is little 
-      configurability wrt performance).
-    &lt;/p&gt;
-    &lt;p&gt;
-      But looking at benchmarks such as &lt;a href=&quot;https://github.com/eishay/jvm-serializers/wiki&quot;&gt;jvm-serializers&lt;/a&gt;, 
-      one could estimate that it may take anywhere between 35% and 50% more 
-      time to serialize and deserialize POJOs, compared to highly tuned 
-      hand-written alternative. This is usually not enough to matter a lot, 
-      considering that JSON processing overhead is typically only a small 
-      portion of all processing done.
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;2. Where does overhead come?&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      There are multiple things that automatic data-binding has to do that 
-      hand-written alternatives do not. But at high level, there are really 
-      two main areas:
-    &lt;/p&gt;
-    &lt;ol&gt;
-      &lt;li&gt;
-        Configurability to produce/consume alternative representations; code 
-        that has to support multiple ways of doing things can not be as 
-        aggressively optimized by JVM and may need to keep more state around.
-      &lt;/li&gt;
-      &lt;li&gt;
-        Data access to POJOs is done dynamically using Reflection, instead of 
-        directly accessing field values or calling setters/getters
-      &lt;/li&gt;
-    &lt;/ol&gt;
-    &lt;p&gt;
-      While there isn't much that can be done for former, in general sense 
-      (especially since configurability and convenience are major reasons for 
-      popularity of data-binding), latter overhead is something that could be 
-      theoretically eliminated.
-    &lt;/p&gt;
-    &lt;p&gt;
-      How? By generating bytecode that does direct access to fields and calls 
-      to getters/setters (as well as for constructing new instances).
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;3. Project Afterburner&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      And this is where &lt;a href=&quot;https://github.com/FasterXML/jackson-module-afterburner&quot;&gt;Project 
-      Afterburner&lt;/a&gt; comes in. What it does really is as simple as generating 
-      byte code, dynamically, to mostly eliminate Reflection overhead. 
-      Implementation uses well-known lightweight bytecode library called &lt;a href=&quot;http://asm.ow2.org/&quot;&gt;ASM&lt;/a&gt;.
-    &lt;/p&gt;
-    &lt;p&gt;
-      Byte code is generated to:
-    &lt;/p&gt;
-    &lt;ol&gt;
-      &lt;li&gt;
-        Replace &amp;quot;Class.newInstance()&amp;quot; calls with equivalent call to 
-        zero-argument constructor (currently same is not done for 
-        multi-argument Creator methods)
-      &lt;/li&gt;
-      &lt;li&gt;
-        Replace Reflection-based field access (Field.set() / Field.get()) with 
-        equivalent field dereferencing
-      &lt;/li&gt;
-      &lt;li&gt;
-        Replace Reflection-based method calls (Method.invoke(...)) with 
-        equivalent direct calls
-      &lt;/li&gt;
-      &lt;li&gt;
-        For small subset of simple types (int, long, String, boolean), further 
-        streamline handling of serializers/deserializers to avoid auto-boxing
-      &lt;/li&gt;
-    &lt;/ol&gt;
-    &lt;p&gt;
-      It is worth noting that there are certain limitations to access: for 
-      example, unlike with Reflection, it is not possible to avoid visibility 
-      checks; which means that access to private fields and methods must still 
-      be done using Reflection.
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;4. Engage the Afterburner!&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      Using Afterburner is about as easy as it can be: you just create and 
-      register a module, and then use databinding as usual:
-    &lt;/p&gt;
-    &lt;hr&gt;
-    
-
-    &lt;pre&gt;Object mapper = new ObjectMapper()
-mapper.registerModule(new AfterburnerModule());&lt;br&gt;String json = mapper.writeValueAsString(value);&lt;br&gt;Value value = mapper.readValue(json, Value.class);&lt;br&gt;&lt;/pre&gt;
-    &lt;div&gt;
-      &lt;hr&gt;
-      absolutely nothing special there (note: for Maven dependency, downloads, 
-      go see the &lt;a href=&quot;https://github.com/FasterXML/jackson-module-afterburner&quot;&gt;project 
-      page&lt;/a&gt;).
-    &lt;/div&gt;
-    &lt;p&gt;
-      &lt;b&gt;5. How much faster?&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      Earlier I mentioned that Reflection is just one of overhead areas. In 
-      addition to general complexity from configurability, there are cases 
-      where general data-binding has to be done using simple loops, whereas 
-      manual code could use linear constructs. Given this, how much overhead 
-      remains after enabling Afterburner?
-    &lt;/p&gt;
-    &lt;p&gt;
-      As per jvm-serializers, more than 50% of speed difference between 
-      data-binding and manual variant are eliminated. That is, data-bind with 
-      afterburner is closer to manual variant than &amp;quot;vanilla&amp;quot; data-binding. 
-      There is still something like 20-25% additional time spent, compared to 
-      highest optimized cases; but results are definitely closer to optimal.
-    &lt;/p&gt;
-    &lt;p&gt;
-      Given that all you really have to do is to just add the module, register 
-      it, and see what happens, it just might make sense to take Afterburner 
-      for a test ride.
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;6. Disclaimer&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      While Afterburner has been used by a few Jackson users, it is still not 
-      very widely used -- after all, while it has been available since 1.8, in 
-      some form, it has not been advertised to users. This article can be 
-      considered an announcement of sort.
-    &lt;/p&gt;
-    &lt;p&gt;
-      Because of this, there may be rought edges; and if you are unlucky you 
-      might find one of two possible problems:
-    &lt;/p&gt;
-    &lt;ul&gt;
-      &lt;li&gt;
-        Get no performance improvement (which is likely due to Afterburner not 
-        covering some specific code path(s)), or
-      &lt;/li&gt;
-      &lt;li&gt;
-        Get a bytecode verification problem when a serializer/deserializer is 
-        being loaded
-      &lt;/li&gt;
-    &lt;/ul&gt;
-    &lt;p&gt;
-      latter case obviously being nastier. But on plus side, this should be 
-      obvious right away (and NOT after running for an hour); nor should there 
-      be a way for it to cause data losses or corruption; JVMs are rather good 
-      at verifying bytecode upon trying to load it.
-    &lt;/p&gt;
-    &lt;p&gt;
-      
-    &lt;/p&gt;</description>
-<link>http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html#470</link>
-<guid>http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html#470</guid>
-
-<category>Java</category>
-
-<category>JSON</category>
-
-<category>Performance</category>
-
-<pubDate>Fri, 06 Apr 2012 19:24:47 -0700</pubDate>
 </item>
 
 </channel>

@@ -43,6 +43,199 @@ window.google_analytics_uacct = "UA-140287-10";
 <!-- entry -->
 
    
+     <h2 class="date-header">Tuesday, August 13, 2013 </h2>
+<div class="entry" id="post-480">
+     <h3 class="entry-header">On Jackson 2.2</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Here's another thing I need to write about, from my &quot;todo bloklog&quot; (blog 
+      backlog): overview of Jackson 2.2 release.<br>As usual, <a href="http://wiki.fasterxml.com/JacksonRelease22">official 
+      2.2 release notes</a> are worth checking out for more detailed listing.<br>
+    </p>
+    <p>
+      <b>1. Overview</b>
+    </p>
+    <p>
+      Jackson 2.2.0 was released in April, 2013 -- that is, four months ago -- 
+      and the latest patch version currently available is 2.2.2. It has proven 
+      a nice, stable release, and is currently used by frameworks such as <a href="https://github.com/codahale/dropwizard">DropWizard</a> 
+      (my current favorite Java service platform). This is also the current 
+      stable version, as the development for 2.3 is not yet complete.
+    </p>
+    <p>
+      As opposed to earlier releases (2.0 major, 2.1 minor) which overflowed 
+      with new functionality, focus with 2.2 was to really stabilize 
+      functionality and close as many open bugs as possible; especially ones 
+      related to new 2.x functionality.<br>Related to this, we wanted to 
+      improve parity (coverage of features to different parts; that is, that 
+      both serialization and deserialization support things; that 
+      Map/Node/POJO handling would be as similar as possible).
+    </p>
+    <p>
+      <b>2. Enhancements to serializer, deserializer processing</b>
+    </p>
+    <p>
+      One problem area, with respect to writing custom handlers for structured 
+      non-POJO types (esp. container types: arrays, Collections, Maps), was 
+      that <i>BeanSerializerModifier</i> and <i>BeanDeserializerModifier</i> 
+      handlers could only be used for POJO types.<br>
+    </p>
+    <p>
+      But custom handling is needed for container types too; and especially so 
+      when adding support for third-party libraries like Trove, Guava and 
+      HPPC. 2.2 extended these interfaces to allow post-processing 
+      serializers/deserializers for all types (also including scalar types).
+    </p>
+    <p>
+      Ability to post-process (de)serializers of all types should reduce the 
+      need for writing custom (de)serializers from scratch: it is possible -- 
+      for example -- to take the default (de)serializer, and use 
+      post-processor to create (de)serializer that delegates to the standard 
+      version for certain cases, or for certain part of processing.
+    </p>
+    <p>
+      <b>3. Converters </b>
+    </p>
+    <p>
+      The biggest new feature was adding annotation-based support for adding 
+      things called &quot;Converters&quot;. It can be seen as sort of further extension 
+      for the idea that one should be able to refine handling with small(er) 
+      component, instead of having to write custom handlers from scratch.
+    </p>
+    <p>
+      The basic idea is simple: to serialize custom types (that Jackson would 
+      not know how to handle correctly) one can write converters that know how 
+      to take a custom type and convert it into an intermediate object that 
+      Jackson already knows how to serialize. This intermediate form could be 
+      simple <i>java.util.Map</i> or <i>JsonNode </i>(tree model), or even 
+      just another more traditional POJO.
+    </p>
+    <p>
+      And for deserialization, do the reverse: let Jackson deserialize JSON 
+      into this intermediate type; and call converter to get to the custom 
+      type.
+    </p>
+    <p>
+      Typically you will write one or two converters (one if you just need 
+      converter for either serialization or deserialization; two if both); and 
+      then either annotate the type that needs converter(s); or property of 
+      that type that needs converter(s):
+    </p>
+    <hr>
+    
+
+    <pre>@JsonSerialize(converter=SerializationConverter.class)<br>@JsonDeserialize(converter=DeserializationConverter.class)<br>public class Point {<br>  private int x, y;<br>  public MyPoint(int x, int y) {<br>   this.x = x;<br>   this.y = y;<br>  }<br>  public int x() { return x; }<br>  public int y() { return y; } <br>}<br><br>class SerializationConverter extends StdConverter&lt;ConvertingBean, int[]&gt; {<br>   public int[] convert(MyPoint p) {<br>     return new int[] { p.x(), p.y() };<br>   }<br>}<br>// similarly for DeserializationConverter: StdConverter is convenient base class</pre>
+    <div>
+      <hr>
+      
+    </div>
+    <div>
+      
+    </div>
+    <div>
+      This feature was inspired by similar concept in JAXB, and should have 
+      been included a long time ago (actually, 2.1 already added internal 
+      support for converters; 2.2 just added annotation and connected the 
+      dots).
+    </div>
+    <div>
+      
+    </div>
+    <div>
+      One thing worth noting regarding above is that use of <i>StdConverter</i> 
+      is strongly recommended; although you may directly implement Converter 
+      there is usually little need. Also note that although example associated 
+      converters directly with the type, you can also add them to property 
+      definition; this can be useful when dealing with third-party types 
+      (although you can also use mix-in annotations for those cases).
+    </div>
+    <p>
+      <b>4. Android</b>
+    </p>
+    <p>
+      One &quot;unusual&quot; area for improvements was work to try to make Jackson run 
+      better on Android platform. Android has its set of quirks; and although 
+      Jackson was already working well from functionality perspective, there 
+      were obvious performance problems. This was especially true for 
+      data-binding, where initial startup overhead has been problematic.
+    </p>
+    <p>
+      One simple improvement was elimination of file VERSION.txt. While it 
+      seemed harmless enough thing for J2SE, Android's package loader has 
+      surprising overhead when loading resources from within a jar -- at least 
+      on some versions, contents of jar are retained in memory basically 
+      DOUBLING amount of memory needed. 2.2 replaced text-file based version 
+      discovery with simple class generation (as part of build, that is, 
+      static source generation).
+    </p>
+    <p>
+      Version 2.2 also contained significant amount of internal refactorings, 
+      to try to reduce startup overhead, by both simplifying set up of 
+      (de)serializers, and to try to improve lazy-loading aspects.<br>One 
+      challenge, however, is that we still do not have a good set of 
+      benchmarks to actually verify effects of these changes. So while the 
+      intent was to improve startup performance, we do not have solid numbers 
+      to report, yet.
+    </p>
+    <p>
+      On plus side, there is some on-going work to do more performance 
+      measurements; and I hope to write more about these efforts once related 
+      work is made public (it is not yet; I am not driving these efforts, but 
+      have helped).
+    </p>
+    <p>
+      <b>5. JAX-RS: additional caching</b>
+    </p>
+    <p>
+      Another area of performance improvements was that of JAX-RS provider. 
+      Earlier versions did reuse internal `ObjectMapper`, but had to do more 
+      per-call annotation processing. 2.2 added simple caching of results of 
+      annotation introspection, and should help reduce overhead.
+    </p>
+    <p>
+      One other important change was structural: before 2.2, there were 
+      multiple separate github projects (three; one for JSON, another for 
+      Smile, third for XML). With 2.2 we now have a single Github project, <a href="https://github.com/FasterXML/jackson-jaxrs-providers">jackson-jaxrs-providers</a>, 
+      with multiple Maven sub-projects that share code via a base package. 
+      This should simplify development, and reduce likelihood of getting cut'n 
+      paste errors.
+    </p>
+    <p>
+      <b>6. AfterBurner becomes Production Ready</b>
+    </p>
+    <p>
+      One more big milestone concerned <a href="https://github.com/FasterXML/jackson-module-afterburner">Afterburner</a> 
+      module (what is it? Check out <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html">this 
+      earlier entry</a>). With a little help from my friends (special thanks 
+      to Steven Schlansker for his significant contributions!), all known 
+      issues were addressed and new checks added, such that we can now 
+      consider Afterburner production ready.
+    </p>
+    <p>
+      Given that use of Afterburner can give you 30-50% boost in throughput, 
+      when using data-binding, it might be good time to check it out.
+    </p>
+    <p>
+      
+    </p>
+    <p>
+      
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, August 13, 2013 10:37 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
      <h2 class="date-header">Thursday, August 08, 2013 </h2>
 <div class="entry" id="post-479">
      <h3 class="entry-header">Brief History of Jackson the JSON processor</h3>
@@ -2544,79 +2737,6 @@ static class Writer&lt;E&gt; extends DataWriter&lt;E&gt;
      </div>
 </div>
    
-     <h2 class="date-header">Monday, April 04, 2011 </h2>
-<div class="entry" id="post-454">
-     <h3 class="entry-header">Introducing "jvm-compressor-benchmark" project</h3>
-     
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      I recently started one new open source project; this time being inspired 
-      by success of another OS project I had been involved in, project is &quot;<a href="https://github.com/eishay/jvm-serializers/wiki">jvm-serializers</a>&quot; 
-      benchmark originally started by Eishay and built by a community of java 
-      databinder/serializer experts. What has been great with this project has 
-      been amount of energy it seemed ot feed back to development of 
-      serializers: highly visible competition for best performance seems to 
-      have improved efficiency of libraries a lot. I only wish we had 
-      historical benchmark data to compare to see exactly how far have the 
-      fastest Java serializers come.
-    </p>
-    <p>
-      Anyway, I figured that there are other groups of libraries where high 
-      performance matters, but where there is lack of actual solid 
-      benchmarking information. So while there are a few compression 
-      performance benchmarks, they are often non-applicable for Java 
-      developers: partly because they just compare native compressor codecs, 
-      and partly because focus is more often only on space-efficiency (how 
-      much compression is achieved) with little consideration of performance 
-      of compression. The last part is particularly frustrating as in many use 
-      cases there is significant trade-off between space and time efficiency 
-      (compression rate vs time used for compression).
-    </p>
-    <p>
-      So, this is where the new project -- &quot;<a href="https://github.com/ning/jvm-compressor-benchmark">jvm-compressor-benchmark</a>&quot; 
-      -- comes from. I hope it will allow fair comparison of compression 
-      codecs available on JVM, to be used by Java and other JVM lagnuages; and 
-      also bring in some friendly competition between developers of 
-      compression codecs.
-    </p>
-    <p>
-      First version compares half a dozen of compression formats and codecs, 
-      from the venerable deflate/gzip (which offers pretty good compression 
-      ratio with decent speed) to higher-compression-but-slower-operation 
-      alternatives (bzip2) and lower-compression-but-very-fast alternatives 
-      like <a href="https://github.com/ning/compress">lzf</a>, <a href="http://www.quicklz.com/">quicklz</a> 
-      and the new kid on the block, <a href="http://code.google.com/p/snappy-java/">Snappy</a> 
-      (via JNI).
-    </p>
-    <p>
-      And although the best way to evaluate results is to run tests on your 
-      machine, using data sets you care about (which I strongly encourage!), <a href="https://github.com/ning/jvm-compressor-benchmark/wiki">Project 
-      wiki</a> does have some pretty diagrams for tests run on &quot;standard&quot; data 
-      sets gathered from the web. 
-    </p>
-    <p>
-      Anyway: please check the project out -- at the very least it should give 
-      you an idea of how many options there are above and beyond basic 
-      JDK-provided gzip. 
-    </p>
-    <p>
-      ps. Contributions are obviously also welcome -- anyone willing to tackle 
-      Java version of 7-zip's LZMA, for example, would be most welcome!
-    </p></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Monday, April 04, 2011 10:48 PM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/04/entry_454.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/04/entry_454.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/04/entry_454.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-   
             </div>
         </div>
 <div id="beta">
@@ -2660,7 +2780,7 @@ static class Writer&lt;E&gt; extends DataWriter&lt;E&gt;
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html">Doing actual non-blocking, incremental HTTP access with async-http-client</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_474.html">Jackson Data-binding: Did I mention it can do YAML as well?</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html">Java Type Erasure not a Total Loss -- use Java Classmate for resolving generic signatures</a></li>
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html">Doing actual non-blocking, incremental HTTP access with async-http-client</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_474.html">Jackson Data-binding: Did I mention it can do YAML as well?</a></li>
                </ul>
           </div>
      </div>
