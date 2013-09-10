@@ -43,6 +43,68 @@ window.google_analytics_uacct = "UA-140287-10";
 <!-- entry -->
 
    
+     <h2 class="date-header">Tuesday, September 10, 2013 </h2>
+<div class="entry" id="post-481">
+     <h3 class="entry-header">Java Classmate 0.9 released -- getting ready for 1.0</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      <b>Getting close to Java Classmate 1.0: version 0.9 now out</b>!
+    </p>
+    <p>
+      <a href="https://github.com/cowtowncoder/java-classmate">Java Classmate</a> 
+      is a highly specialized library that can be used to properly and 
+      completely resolve type information about Java generic types used in 
+      field and method signatures. This is information that is not, oddly 
+      enough, easily accessible via JDK -- if you try figure out, for example, 
+      what is actual return type for method 'IntegerProcessor.foo()' below:
+    </p>
+    <pre>  public class MyStringKeyMap&lt;V&gt; extends Map&lt;String,V&gt; { }
+  public class Processor&lt;T&gt; {
+    public T foo();
+  }
+  public class IntegerProcessor extends Processor&lt;MyStringKeyMap&lt;Integer&gt;&gt; { }</pre>
+    <p>
+      you are in for quite a ride. As a programmer, you should be able to 
+      figure out that it is equivalent to <b>Map&lt;String,Integer&gt;</b>. 
+      But dynamically, from your code, how would you figure it out? I won't 
+      bother you with all the complications: for more background feel free to 
+      read &quot;<a href="http://www.cowtowncoder.com/blog/archives/2010/12/entry_436.html">Why 
+      'java.lang.reflect.Type' does not cut it</a>&quot;.<br>And my suggested 
+      solution is Java Classmate, as per &quot;<a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html">Use 
+      Java Classmate for resolving generic signatures</a>&quot;.
+    </p>
+    <p>
+      <b>Last change to test</b>
+    </p>
+    <p>
+      Java Classmate library has been used by quite a few frameworks, such as 
+      Hibernate and JBoss, and considered for inclusion by others (Netty uses 
+      code adopted from JCM, to avoid adding external dependencies; Jackson 
+      uses &quot;predecessor&quot;, and this is code from which JVM was originally 
+      built). There hasn't been much activity for past 12 months; no new bug 
+      reports, and things appear to Just Work, which is great.
+    </p>
+    <p>
+      So at this point version 0.9 is released, and I am hoping to get some 
+      last piece of feedback before releasing the &quot;official&quot; 1.0 version. 
+      Please let me know of any issues; the best way is via project's Github <a href="https://github.com/cowtowncoder/java-classmate/issues">issue 
+      tracker</a>.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, September 10, 2013 10:48 AM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
      <h2 class="date-header">Tuesday, August 13, 2013 </h2>
 <div class="entry" id="post-480">
      <h3 class="entry-header">On Jackson 2.2</h3>
@@ -2481,205 +2543,6 @@ mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeVal
      </div>
 </div>
    
-     <h2 class="date-header"> </h2>
-<div class="entry" id="post-469">
-     <h3 class="entry-header">Notes on upgrading Jackson from 1.9 to 2.0</h3>
-     
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      If you have existing code that uses Jackson version 1.x, and you would 
-      like to see how to upgrade to 2.0, there isn't much documentation around 
-      yet; although <a href="http://wiki.fasterxml.com/JacksonRelease20">Jackson 
-      2.0 release</a> page does outline all the major changes that were made.
-    </p>
-    <p>
-      So let's try to see what kind of steps are typically needed (note: this 
-      is based on Jackson 2.0 upgrade experiences by <a href="https://twitter.com/#!/pamonrails">@pamonrails</a> 
-      -- thanks Pierre!)
-    </p>
-    <p>
-      <b>0. Pre-requisite: start with 1.9</b>
-    </p>
-    <p>
-      At this point, I assume code to upgrade works with Jackson 1.9, and does 
-      not use any deprecated interfaces (many methods and some classes were 
-      deprecated during course of 1.x; all deprecated things went away with 
-      2.0). So if your code is using an older 1.x version, the first step is 
-      usually to upgrade to 1.9, as this simplifies later steps.
-    </p>
-    <p>
-      <b>1. Update Maven / JAR dependencies</b>
-    </p>
-    <p>
-      The first thing to do is to upgrade jars. Depending on your build 
-      system, you can either get jars from <a href="http://wiki.fasterxml.com/JacksonDownload">Jackson 
-      Download</a> page, or update Maven dependencies. New Maven dependencies 
-      are:
-    </p>
-    <pre>
-&lt;dependency&gt;
-  &lt;groupId&gt;com.fasterxml.jackson.core&lt;/groupId&gt;
-  &lt;artifactId&gt;jackson-annotations&lt;/artifactId&gt;
-  &lt;version&gt;2.0.0&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-  &lt;groupId&gt;com.fasterxml.jackson.core&lt;/groupId&gt;
-  &lt;artifactId&gt;jackson-core&lt;/artifactId&gt;
-  &lt;version&gt;2.0.0&lt;/version&gt;
-&lt;/dependency&gt;<br>&lt;dependency&gt;
-  &lt;groupId&gt;com.fasterxml.jackson.core&lt;/groupId&gt;
-  &lt;artifactId&gt;jackson-databind&lt;/artifactId&gt;
-  &lt;version&gt;2.0.0&lt;/version&gt;
-&lt;/dependency&gt;</pre>
-    <p>
-      The main thing to note is that instead of 2 jars (&quot;core&quot;, &quot;mapper&quot;), 
-      there are now 3: former core has been split into separate &quot;annotations&quot; 
-      package and remaining &quot;core&quot;; latter contains streaming/incremental 
-      parser/generator components. And &quot;databind&quot; is a direct replacement of 
-      &quot;mapper&quot; jar.
-    </p>
-    <p>
-      Similarly, you will need to update dependencies to supporting jars like:
-    </p>
-    <ul>
-      <li>
-        Mr Bean: com.fasterxml.jackson.module / jackson-module-mrbean
-      </li>
-      <li>
-        Smile binary JSON format: com.fasterxml.jackson.dataformat / 
-        jackson-dataformat-smile
-      </li>
-      <li>
-        JAX-RS JSON provider: com.fasterxml.jackson.jaxrs / 
-        jackson-jaxrs-json-provider
-      </li>
-      <li>
-        JAXB annotation support (&quot;xc&quot;): com.fasterxml.jackson.module / 
-        jackson-module-jaxb-annotations
-      </li>
-    </ul>
-    <p>
-      these, and many many more extension modules have their own project pages 
-      under <a href="https://github.com/FasterXML/">FasterXML Git repo</a>.
-    </p>
-    <p>
-      <b>2. Import statements</b>
-    </p>
-    <p>
-      Since Jackson 2.0 code lives in Java packages, you will need to change 
-      import statements. Although most changes are mechanical, there isn't 
-      strict set of mappings.
-    </p>
-    <p>
-      The way I have done this is to simply use an IDE like Eclipse, and 
-      remove all invalid import statements; and then use Eclipse functionality 
-      to find new packages. Typical import changes include:
-    </p>
-    <ul>
-      <li>
-        Core types: org.codehaus.jackson.JsonFactory/JsonParser/JsonGenerator 
-        -&gt; com.fasterxml.jackson.core.JsonFactory/JsonParser/JsonGenerator
-      </li>
-      <li>
-        Databind types: org.codehaus.jackson.map.ObjectMapper -&gt; 
-        com.fasterxml.jackson.databind.ObjectMapper
-      </li>
-      <li>
-        Standard annotations: org.codehaus.jackson.annotate.JsonProperty -&gt; 
-        com.fasterxml.jackson.annotation.JsonProperty
-      </li>
-    </ul>
-    <p>
-      It is often convenient to just use wildcards imports for main categories 
-      (com.fasterxml.jackson.core.*, com.fasterxml.jackson.databind.*, 
-      com.fasterxml.jackson.annotation.*)
-    </p>
-    <p>
-      <b>3. SerializationConfig.Feature, DeserializationConfig.Feature</b>
-    </p>
-    <p>
-      The next biggest change was that of refactoring on/off Features, 
-      formerly defined as inner Enums of SerializationConfig and 
-      DeserializationConfig classes. For 2.0, enums were moved to separate 
-      stand-alone enums:
-    </p>
-    <ol>
-      <li>
-        <i>DeserializationFeature</i> contains most of entries from former 
-        DeserializationConfig.Feature
-      </li>
-      <li>
-        <i>SerializationFeature</i> contains most of entries from former 
-        SerializationConfig.Feature
-      </li>
-    </ol>
-    <p>
-      Entries that were NOT moved along are ones that were shared by both, and 
-      instead were added into new <i>MapperFeature</i> enumeration, for 
-      example:
-    </p>
-    <ul>
-      <li>
-        SerializationConfig.Feature.DEFAULT_VIEW_INCLUSION became 
-        MapperFeature.DEFAULT_VIEW_INCLUSION
-      </li>
-    </ul>
-    <p>
-      <b>4. Tree model method name changes (JsonNode)</b>
-    </p>
-    <p>
-      Although many methods (and some classes) were renamed here and there, 
-      mostly these were one-offs. But one area where major naming changes were 
-      done was with Tree Model -- this because 1.x names were found to be 
-      rather unwieldy and unnecessarily verbose. So we decided that it would 
-      make sense to try to do a &quot;big bang&quot; name change with 2.0, to get to a 
-      clean(er) baseline.
-    </p>
-    <p>
-      Changes made were mostly of following types:
-    </p>
-    <ul>
-      <li>
-        <i>getXxxValue</i>() changes to <i>xxValue</i>(): getTextValue() -&gt; 
-        textValue(), getFieldNames() -&gt; fieldNames() and so on.
-      </li>
-      <li>
-        getXxxAsYyy() changes to asYyy(): getValueAsText() -&gt; asText()<b>
-</b>      </li>
-    </ul>
-    <p>
-      <b>5. Miscellaneous</b>
-    </p>
-    <p>
-      Some classes were removed:
-    </p>
-    <ul>
-      <li>
-        CustomSerializerFactory, CustomDeserializerFactory: should instead use 
-        Module (like SimpleModule) for adding custom serializers, deserializers
-      </li>
-    </ul>
-    <p>
-      <b>6. What else?</b>
-    </p>
-    <p>
-      This is definitely an incomplete list. Please let me know what I missed, 
-      when you try upgrading!
-    </p></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Friday, April 06, 2012 9:33 AM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-   
             </div>
         </div>
 <div id="beta">
@@ -2723,7 +2586,7 @@ mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeVal
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html">Doing actual non-blocking, incremental HTTP access with async-http-client</a></li>
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html">Java Classmate 0.9 released -- getting ready for 1.0</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li>
                </ul>
           </div>
      </div>
@@ -2776,6 +2639,8 @@ mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeVal
           <h2 class="module-header">Archives</h2>
           <div class="module-content">
                <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2013_09-30-2013.html'>September 2013</a></li>
               
                 <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2013_08-31-2013.html'>August 2013</a></li>
               

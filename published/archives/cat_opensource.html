@@ -43,6 +43,68 @@ window.google_analytics_uacct = "UA-140287-10";
 <!-- entry -->
 
    
+     <h2 class="date-header">Tuesday, September 10, 2013 </h2>
+<div class="entry" id="post-481">
+     <h3 class="entry-header">Java Classmate 0.9 released -- getting ready for 1.0</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      <b>Getting close to Java Classmate 1.0: version 0.9 now out</b>!
+    </p>
+    <p>
+      <a href="https://github.com/cowtowncoder/java-classmate">Java Classmate</a> 
+      is a highly specialized library that can be used to properly and 
+      completely resolve type information about Java generic types used in 
+      field and method signatures. This is information that is not, oddly 
+      enough, easily accessible via JDK -- if you try figure out, for example, 
+      what is actual return type for method 'IntegerProcessor.foo()' below:
+    </p>
+    <pre>  public class MyStringKeyMap&lt;V&gt; extends Map&lt;String,V&gt; { }
+  public class Processor&lt;T&gt; {
+    public T foo();
+  }
+  public class IntegerProcessor extends Processor&lt;MyStringKeyMap&lt;Integer&gt;&gt; { }</pre>
+    <p>
+      you are in for quite a ride. As a programmer, you should be able to 
+      figure out that it is equivalent to <b>Map&lt;String,Integer&gt;</b>. 
+      But dynamically, from your code, how would you figure it out? I won't 
+      bother you with all the complications: for more background feel free to 
+      read &quot;<a href="http://www.cowtowncoder.com/blog/archives/2010/12/entry_436.html">Why 
+      'java.lang.reflect.Type' does not cut it</a>&quot;.<br>And my suggested 
+      solution is Java Classmate, as per &quot;<a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html">Use 
+      Java Classmate for resolving generic signatures</a>&quot;.
+    </p>
+    <p>
+      <b>Last change to test</b>
+    </p>
+    <p>
+      Java Classmate library has been used by quite a few frameworks, such as 
+      Hibernate and JBoss, and considered for inclusion by others (Netty uses 
+      code adopted from JCM, to avoid adding external dependencies; Jackson 
+      uses &quot;predecessor&quot;, and this is code from which JVM was originally 
+      built). There hasn't been much activity for past 12 months; no new bug 
+      reports, and things appear to Just Work, which is great.
+    </p>
+    <p>
+      So at this point version 0.9 is released, and I am hoping to get some 
+      last piece of feedback before releasing the &quot;official&quot; 1.0 version. 
+      Please let me know of any issues; the best way is via project's Github <a href="https://github.com/cowtowncoder/java-classmate/issues">issue 
+      tracker</a>.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, September 10, 2013 10:48 AM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
      <h2 class="date-header">Tuesday, August 13, 2013 </h2>
 <div class="entry" id="post-480">
      <h3 class="entry-header">On Jackson 2.2</h3>
@@ -2565,178 +2627,6 @@ static class Writer&lt;E&gt; extends DataWriter&lt;E&gt;
      </div>
 </div>
    
-     <h2 class="date-header">Wednesday, September 28, 2011 </h2>
-<div class="entry" id="post-461">
-     <h3 class="entry-header">Advanced filtering with Jackson, Json Filters</h3>
-     
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      I wrote a bit earlier on &quot;<a href="/blog/archives/2011/02/entry_443.html">filtering 
-      properties with Jackson</a>&quot;. While it was comprehensive in that all 
-      main methods of filtering were covered, there wasn't much depth. 
-      Specifically, only very basic usage of Json Filters (<i>@JsonFilter</i> 
-      annotation, <i>SimpleFilterProvider</i> as provider) was considered. 
-      This approach does allow more dynamic filtering than, say, <i>@JsonView</i>, 
-      but it is still somewhat limited. So let's consider more advanced 
-      customizability.
-    </p>
-    <p>
-      <b>1. Refresher on Json Filters</b>
-    </p>
-    <p>
-      Ok, so the basic idea with Json Filters is that:
-    </p>
-    <ol>
-      <li>
-        Classes can have an associated Filter Id, which defines logical filter 
-        to use.
-      </li>
-      <li>
-        A provider is needed to get the actual filter instance to use, given 
-        id: this will be configured by assigning a FilterProvider (such as 
-        'SimpleFilterProvider') to ObjectMapper or ObjectWriter.
-      </li>
-      <li>
-        Jackson will dynamically (and efficiently) resolve filter given class 
-        uses, dynamically, allowing per-call reconfiguration of filtering.
-      </li>
-    </ol>
-    <p>
-      From this it is clear that there are 2 main things you can configure: 
-      mechanism that is used to find Filter id of a given class, and mechanism 
-      used for mapping this id to actual filter used (implementation of which 
-      can be as complicated as you want).
-    </p>
-    <p>
-      So let's have a look at both parts.
-    </p>
-    <p>
-      <b>2. Configuring mapping from id to filter instance</b>
-    </p>
-    <p>
-      Of mechanisms, latter one may be easier to understand and use: one just 
-      has to implement '<i>FilterProvider</i>', which has but one method to 
-      implement:
-    </p>
-    <pre>  public abstract class FilterProvider {
-    public abstract BeanPropertyFilter findFilter(Object filterId);
-  }</pre>
-    <p>
-      given this, 'SimpleFilterProvider' is little more than a <i>Map&lt;String,BeanPropertyFilter&gt;</i>, 
-      except for adding couple of convenience factory methods that build 
-      'SimpleBeanPropertyFilter' instances given property names, so you 
-      typically just instantiate one with calls like:
-    </p>
-    <pre>  SimpleBeanPropertyFilter filter = SimpleBeanPropertyFilter.filterOutAllExcept(&quot;a&quot;));</pre>
-    <p>
-      which would out all properties except for one named &quot;a&quot;. This filter is 
-      then configured with ObjectMapper like so:
-    </p>
-    <pre>  FilterProvider fp = new SimpleFilterProvider().addFilter(&quot;onlyAFilter&quot;, filter);
-  objectMapper.writer(fp).writeValueAsString(pojo);</pre>
-    <p>
-      which would, then, apply to any Java type configured to use filter with 
-      id &quot;onlyAFilter&quot;.
-    </p>
-    <p>
-      <b>3. Configuring discovery of filter id</b>
-    </p>
-    <p>
-      From above example we know we need to indicate classes that are to use 
-      our &quot;onlyAFilter&quot;. The default mechanism is to use:
-    </p>
-    <pre>  @JsonFilter(&quot;onlyAFilter&quot;)
-  public class FilteredPOJO {
-    //...
-  }</pre>
-    <p>
-      But this is just the default. How so? The way Jackson figures out its 
-      annotation-based configuration is actually indirect, and fully 
-      customizable: all interaction is through configured '<i>AnnotationIntrospector'</i> 
-      object, which amongst other things defines this method:
-    </p>
-    <pre>  public Object findFilterId(AnnotatedClass ac);</pre>
-    <p>
-      which is called when serializer needs to determine id of the filter to 
-      apply (if any) for given class. Since the default implementation 
-      (org.codehaus.jackson.map.introspect.JacksonAnnotationIntrospector) has 
-      everything else working fine, what we can do is to sub-class it and 
-      override this method.<br>For example:
-    </p>
-    <pre>  public class MyFilteringIntrospector extends JacksonAnnotationIntrospector
-  {
-    @Override
-    public Object findFilterId(AnnotatedClass ac) {
-      // First, let's consider @JsonFilter by calling superclass
-      Object id = super.findFilterId(ac);
-      // but if not found, use our own heuristic; say, just use class name as filter id, if there's &quot;Filter&quot; in name:
-      if (id == null) {
-        String name = ac.getName();
-        if (name.indexOf(&quot;Filter&quot;) &gt;= 0) {
-          id = name;
-        }
-      }
-      return id;
-    }
-  }</pre>
-    <p>
-      Above functionality is just to show what is possible, not that it makes 
-      sense. Alternatively you could of course define your own annotations to 
-      check; or have List of known class names, check class definition or 
-      interfaces type implements. The main point is just that you are not 
-      limited to using <i>@JsonFilter</i> annotation, but can use pretty much 
-      any logic you want, within limits of your coding skills.
-    </p>
-    <p>
-      The only caveat is that the resolution from Class to matching id is only 
-      guaranteed to be called once per ObjectMapper; so any variation in 
-      filtering of specific class needs to happen at either mapping of id to 
-      filter, or within filter itself.
-    </p>
-    <p>
-      <b>4. Don't be afraid of sub-classing (Jackson)AnnotationIntrospector</b>
-    </p>
-    <p>
-      Actually, the key take away might as well be the fact that 
-      AnnotationIntrospector is designed to be customizable. It was initially 
-      created to allow easy reuse of JAXB annotations (via <i>JAXBAnnotationIntrospector</i>; 
-      combining things with <i>AnnotationIntrospector.Pair</i>); but it is 
-      also a very powerful general-purpose customization mechanism. But at 
-      this point quite underused one at that.
-    </p>
-    <p>
-      <b>5. Addendum</b>
-    </p>
-    <p>
-      Some additional notes based on feedback I received:
-    </p>
-    <ul>
-      <li>
-        Custom <i>BeanPropertyFilter</i> implementations are obviously 
-        powerful too: not only can they completely change what (if anything) 
-        gets written for property, they can base this on all configuration 
-        accessible via <i>SerializerProvider</i> which is passed to 
-        serializeAsField(): for example, it can check to see what 
-        serialization view is available by calling '<i>provider.getSerializationView()</i>'.
-      </li>
-    </ul>
-    <p>
-      
-    </p></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Wednesday, September 28, 2011 7:38 PM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/09/entry_461.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/09/entry_461.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/09/entry_461.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-   
             </div>
         </div>
 <div id="beta">
@@ -2780,7 +2670,7 @@ static class Writer&lt;E&gt; extends DataWriter&lt;E&gt;
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html">Doing actual non-blocking, incremental HTTP access with async-http-client</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_474.html">Jackson Data-binding: Did I mention it can do YAML as well?</a></li>
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html">Java Classmate 0.9 released -- getting ready for 1.0</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html">Doing actual non-blocking, incremental HTTP access with async-http-client</a></li>
                </ul>
           </div>
      </div>
@@ -2833,6 +2723,8 @@ static class Writer&lt;E&gt; extends DataWriter&lt;E&gt;
           <h2 class="module-header">Archives</h2>
           <div class="module-content">
                <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2013_09-30-2013.html'>September 2013</a></li>
               
                 <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/08-01-2013_08-31-2013.html'>August 2013</a></li>
               

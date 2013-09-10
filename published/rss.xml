@@ -6,10 +6,65 @@
 <description>Moo-able Type for Cowtowncoder.com</description>
 <language>en-US</language>
 <copyright>Copyright 2013</copyright>
-<lastBuildDate>Tue, 13 Aug 2013 23:18:05 -0700</lastBuildDate>
-<pubDate>Tue, 13 Aug 2013 23:18:05 -0700</pubDate>
+<lastBuildDate>Tue, 10 Sep 2013 11:00:52 -0700</lastBuildDate>
+<pubDate>Tue, 10 Sep 2013 11:00:52 -0700</pubDate>
 <generator>http://thingamablog.sf.net</generator>
 <docs>http://en.wikipedia.org/wiki/Rss</docs>
+
+<item>
+<title>Java Classmate 0.9 released -- getting ready for 1.0</title>
+<description>&lt;p&gt;
+      &lt;b&gt;Getting close to Java Classmate 1.0: version 0.9 now out&lt;/b&gt;!
+    &lt;/p&gt;
+    &lt;p&gt;
+      &lt;a href=&quot;https://github.com/cowtowncoder/java-classmate&quot;&gt;Java Classmate&lt;/a&gt; 
+      is a highly specialized library that can be used to properly and 
+      completely resolve type information about Java generic types used in 
+      field and method signatures. This is information that is not, oddly 
+      enough, easily accessible via JDK -- if you try figure out, for example, 
+      what is actual return type for method 'IntegerProcessor.foo()' below:
+    &lt;/p&gt;
+    &lt;pre&gt;  public class MyStringKeyMap&amp;lt;V&amp;gt; extends Map&amp;lt;String,V&amp;gt; { }
+  public class Processor&amp;lt;T&amp;gt; {
+    public T foo();
+  }
+  public class IntegerProcessor extends Processor&amp;lt;MyStringKeyMap&amp;lt;Integer&amp;gt;&amp;gt; { }&lt;/pre&gt;
+    &lt;p&gt;
+      you are in for quite a ride. As a programmer, you should be able to 
+      figure out that it is equivalent to &lt;b&gt;Map&amp;lt;String,Integer&amp;gt;&lt;/b&gt;. 
+      But dynamically, from your code, how would you figure it out? I won't 
+      bother you with all the complications: for more background feel free to 
+      read &amp;quot;&lt;a href=&quot;http://www.cowtowncoder.com/blog/archives/2010/12/entry_436.html&quot;&gt;Why 
+      'java.lang.reflect.Type' does not cut it&lt;/a&gt;&amp;quot;.&lt;br&gt;And my suggested 
+      solution is Java Classmate, as per &amp;quot;&lt;a href=&quot;http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html&quot;&gt;Use 
+      Java Classmate for resolving generic signatures&lt;/a&gt;&amp;quot;.
+    &lt;/p&gt;
+    &lt;p&gt;
+      &lt;b&gt;Last change to test&lt;/b&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+      Java Classmate library has been used by quite a few frameworks, such as 
+      Hibernate and JBoss, and considered for inclusion by others (Netty uses 
+      code adopted from JCM, to avoid adding external dependencies; Jackson 
+      uses &amp;quot;predecessor&amp;quot;, and this is code from which JVM was originally 
+      built). There hasn't been much activity for past 12 months; no new bug 
+      reports, and things appear to Just Work, which is great.
+    &lt;/p&gt;
+    &lt;p&gt;
+      So at this point version 0.9 is released, and I am hoping to get some 
+      last piece of feedback before releasing the &amp;quot;official&amp;quot; 1.0 version. 
+      Please let me know of any issues; the best way is via project's Github &lt;a href=&quot;https://github.com/cowtowncoder/java-classmate/issues&quot;&gt;issue 
+      tracker&lt;/a&gt;.
+    &lt;/p&gt;</description>
+<link>http://www.cowtowncoder.com/blog/archives/09-01-2013_09-30-2013.html#481</link>
+<guid>http://www.cowtowncoder.com/blog/archives/09-01-2013_09-30-2013.html#481</guid>
+
+<category>Java</category>
+
+<category>Open Source</category>
+
+<pubDate>Tue, 10 Sep 2013 10:48:09 -0700</pubDate>
+</item>
 
 <item>
 <title>On Jackson 2.2</title>
@@ -2280,237 +2335,6 @@ public class HTMLCharacterEscapes extends CharacterEscapes
 <category>Java</category>
 
 <pubDate>Mon, 09 Apr 2012 19:19:46 -0700</pubDate>
-</item>
-
-<item>
-<title>Java Type Erasure not a Total Loss -- use Java Classmate for resolving generic signatures</title>
-<description>&lt;p&gt;
-      As I have written before (&amp;quot;&lt;a href=&quot;/blog/archives/2010/12/entry_436.html&quot;&gt;Why 
-      'java.lang.reflect.Type' Just Does Not Cut It&lt;/a&gt;&amp;quot;), Java's Type Erasure 
-      can be a royal PITA.
-    &lt;/p&gt;
-    &lt;p&gt;
-      But things are actually not quite as bleak as one might think. But let's 
-      start with an actual somewhat unsolvable problem; and then proceed with 
-      another important, similar, yet solvable problem.
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;1. Actual Unsolvable problem: Java.util Collections&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      Here is piece of code that illustrates a problem that most Java 
-      developers either understand, or think they understand:
-    &lt;/p&gt;
-    &lt;pre&gt;  List&amp;lt;String,Integer&amp;gt; stringsToInts = new ArrayList&amp;lt;String,Integer&amp;gt;();&lt;br&gt;  List&amp;lt;byte[],Boolean&amp;gt; bytesToBools = new ArrayList&amp;lt;byte[], Boolean&amp;gt;();&lt;br&gt;  assertSame(stringsToInts.getclass(), bytesToBools.getClass();&lt;/pre&gt;
-    &lt;p&gt;
-      The problem is that although conceptually two collections seem to act 
-      different, at source code level, they are instances of the very same 
-      class (Java does not generate new classes for genericized types, unlike 
-      C++).
-    &lt;/p&gt;
-    &lt;p&gt;
-      So while compiler helps in keeping typing straight, there is little 
-      runtime help to either enforce this, or allow other code to deduce 
-      expected type; there just isn't any difference from type perspective.
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;2. All Lost? Not at all&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      But let's look at another example. Starting with a simple interface
-    &lt;/p&gt;
-    &lt;hr&gt;
-    
-
-    &lt;pre&gt;public interface Callable&amp;lt;IN, OUT&amp;gt; {&lt;br&gt;  public OUT call(IN argument);&lt;br&gt;}&lt;/pre&gt;
-    &lt;hr&gt;
-    
-
-    &lt;p&gt;
-      do you think following is true also?
-    &lt;/p&gt;
-    &lt;hr&gt;
-    
-
-    &lt;pre&gt;public void compare(Callable&amp;lt;?,?&amp;gt; callable1, Callable&amp;lt;?,?&amp;gt; callable2) {&lt;br&gt;  assertSame(callable1.getClass(), callable2.getClass());&lt;br&gt;}&lt;/pre&gt;
-    &lt;hr&gt;
-    
-
-    &lt;p&gt;
-      Nope. Not necessarilly; classes may well be different. WTH?
-    &lt;/p&gt;
-    &lt;p&gt;
-      The difference here is that since Callable is an interface (and you can 
-      not instantiate an interface), instances must be of some other type; and 
-      there is a good chance they are different.
-    &lt;/p&gt;
-    &lt;p&gt;
-      But more importantly, if you use &lt;a href=&quot;https://github.com/cowtowncoder/java-classmate&quot;&gt;Java 
-      ClassMate&lt;/a&gt; library (more on this in just a bit), we can even figure 
-      out parameterization (unlike with earlier example, where all you could 
-      see is that parameters are &amp;quot;a subtype of java.lang.Object&amp;quot;), so for 
-      example we can do
-    &lt;/p&gt;
-    &lt;div&gt;
-      &lt;hr&gt;
-      // Assume 'callable1' was of type:
-    &lt;/div&gt;
-    &lt;div&gt;
-      // class MyStringToIntList implements Callable&amp;lt;String, List&amp;lt;Integer&amp;gt;&amp;gt; { 
-      ... }
-    &lt;/div&gt;
-    &lt;pre&gt;  TypeResolver resolver = new TypeResolver();
-  ResolvedType type = resolver.resolve(callable1.getClass());
-  List&amp;lt;ResolvedType&amp;gt; params = type.typeParametersFor(Callable.class);&lt;br&gt;  // so we know it has 2 parameters; from above, 'String' and 'List&amp;lt;Integer&amp;gt;'&lt;br&gt;  assertEquals(2, params.size());
-  assertSame(String.class, params.get(0).getErasedType();&lt;br&gt;  // and second type is generic itself; in this case can directly access&lt;br&gt;  ResolvedType resultType = params.get(1);&lt;br&gt;  assertSame(List.class, resultType.getErasedType());&lt;br&gt;  List&amp;lt;ResolvedType&amp;gt; listParams = resultType.getTypeParameters();&lt;br&gt;  assertSame(Integer.class, listParams.get(0).getErasedType();&lt;br&gt;  //or, just to see types visually, try:&lt;br&gt;  String desc = type.getSignature(); // or 'getFullDescription'&lt;/pre&gt;
-    &lt;hr&gt;
-    
-
-    &lt;p&gt;
-      How is THIS possible? (fun exercise: pick 5 of your favorite Java 
-      experts; ask if above is possible, observe how most of them would have 
-      said &amp;quot;nope, not a chance&amp;quot; :-) )
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;3. Long live generics -- hidden deep, deep within&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      Basically generic type information is actually stored in class 
-      definitions, in 3 places:
-    &lt;/p&gt;
-    &lt;ol&gt;
-      &lt;li&gt;
-        When defining parent type information (&amp;quot;super type&amp;quot;); parameterization 
-        for base class and base interface(s) if any
-      &lt;/li&gt;
-      &lt;li&gt;
-        For generic field declarations
-      &lt;/li&gt;
-      &lt;li&gt;
-        For generic method declarations (return, parameter and exception types)
-      &lt;/li&gt;
-    &lt;/ol&gt;
-    &lt;p&gt;
-      It is the first place where ClassMate finds its stuff. When resolving a 
-      Class, it will traverse the inheritance hierarchy, recomposing type 
-      parameterizations. This is a rather involved process, mostly due to type 
-      aliasing, ability for interfaces to use different signatures and so on. 
-      In fact, trying to do this manually first looks feasible, but if you try 
-      it via all wildcarding, you will soon realize why having a library do it 
-      for you is a nice thing...
-    &lt;/p&gt;
-    &lt;p&gt;
-      So the important thing to learn is this: &lt;i&gt;&lt;b&gt;to retain run-time 
-      generic type information, you MUST pass concrete sub-types which resolve 
-      generic types via inheritance&lt;/b&gt;&lt;/i&gt;.
-    &lt;/p&gt;
-    &lt;p&gt;
-      And this is where JDK collection types bring in the problem (wrt this 
-      particular issue): concerete types like ArrayList still take generic 
-      parameters; and this is why runtime instances do not have generic type 
-      available.
-    &lt;/p&gt;
-    &lt;p&gt;
-      Another way to put this is that when using a subtype, say:
-    &lt;/p&gt;
-    &lt;hr&gt;
-    
-
-    &lt;pre&gt;  MyStringList list = new ArrayList&amp;lt;String&amp;gt;() { }&lt;br&gt;  // can use ClassMate now, a la:&lt;br&gt;  ResolvedType type = resolver.resolve(list.getClass());&lt;br&gt;  // type itself has no parameterization (concrete non-generic class); but it does implement List so:
-  List&amp;lt;ResolvedType&amp;gt; params = type.typeParametersFor(List.class);&lt;br&gt;  assertSame(String.class, params.get(0).getErasedType());  &lt;/pre&gt;
-    &lt;hr&gt;
-    
-
-    &lt;p&gt;
-      which once again would retain usable amount of generic type information.
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;4. Real world usage?&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      Above might seem as an academic exercise; but it is not. When designing 
-      typed APIs, many callbacks would actually benefit from proper generic 
-      typing. And of special interest are callbacks or handlers that need to 
-      do type conversions.
-    &lt;/p&gt;
-    &lt;p&gt;
-      As an example, my favorite Database access library, jDBI, makes use of 
-      this functionality (using embedded ClassMate) to figure out data-binding 
-      information without requiring extra Class argument. That is, you could 
-      pass something like (not an actual code sample):
-    &lt;/p&gt;
-    &lt;pre&gt;  MyPojo value = dbThingamabob.query(queryString, handler);&lt;/pre&gt;
-    &lt;p&gt;
-      instead of what would more commonly requested:
-    &lt;/p&gt;
-    &lt;pre&gt;  MyPojo value = dbThingamabob.query(queryString, handler, MyPojo.class);&lt;/pre&gt;
-    &lt;p&gt;
-      and framework could still figure out what kind of thing 'handler' would 
-      handle, assuming it was a generic interface caller has to implement.
-    &lt;/p&gt;
-    &lt;p&gt;
-      difference may seem minute, but this can actually help a lot by 
-      simplifying some aspects of type passing, and remove one particular mode 
-      of error.
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;5. More on ClassMate&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      Above actually barely scratch surface of what &lt;a href=&quot;https://github.com/cowtowncoder/java-classmate&quot;&gt;ClassMate&lt;/a&gt; 
-      provides. Although it is already tricky to find &amp;quot;simple&amp;quot; 
-      parameterization for main-level classes, there are much more trickier 
-      things. Specifically, resolving types of Fields and Methods (return 
-      types, parameters). Given classes like:
-    &lt;/p&gt;
-    &lt;pre&gt;  public interface Base&amp;lt;T&amp;gt; {
-    public T getStuff();
-  }
-  public class ListBase&amp;lt;T&amp;gt; implements Base&amp;lt;List&amp;lt;T&amp;gt;&amp;gt; {&lt;br&gt;    protected T value;&lt;br&gt;    protected ListBase(T v) { value = v; }&lt;br&gt;    public T getstuff() { return value; }&lt;br&gt;  }
-  public class Actual implements ListBase&amp;lt;String&amp;gt; {&lt;br&gt;    public Actual(List&amp;lt;String&amp;gt; value) { super(value; }&lt;br&gt;  }&lt;/pre&gt;
-    &lt;p&gt;
-      you might be interested in figuring out, exactly what is the type of 
-      return value of &amp;quot;getStuff()&amp;quot;. By eyeballing, you know it should be 
-      &amp;quot;List&amp;lt;String&amp;gt;&amp;quot;, but bytecode does not tell this -- in fact, it just 
-      tells it's &amp;quot;T&amp;quot;, basically.
-    &lt;/p&gt;
-    &lt;p&gt;
-      But with ClassMate you can resolve it:
-    &lt;/p&gt;
-    &lt;pre&gt;  // start with ResolvedType; need MemberResolver
-  ResolvedType classType = resolver.resolve(Actual.class);&lt;br&gt;  MemberResolver mr = new MemberResolver(resolver);&lt;br&gt;  ResolvedTypeWithMembers beanDesc = mr.resolve(classType, null, null);&lt;br&gt;  ResolvedMethod[] members = bean.getMemberMethods();&lt;br&gt;  ResolvedType returnType = null;&lt;br&gt;  for (ResolvedMethod m : members) {&lt;br&gt;    if (&amp;quot;getStuff&amp;quot;.equals(m.getName())) {&lt;br&gt;      returnType = m.getReturnType();&lt;br&gt;    }&lt;br&gt;  }&lt;br&gt;  // so, we should get&lt;br&gt;  assertSame(List.class, returnType.getErasedType());&lt;br&gt;  ResolvedType elemType = returnType.getTypeParameters().get(0);&lt;br&gt;  assertSame(String.class, elemType.getErasedType();&lt;br&gt;&lt;/pre&gt;
-    &lt;p&gt;
-      and get the information you need.
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;6. Why so complicated for nested types? &lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      One thing that is obvious from code samples is that code that uses 
-      ClassMate is not as simple as one might hope. Handling of nested generic 
-      types, specifically, is bit verbose in some cases (specifically: when 
-      type we are resolving does not directly implement type we are interested 
-      in)&lt;br&gt;Why is that?
-    &lt;/p&gt;
-    &lt;p&gt;
-      The reason is that there is a wide variety of interfaces that any class 
-      can (and often does) implement. Further, parameterizations may vary at 
-      different levels, due to co-variance (ability to override methods with 
-      more refined return types). This means that it is not practical to &amp;quot;just 
-      resolve it all&amp;quot; -- and even if this was done, it is not in general 
-      obvious what the &amp;quot;main type&amp;quot; would be. For these reasons, you need to 
-      manually request parameterization for specific generic classes and 
-      interfaces as you traverse type hierarchy: there is no other way to do 
-      it.
-    &lt;/p&gt;</description>
-<link>http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html#471</link>
-<guid>http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html#471</guid>
-
-<category>Java</category>
-
-<category>Open Source</category>
-
-<pubDate>Sat, 07 Apr 2012 13:51:28 -0700</pubDate>
 </item>
 
 </channel>
