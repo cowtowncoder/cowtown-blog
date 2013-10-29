@@ -42,12 +42,121 @@ window.google_analytics_uacct = "UA-140287-10";
 <!-- entry -->
 
    
+     <h2 class="date-header">Monday, October 28, 2013 </h2>
+<div class="entry" id="post-482">
+     <h3 class="entry-header">On Jackson: Serializing Lists, Maps with properties</h3>
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      <b>1. Problem</b>
+    </p>
+    <p>
+      One of questions occasionally brought up is why Jackson ignores any 
+      properties that a java.util.List or java.util.Map may have. For example, 
+      for:
+    </p>
+    <hr>
+    
+
+    <pre>public class StringList extends ArrayList&lt;String&gt; {<br>  public int id;<br>}</pre>
+    <hr>
+    
+
+    <p>
+      the serialized version will just be a JSON array, without property &quot;id&quot;. 
+      This is also true for Java Maps: only contents are serialized, not 
+      properties. This is because serializers (and deserializers) have special 
+      handling; and in case of Lists, there isn't even any place to add 
+      properties in.
+    </p>
+    <p>
+      <b>2. Solution</b>
+    </p>
+    <p>
+      But is there any way to add support for additional properties, without 
+      resorting to custom serializers and deserializers?
+    </p>
+    <p>
+      Yes! With Jackson 2.1 and above there is a new annotation, @JsonFormat, 
+      and specifically its &quot;shape&quot; property.
+    </p>
+    <p>
+      Like so:
+    </p>
+    <hr>
+    
+
+    <pre>@JsonFormat(shape=JsonFormat.Shape.OBJECT)<br>public class StringListexten ds ArrayList&lt;String&gt; {<br>  public int id;<br><br>  public Iterator&lt;String&gt; getValues() { return iterator(); }<br>  public void setValues(Collection&lt;String&gt; v) { addAll(v); }<br>}</pre>
+    <hr>
+    
+
+    <p>
+      What does this do? It will basically instruct Jackson to forget about 
+      special handling for Collections and Maps, and instead consider them 
+      POJOs. This means that introspection is used to find logical properties 
+      to (de)serialize.
+    </p>
+    <p>
+      One caveat: since there is no special handling for contents, you HAVE to 
+      add getter/setter to actually include contents.
+    </p>
+    <p>
+      <b>3. Output</b>
+    </p>
+    <p>
+      For type like above, you would get something like:
+    </p>
+    <hr>
+    
+
+    <pre>{ &quot;id&quot;:123, &quot;values&quot;:[&quot;abc&quot;,&quot;xyz&quot;]}</pre>
+    <hr>
+    
+
+    <p>
+      Similarly for Maps, you would get properties at one JSON Object level, 
+      and values (if included) as a JSON Object-valued property:
+    </p>
+    <hr>
+    
+
+    <pre>{ &quot;id&quot; : 345,<br>  &quot;value&quot; : {<br>    &quot;key1&quot;:&quot;value1&quot;,<br>    &quot;key2&quot;:&quot;value2&quot;
+  }<br>}</pre>
+    <hr>
+    
+
+    <p>
+      Or, for extra credit, you can even try using &quot;any setter&quot; and &quot;any 
+      getter&quot;, to create a Map with flat set of values -- this works, since 
+      Map is just like any POJO from Jackson's point of view now.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Monday, October 28, 2013 8:06 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+
+
+   
      <h2 class="date-header">Tuesday, September 10, 2013 </h2>
 <div class="entry" id="post-481">
      <h3 class="entry-header">Java Classmate 0.9 released -- getting ready for 1.0</h3>
      <div class="entry-content">
           <div class="entry-body">
                <p><p>
+      <b>UPDATE</b>: (October 2013) -- Version 1.0 is now out!
+    </p>
+    <p>
+      ----
+    </p>
+    <p>
       <b>Getting close to Java Classmate 1.0: version 0.9 now out</b>!
     </p>
     <p>
@@ -2287,159 +2396,6 @@ public class HTMLCharacterEscapes extends CharacterEscapes
 
 
    
-     <h2 class="date-header">Monday, April 09, 2012 </h2>
-<div class="entry" id="post-472">
-     <h3 class="entry-header">Data format auto-detection with Jackson (JSON, XML, Smile, YAML)</h3>
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      There is one fairly advanced feature of Jackson that has been around a 
-      while (since version 1.8), but that has not really been publicized a 
-      lot: data format auto-detection. Let's see how it works, and what it 
-      could be used for.
-    </p>
-    <p>
-      <b>1. Format detection?</b>
-    </p>
-    <p>
-      By format detection I mean ability to figure out most likely data format 
-      that a piece of content has. Auto-detection means that a piece of code 
-      can try to automatically deduce this, given set of data formats to 
-      recognize, and accessor to content.
-    </p>
-    <p>
-      Jackson 1.8 added such capability to Jackson, by adding one new method 
-      in JsonFactory abstract class:
-    </p>
-    <pre>  public MatchStrength hasFormat(InputAccessor acc)</pre>
-    <p>
-      as well as couple of supporting classes; and most importantly, a helper 
-      class:
-    </p>
-    <pre>  com.fasterxml.jackson.core.format.DataFormatDetector</pre>
-    <p>
-      that coordinates calls to produce somewhat convenience mini-API for 
-      format auto-detection.
-    </p>
-    <p>
-      <b>2. Show Me Some Code!</b>
-    </p>
-    <p>
-      Let's start with a simple demonstration, with known content that should 
-      be either JSON or XML:
-    </p>
-    <hr>
-    
-
-    <pre>  JsonFactory jsonF = new JsonFactory();<br>  XmlFactory xmlF = new XmlFactory(); // from com.fasterxml.jackson.dataformat.xml (jackson-dataformat-xml)<br>  // note: ordering is importtant; first one that gives full match is chosen:<br>  DataFormatDetector det = new DataFormatDetector(new JsonFactory[] { jsonF, xmlF });<br>  // let's accept about any match; but only if no &quot;solid match&quot; found
-  det = det.withMinimalMatch(MatchStrength.WEAK_MATCH).withOptimalMatch(MatchStrength.SOLID_MATCH);<br>  // then see what we get:<br>  DataFormatMatcher match = det.findFormat(&quot;{ \&quot;name\&quot; : \&quot;Bob\&quot; }&quot;.getBytes(&quot;UTF-8&quot;));
-  assertEquals(jsonF.getFormatName(), match.getMatchedFormatName());<br>  match = det.findFormat(&quot;&lt;?xml version='1.0'?&gt;&lt;root/&gt;&quot;.getBytes(&quot;UTF-8&quot;));<br>  assertEquals(xmlF.getFormatName(), match.getMatchedFormatName();<br>  // or:<br>  match = det.findForm(&quot;neither really...&quot;.getBytes(&quot;UTF-8&quot;));<br>  assertNull(match);</pre>
-    <hr>
-    
-
-    <p>
-      which is useful if we want to display information; but perhaps even more 
-      useful, we can conveniently process the data.<br>So let's assume we have 
-      file &quot;data&quot;, with format of either XML or JSON:
-    </p>
-    <hr>
-    
-
-    <pre>  // note: can pass either byte[] or InputStream
-  match = det.findFormat(new File(&quot;data&quot;));<br>  JsonParser p = match.createParserWithMatch();<br>  // or; if we wanted to get factory: JsonFactory matchedFactory = p.getMatch();<br>  ObjectMapper mapper = new ObjectMapper();<br>  User user = mapper.readValue(p, User.class);</pre>
-    <hr>
-    
-
-    <p>
-      Basically you can let <i>DataFormatMatcher</i> construct a parser for 
-      the matched type (note: some data formats require specific kind of 
-      ObjectMapper to be used).
-    </p>
-    <p>
-      <b>3. Works on... ?</b>
-    </p>
-    <p>
-      Basically, any format for which there is JsonFactory that properly 
-      implements method &quot;hasFormat()&quot; can be auto-detected.
-    </p>
-    <p>
-      Currently (Jackson 2.0.0) this includes following data formats:
-    </p>
-    <ol>
-      <li>
-        JSON -- can detect standards-compliant data (main-level JSON Object or 
-        Array); and to some degree other variants (scalar values at root-level)
-      </li>
-      <li>
-        Smile -- reliably detected, especially when the standard header is 
-        written (enabled by default)
-      </li>
-      <li>
-        XML -- reliably detected either from XML declaration, or from first 
-        tag, PI or comment
-      </li>
-      <li>
-        YAML: experimental <a href="https://github.com/FasterXML/jackson-dataformat-yaml">Jackson 
-        YAML module</a> can detect document start marker (&quot;---&quot;) for reliable 
-        detection; otherwise inconclusive
-      </li>
-    </ol>
-    <p>
-      One existing dataformat for which auto-detection does not yet work is 
-      CSV: this is mostly due to inherent lack of header of any kind. However, 
-      some heuristic support will likely be added soon.
-    </p>
-    <p>
-      <b>4. Most useful for? </b>
-    </p>
-    <p>
-      This feature was originally implemented to allow for automatic detection 
-      and parsing of content that would be in either JSON, or a binary JSON 
-      (Smile) representation. For this use case, things work reliably and 
-      efficiently.
-    </p>
-    <p>
-      But fortunately system was designed to be pluggable, so it should 
-      actually work for a variety of other cases. Ideally this should nicely 
-      complement &quot;universal data adapter&quot; goal of Jackson project; so that you 
-      could usually simply just feed a data file, and as long as it is in one 
-      of supported formats, things would Just Work.
-    </p>
-    <p>
-      <b>5. Caveats</b>
-    </p>
-    <p>
-      Some things to note:
-    </p>
-    <ol>
-      <li>
-        Order of factories used for constructing <i>DataFormatDetector</i> 
-        matters: first one that provides optimal match is taken; and if no 
-        optimal match is found, first of otherwise equal acceptable matches is 
-        given
-      </li>
-      <li>
-        Some data formats require specific ObjectMapper implementation 
-        (sub-class) to be used: for those formats, automatic parser creation 
-        needs to be coupled with choosing of the right mapper (this may be 
-        improved in future)
-      </li>
-    </ol></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Monday, April 09, 2012 7:19 PM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_472.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_472.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_472.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-
-
-   
             </div>
         </div>
         <div id="beta">
@@ -2483,7 +2439,7 @@ public class HTMLCharacterEscapes extends CharacterEscapes
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                   <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html">Java Classmate 0.9 released -- getting ready for 1.0</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li>
+                   <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html">On Jackson: Serializing Lists, Maps with properties</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html">Java Classmate 0.9 released -- getting ready for 1.0</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li>
                </ul>
           </div>
      </div>
@@ -2504,6 +2460,8 @@ google_ad_height = 240;
           <h2 class="module-header">Archives</h2>
           <div class="module-content">
                <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2013_10-31-2013.html'>October 2013</a></li>
               
                 <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2013_09-30-2013.html'>September 2013</a></li>
               

@@ -43,6 +43,108 @@ window.google_analytics_uacct = "UA-140287-10";
 <!-- entry -->
 
    
+     <h2 class="date-header">Monday, October 28, 2013 </h2>
+<div class="entry" id="post-482">
+     <h3 class="entry-header">On Jackson: Serializing Lists, Maps with properties</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      <b>1. Problem</b>
+    </p>
+    <p>
+      One of questions occasionally brought up is why Jackson ignores any 
+      properties that a java.util.List or java.util.Map may have. For example, 
+      for:
+    </p>
+    <hr>
+    
+
+    <pre>public class StringList extends ArrayList&lt;String&gt; {<br>  public int id;<br>}</pre>
+    <hr>
+    
+
+    <p>
+      the serialized version will just be a JSON array, without property &quot;id&quot;. 
+      This is also true for Java Maps: only contents are serialized, not 
+      properties. This is because serializers (and deserializers) have special 
+      handling; and in case of Lists, there isn't even any place to add 
+      properties in.
+    </p>
+    <p>
+      <b>2. Solution</b>
+    </p>
+    <p>
+      But is there any way to add support for additional properties, without 
+      resorting to custom serializers and deserializers?
+    </p>
+    <p>
+      Yes! With Jackson 2.1 and above there is a new annotation, @JsonFormat, 
+      and specifically its &quot;shape&quot; property.
+    </p>
+    <p>
+      Like so:
+    </p>
+    <hr>
+    
+
+    <pre>@JsonFormat(shape=JsonFormat.Shape.OBJECT)<br>public class StringListexten ds ArrayList&lt;String&gt; {<br>  public int id;<br><br>  public Iterator&lt;String&gt; getValues() { return iterator(); }<br>  public void setValues(Collection&lt;String&gt; v) { addAll(v); }<br>}</pre>
+    <hr>
+    
+
+    <p>
+      What does this do? It will basically instruct Jackson to forget about 
+      special handling for Collections and Maps, and instead consider them 
+      POJOs. This means that introspection is used to find logical properties 
+      to (de)serialize.
+    </p>
+    <p>
+      One caveat: since there is no special handling for contents, you HAVE to 
+      add getter/setter to actually include contents.
+    </p>
+    <p>
+      <b>3. Output</b>
+    </p>
+    <p>
+      For type like above, you would get something like:
+    </p>
+    <hr>
+    
+
+    <pre>{ &quot;id&quot;:123, &quot;values&quot;:[&quot;abc&quot;,&quot;xyz&quot;]}</pre>
+    <hr>
+    
+
+    <p>
+      Similarly for Maps, you would get properties at one JSON Object level, 
+      and values (if included) as a JSON Object-valued property:
+    </p>
+    <hr>
+    
+
+    <pre>{ &quot;id&quot; : 345,<br>  &quot;value&quot; : {<br>    &quot;key1&quot;:&quot;value1&quot;,<br>    &quot;key2&quot;:&quot;value2&quot;
+  }<br>}</pre>
+    <hr>
+    
+
+    <p>
+      Or, for extra credit, you can even try using &quot;any setter&quot; and &quot;any 
+      getter&quot;, to create a Map with flat set of values -- this works, since 
+      Map is just like any POJO from Jackson's point of view now.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Monday, October 28, 2013 8:06 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
      <h2 class="date-header">Tuesday, August 13, 2013 </h2>
 <div class="entry" id="post-480">
      <h3 class="entry-header">On Jackson 2.2</h3>
@@ -2249,320 +2351,6 @@ mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeVal
      </div>
 </div>
    
-     <h2 class="date-header">Tuesday, March 27, 2012 </h2>
-<div class="entry" id="post-467">
-     <h3 class="entry-header">Jackson 2.0: now with XML, too!</h3>
-     
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      (note: for general information on Jackson 2.0.0, see the previous 
-      article, &quot;<a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_466.html">Jackson 
-      2.0.0 released</a>&quot;)
-    </p>
-    <p>
-      While Jackson is most well-known as a JSON processor, its data-binding 
-      functionality is not tied to JSON format.<br>Because of this, there have 
-      been developments to extend support for XML and related things with 
-      Jackson; and in fact support for using JAXB (Java Api for Xml Binding) 
-      annotations has been included as an optional add-on since earliest 
-      official Jackson versions.
-    </p>
-    <p>
-      But Jackson 2.0.0 significantly increases the scope of XML-related 
-      functionality.
-    </p>
-    <p>
-      <b>1. Improvements to JAXB annotation support</b>
-    </p>
-    <p>
-      Optional support for using JAXB annotations (package 'javax.xml.bind' in 
-      JDK) became its own <a href="https://github.com/FasterXML/jackson-module-jaxb-annotations">Github 
-      project</a> with 2.0.<br>
-    </p>
-    <p>
-      Functionality is provided by <i>com.fasterxml.jackson.databind.AnnotationIntrospector</i> 
-      implementation '<b>c<i>om.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector</i></b>', 
-      which can be used in addition to (or instead of) the standard 
-      'com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector'.
-    </p>
-    <p>
-      But beyond becoming main-level project of its own, 2.0 adds to already 
-      extensive support for JAXB annotations by:
-    </p>
-    <ul>
-      <li>
-        Making <i>@XmlJavaTypeAdapter</i> work for Lists and Maps
-      </li>
-      <li>
-        Adding support for <b><i>@XmlID</i></b> and <b><i>@XmlIDREF</i></b> -- 
-        this was possible due to addition of Object Identity feature in core 
-        Jackson databind -- which basically means that Object Graphs (even 
-        cyclic ones) can be supported even if only using JAXB annotations.
-      </li>
-    </ul>
-    <p>
-      the second feature (@XmlID, @XmlIDREF) has been the number one request 
-      for JAXB annotation support, and we are happy that it now works.<br>Canonical 
-      example of using this feature would be:
-    </p>
-    <hr>
-    
-
-    <pre>    @XmlAccessorType(XmlAccessType.FIELD)
-    public class Employee<br>    {
-        @XmlAttribute
-        @XmlID
-        protected String id;
-     
-        @XmlAttribute
-        protected String name;
-     
-        @XmlIDREF
-        protected Employee manager;
-     
-        @XmlElement(name=&quot;report&quot;)
-        @XmlIDREF
-        protected List&lt;Employee&gt; reports;
-     
-        public Employee() {
-            reports = new ArrayList&lt;Employee&gt;();
-        }
-    }</pre>
-    <hr>
-    
-
-    <p>
-      where entries would be serialized such that the first reference to an 
-      Employee is serialized fully, and later references use value of 'id' 
-      field; conversely, when reading XML back, references get re-created 
-      using id values.
-    </p>
-    <p>
-      <b>2. XML databinding</b>
-    </p>
-    <p>
-      Support for JAXB annotations may be useful when there is need to provide 
-      both JSON and XML representations of data. But to actually produce XML, 
-      you need to use something like JAXB or XStream.
-    </p>
-    <p>
-      Or do you?
-    </p>
-    <p>
-      One of experimental new projects that Jackson project started a while 
-      ago was something called &quot;jackson-xml-databind&quot;.<br>After 
-      being developed for a while along with Jackson 1.8 and 1.9, it 
-      eventually morphed into project &quot;<a href="https://github.com/FasterXML/jackson-dataformat-xml">jackson-dataformat-xml</a>&quot;, 
-      hosted at Github.
-    </p>
-    <p>
-      With 2.0.0 we have further improved functionality, added tests; and also 
-      worked with developers who have actually used this for production 
-      systems.<br>This means that the module is now considered full supported 
-      and no longer an experimental add-on.
-    </p>
-    <p>
-      So let's have a look at how to use XML databinding.
-    </p>
-    <p>
-      The very first thing is to create the mapper object. Here we must use a 
-      specific sub-class, XmlMapper
-    </p>
-    <pre>  XmlMapper xmlMapper = new XmlMapper();<br>  // internally will use an XmlFactory for parsers, generators</pre>
-    <p>
-      (note: this step differs from some other data formats, like Smile, which 
-      only require use of custom JsonFactory sub-class, and can work with 
-      default ObjectMapper -- XML is bit trickier to support and thus we need 
-      to override some aspects of ObjectMapper)
-    </p>
-    <p>
-      With a mapper at hand, we can do serialization like so:
-    </p>
-    <hr>
-    
-
-    <pre>  public enum Gender { MALE, FEMALE };
-  public class User {
-    public Gender gender;
-    public String name;
-    public boolean verified;
-    public byte[] image;
-  }
-
-  User user = new User(); // and configure
-  String xml = xmlMapper.writeValueAsString(user);</pre>
-    <hr>
-    and get XML like:<hr>
-
-    <pre>  &lt;User&gt;<br>    &lt;gender&gt;MALE&lt;/gender&gt;<br>    &lt;name&gt;Bob&lt;/name&gt;<br>    &lt;verified&gt;true&lt;/verified&gt;<br>    &lt;image&gt;BARWJRRWRIWRKF01FK=&lt;/image&gt;<br>  &lt;/User&gt;</pre>
-    <p>
-      which we could read back as a POJO:
-    </p>
-    <pre>  User userResult = xmlMapper.readValue(xml, User.class);</pre>
-    <p>
-      But beyond basics, we can obviously use annotations for customizing some 
-      aspects, like element/attribute distinction, use of namespaces:
-    </p>
-    <hr>
-    
-
-    <pre>  JacksonXmlRootElement(&quot;custUser&quot;)<br>  public class CustomUser {
-    @JacksonXmlProperty(namespace=&quot;http://test&quot;)
-    public Gender gender;<br>    @JacksonXmlProperty(localname=&quot;myName&quot;)
-    public String name;
-
-    @JacksonXmlProperty(isAttribute=true)  
-    public boolean verified;
-    public byte[] image;
-  }
-  
-  // gives XML like:<br>  &lt;custUser verified=&quot;true&quot;&gt;<br>     &lt;ns:gender xmlns:ns=&quot;http://test&quot;&gt;MALE&lt;/gender&gt;<br>     &lt;myName&gt;Bob&lt;/myName&gt;<br>     &lt;image&gt;BARWJRRWRIWRKF01FK=&lt;/image&gt;<br>   &lt;/custUser&gt;</pre>
-    <hr>
-    
-
-    <p>
-      Apart from this, all standard Jackson databinding features should work: 
-      polymorphic type handling, object identity for full object graphs (new 
-      with 2.0); even value conversions and base64 encoding!
-    </p>
-    <p>
-      <b>3. Jackson-based XML serialization for JAX-RS (&quot;move over JAXB!&quot;)</b>
-    </p>
-    <p>
-      So far so good: we can produce and consume XML using powerful Jackson 
-      databinding. But the latest platform-level improvement in Java lang is 
-      the use of JAX-RS implementations like Jersey. Wouldn't it be nice to 
-      make Jersey use Jackson for both JSON <b>and</b> XML? That would remove 
-      one previously necessary add-on library (like JAXB).
-    </p>
-    <p>
-      We think so too, which is why we created &quot;<a href="https://github.com/FasterXML/jackson-jaxrs-xml-provider">jackson-jaxrs-xml-provider</a>&quot; 
-      project, which is the sibling of existing &quot;<a href="https://github.com/FasterXML/jackson-jaxrs-json-provider">jackson-jaxrs-json-provider</a>&quot; 
-      project.<br>As with the older JSON provider, by registering this 
-      provider you will get automatic data-binding to and from XML, using 
-      Jackson XML data handler explained in the previous section.
-    </p>
-    <p>
-      It is of course worth noting that Jersey (and RESTeasy, CXF) already 
-      provide XML databinding using other libraries (usually JAXB), so use of 
-      this provider is optional.<br>So why advocate use of Jackson-based 
-      variant? One benefits is good performance -- a bit better than JAXB, and 
-      much faster than XStream, as per <a href="https://github.com/eishay/jvm-serializers">jvm-serializer</a> 
-      benchmark (performance is limited by the underlying XML Stax processor 
-      -- but Aalto is wicked fast, not much slower than Jackson).<br>But more 
-      important is simplification of configuration and code: it is all 
-      Jackson, so annotations can be shared, and all data-binding power can be 
-      used for both representations.<br>
-    </p>
-    <p>
-      It is most likely that you find this provider useful if the focus has 
-      been on producing/consuming JSON, and XML is being added as a secondary 
-      addition. If so, this extension is a natural fit.
-    </p>
-    <p>
-      <b>4. Caveat Emptor</b>
-    </p>
-    <p>
-      <b>4.1 Asymmetric: &quot;POJO first&quot;</b>
-    </p>
-    <p>
-      It is worth noting that the main supported use case is that of starting 
-      with Java Objects, serializing them as XML, and reading such 
-      serialization back as Objects.<br>And the explicit goal is that ideally 
-      all POJOs that can be serialized as JSON should also be serializable 
-      (and deserializable back into same Objects) as XML.<br>
-    </p>
-    <p>
-      But there is no guarantee that any given XML can be mapped to a Java 
-      Object: some can be, but not all.
-    </p>
-    <p>
-      This is mostly due to complexity of XML, and its inherent 
-      incompatibility with Object models (&quot;Object/XML impedance mismatch&quot;): 
-      for example, there is no counterpart to XML mixed content in Object 
-      world. Arbitrary sequences of XML elements are not necessarily 
-      supported; and in some cases explicit nesting must be used (as is the 
-      case with Lists, arrays).
-    </p>
-    <p>
-      This means that if you do start with XML, you need to be prepared for 
-      possibility that some changes are needed to format, or you need 
-      additional steps for deserialization to clean up or transform structures.
-    </p>
-    <p>
-      <b>4.2 No XML Schema support, mixed content</b>
-    </p>
-    <p>
-      Jackson XML functionality specifically has zero support for XML Schema. 
-      Although we may work in this area, and perhaps help in using XML Schemas 
-      for some tasks, your best bet currently is to use tools like XJC from 
-      JAXB project: it can generate POJOs from XML Schema.
-    </p>
-    <p>
-      Mixed content is also out of scope, explicitly. There is no natural 
-      representation for it; and it seems pointless to try to fall back to 
-      XML-specific representations (like DOM trees). If you need support for 
-      &quot;XMLisms&quot;, you need to look for XML-centric tools.
-    </p>
-    <p>
-      <b>4.3 Some root values problematic: Map, List</b>
-    </p>
-    <p>
-      Although we try to support all Java Object types, there are some 
-      unresolved issues with &quot;root values&quot;, values that are not referenced via 
-      POJO properties but are the starting point of 
-      serialization/deserialization. Maps are especially tricky, and we 
-      recommend that when using Maps and Lists, you use a wrapper root object, 
-      which then references Map(s) and/or List(s).
-    </p>
-    <p>
-      (it is worth noting that JAXB, too, has issues with Map handling in 
-      general: XML and Maps do not mesh particularly well, unlike JSON and 
-      Maps).
-    </p>
-    <p>
-      <b>4.4 JsonNode not as useful as with JSON</b>
-    </p>
-    <p>
-      Finally, Jackson Tree Model, as expressed by JsonNodes, does not 
-      necessarily work well with XML either. Problem here is partially general 
-      challenges of dealing with Maps (see above); but there is the additional 
-      problem that whereas POJO-based data binder can hide some of 
-      work-arounds, this is not the case with JsonNode.
-    </p>
-    <p>
-      So: you can deserialize all kinds of XML as JsonNodes; and you can 
-      serialize all kinds of JsonNodes as XML, but round-tripping might not 
-      work. If tree model is your thing, you may be better off using 
-      XML-specific tree models such as XOM, DOM4J, JDOM or plain old DOM.
-    </p>
-    <p>
-      <b>5. Come and help us make it Even Better!</b>
-    </p>
-    <p>
-      At this point we believe that Jackson provides a nice alternative for 
-      existing XML producing/consuming toolkits. But what will really make it 
-      the first-class package is Your Help -- with increased usage we can 
-      improve quality and further extend usability, ergonomics and design.
-    </p>
-    <p>
-      So if you are at all interested in dealing with XML, consider trying out 
-      Jackson XML functionality!
-    </p></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, March 27, 2012 9:53 PM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_xmlstax.html">XML/Stax</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_467.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_467.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/03/entry_467.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-   
             </div>
         </div>
 <div id="beta">
@@ -2606,7 +2394,7 @@ mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeVal
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_476.html">Forcing escaping of HTML characters (less-than, ampersand) in JSON using Jackson</a></li>
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html">On Jackson: Serializing Lists, Maps with properties</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li>
                </ul>
           </div>
      </div>
@@ -2659,6 +2447,8 @@ mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeVal
           <h2 class="module-header">Archives</h2>
           <div class="module-content">
                <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2013_10-31-2013.html'>October 2013</a></li>
               
                 <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2013_09-30-2013.html'>September 2013</a></li>
               

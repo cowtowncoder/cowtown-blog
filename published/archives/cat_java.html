@@ -43,6 +43,108 @@ window.google_analytics_uacct = "UA-140287-10";
 <!-- entry -->
 
    
+     <h2 class="date-header">Monday, October 28, 2013 </h2>
+<div class="entry" id="post-482">
+     <h3 class="entry-header">On Jackson: Serializing Lists, Maps with properties</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      <b>1. Problem</b>
+    </p>
+    <p>
+      One of questions occasionally brought up is why Jackson ignores any 
+      properties that a java.util.List or java.util.Map may have. For example, 
+      for:
+    </p>
+    <hr>
+    
+
+    <pre>public class StringList extends ArrayList&lt;String&gt; {<br>  public int id;<br>}</pre>
+    <hr>
+    
+
+    <p>
+      the serialized version will just be a JSON array, without property &quot;id&quot;. 
+      This is also true for Java Maps: only contents are serialized, not 
+      properties. This is because serializers (and deserializers) have special 
+      handling; and in case of Lists, there isn't even any place to add 
+      properties in.
+    </p>
+    <p>
+      <b>2. Solution</b>
+    </p>
+    <p>
+      But is there any way to add support for additional properties, without 
+      resorting to custom serializers and deserializers?
+    </p>
+    <p>
+      Yes! With Jackson 2.1 and above there is a new annotation, @JsonFormat, 
+      and specifically its &quot;shape&quot; property.
+    </p>
+    <p>
+      Like so:
+    </p>
+    <hr>
+    
+
+    <pre>@JsonFormat(shape=JsonFormat.Shape.OBJECT)<br>public class StringListexten ds ArrayList&lt;String&gt; {<br>  public int id;<br><br>  public Iterator&lt;String&gt; getValues() { return iterator(); }<br>  public void setValues(Collection&lt;String&gt; v) { addAll(v); }<br>}</pre>
+    <hr>
+    
+
+    <p>
+      What does this do? It will basically instruct Jackson to forget about 
+      special handling for Collections and Maps, and instead consider them 
+      POJOs. This means that introspection is used to find logical properties 
+      to (de)serialize.
+    </p>
+    <p>
+      One caveat: since there is no special handling for contents, you HAVE to 
+      add getter/setter to actually include contents.
+    </p>
+    <p>
+      <b>3. Output</b>
+    </p>
+    <p>
+      For type like above, you would get something like:
+    </p>
+    <hr>
+    
+
+    <pre>{ &quot;id&quot;:123, &quot;values&quot;:[&quot;abc&quot;,&quot;xyz&quot;]}</pre>
+    <hr>
+    
+
+    <p>
+      Similarly for Maps, you would get properties at one JSON Object level, 
+      and values (if included) as a JSON Object-valued property:
+    </p>
+    <hr>
+    
+
+    <pre>{ &quot;id&quot; : 345,<br>  &quot;value&quot; : {<br>    &quot;key1&quot;:&quot;value1&quot;,<br>    &quot;key2&quot;:&quot;value2&quot;
+  }<br>}</pre>
+    <hr>
+    
+
+    <p>
+      Or, for extra credit, you can even try using &quot;any setter&quot; and &quot;any 
+      getter&quot;, to create a Map with flat set of values -- this works, since 
+      Map is just like any POJO from Jackson's point of view now.
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Monday, October 28, 2013 8:06 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
      <h2 class="date-header">Tuesday, September 10, 2013 </h2>
 <div class="entry" id="post-481">
      <h3 class="entry-header">Java Classmate 0.9 released -- getting ready for 1.0</h3>
@@ -50,6 +152,12 @@ window.google_analytics_uacct = "UA-140287-10";
      <div class="entry-content">
           <div class="entry-body">
                <p><p>
+      <b>UPDATE</b>: (October 2013) -- Version 1.0 is now out!
+    </p>
+    <p>
+      ----
+    </p>
+    <p>
       <b>Getting close to Java Classmate 1.0: version 0.9 now out</b>!
     </p>
     <p>
@@ -2362,187 +2470,6 @@ out.write(data, offset, len);
      </div>
 </div>
    
-     <h2 class="date-header">Friday, April 06, 2012 </h2>
-<div class="entry" id="post-470">
-     <h3 class="entry-header">Take your JSON processing to Mach 3 with Jackson 2.0, Afterburner</h3>
-     
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      (this is part on-going &quot;Jackson 2.0&quot; series, starting with &quot;<a href="/blog/archives/2012/03/entry_466.html">Jackson 
-      2.0 released</a>&quot;)
-    </p>
-    <p>
-      <b>1. Performance overhead of databinding</b>
-    </p>
-    <p>
-      When using automatic data-binding Jackson offers, there is some amount 
-      of overhead compared to manually writing equivalent code that would use 
-      Jackson streaming/incremental parser and generator. But how overhead is 
-      there? The answer depends on multiple factors, including exactly how 
-      good is your hand-written code (there are a few non-obvious ways to 
-      optimize things, compared to data-binding where there is little 
-      configurability wrt performance).
-    </p>
-    <p>
-      But looking at benchmarks such as <a href="https://github.com/eishay/jvm-serializers/wiki">jvm-serializers</a>, 
-      one could estimate that it may take anywhere between 35% and 50% more 
-      time to serialize and deserialize POJOs, compared to highly tuned 
-      hand-written alternative. This is usually not enough to matter a lot, 
-      considering that JSON processing overhead is typically only a small 
-      portion of all processing done.
-    </p>
-    <p>
-      <b>2. Where does overhead come?</b>
-    </p>
-    <p>
-      There are multiple things that automatic data-binding has to do that 
-      hand-written alternatives do not. But at high level, there are really 
-      two main areas:
-    </p>
-    <ol>
-      <li>
-        Configurability to produce/consume alternative representations; code 
-        that has to support multiple ways of doing things can not be as 
-        aggressively optimized by JVM and may need to keep more state around.
-      </li>
-      <li>
-        Data access to POJOs is done dynamically using Reflection, instead of 
-        directly accessing field values or calling setters/getters
-      </li>
-    </ol>
-    <p>
-      While there isn't much that can be done for former, in general sense 
-      (especially since configurability and convenience are major reasons for 
-      popularity of data-binding), latter overhead is something that could be 
-      theoretically eliminated.
-    </p>
-    <p>
-      How? By generating bytecode that does direct access to fields and calls 
-      to getters/setters (as well as for constructing new instances).
-    </p>
-    <p>
-      <b>3. Project Afterburner</b>
-    </p>
-    <p>
-      And this is where <a href="https://github.com/FasterXML/jackson-module-afterburner">Project 
-      Afterburner</a> comes in. What it does really is as simple as generating 
-      byte code, dynamically, to mostly eliminate Reflection overhead. 
-      Implementation uses well-known lightweight bytecode library called <a href="http://asm.ow2.org/">ASM</a>.
-    </p>
-    <p>
-      Byte code is generated to:
-    </p>
-    <ol>
-      <li>
-        Replace &quot;Class.newInstance()&quot; calls with equivalent call to 
-        zero-argument constructor (currently same is not done for 
-        multi-argument Creator methods)
-      </li>
-      <li>
-        Replace Reflection-based field access (Field.set() / Field.get()) with 
-        equivalent field dereferencing
-      </li>
-      <li>
-        Replace Reflection-based method calls (Method.invoke(...)) with 
-        equivalent direct calls
-      </li>
-      <li>
-        For small subset of simple types (int, long, String, boolean), further 
-        streamline handling of serializers/deserializers to avoid auto-boxing
-      </li>
-    </ol>
-    <p>
-      It is worth noting that there are certain limitations to access: for 
-      example, unlike with Reflection, it is not possible to avoid visibility 
-      checks; which means that access to private fields and methods must still 
-      be done using Reflection.
-    </p>
-    <p>
-      <b>4. Engage the Afterburner!</b>
-    </p>
-    <p>
-      Using Afterburner is about as easy as it can be: you just create and 
-      register a module, and then use databinding as usual:
-    </p>
-    <hr>
-    
-
-    <pre>Object mapper = new ObjectMapper()
-mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeValueAsString(value);<br>Value value = mapper.readValue(json, Value.class);<br></pre>
-    <div>
-      <hr>
-      absolutely nothing special there (note: for Maven dependency, downloads, 
-      go see the <a href="https://github.com/FasterXML/jackson-module-afterburner">project 
-      page</a>).
-    </div>
-    <p>
-      <b>5. How much faster?</b>
-    </p>
-    <p>
-      Earlier I mentioned that Reflection is just one of overhead areas. In 
-      addition to general complexity from configurability, there are cases 
-      where general data-binding has to be done using simple loops, whereas 
-      manual code could use linear constructs. Given this, how much overhead 
-      remains after enabling Afterburner?
-    </p>
-    <p>
-      As per jvm-serializers, more than 50% of speed difference between 
-      data-binding and manual variant are eliminated. That is, data-bind with 
-      afterburner is closer to manual variant than &quot;vanilla&quot; data-binding. 
-      There is still something like 20-25% additional time spent, compared to 
-      highest optimized cases; but results are definitely closer to optimal.
-    </p>
-    <p>
-      Given that all you really have to do is to just add the module, register 
-      it, and see what happens, it just might make sense to take Afterburner 
-      for a test ride.
-    </p>
-    <p>
-      <b>6. Disclaimer</b>
-    </p>
-    <p>
-      While Afterburner has been used by a few Jackson users, it is still not 
-      very widely used -- after all, while it has been available since 1.8, in 
-      some form, it has not been advertised to users. This article can be 
-      considered an announcement of sort.
-    </p>
-    <p>
-      Because of this, there may be rought edges; and if you are unlucky you 
-      might find one of two possible problems:
-    </p>
-    <ul>
-      <li>
-        Get no performance improvement (which is likely due to Afterburner not 
-        covering some specific code path(s)), or
-      </li>
-      <li>
-        Get a bytecode verification problem when a serializer/deserializer is 
-        being loaded
-      </li>
-    </ul>
-    <p>
-      latter case obviously being nastier. But on plus side, this should be 
-      obvious right away (and NOT after running for an hour); nor should there 
-      be a way for it to cause data losses or corruption; JVMs are rather good 
-      at verifying bytecode upon trying to load it.
-    </p>
-    <p>
-      
-    </p></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Friday, April 06, 2012 7:24 PM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_performance.html">Performance</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_470.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-   
             </div>
         </div>
 <div id="beta">
@@ -2586,7 +2513,7 @@ mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeVal
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html">Java Classmate 0.9 released -- getting ready for 1.0</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li>
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html">On Jackson: Serializing Lists, Maps with properties</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html">Java Classmate 0.9 released -- getting ready for 1.0</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li>
                </ul>
           </div>
      </div>
@@ -2639,6 +2566,8 @@ mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeVal
           <h2 class="module-header">Archives</h2>
           <div class="module-content">
                <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2013_10-31-2013.html'>October 2013</a></li>
               
                 <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/09-01-2013_09-30-2013.html'>September 2013</a></li>
               

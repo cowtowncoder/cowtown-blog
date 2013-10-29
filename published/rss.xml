@@ -6,14 +6,115 @@
 <description>Moo-able Type for Cowtowncoder.com</description>
 <language>en-US</language>
 <copyright>Copyright 2013</copyright>
-<lastBuildDate>Tue, 10 Sep 2013 11:00:52 -0700</lastBuildDate>
-<pubDate>Tue, 10 Sep 2013 11:00:52 -0700</pubDate>
+<lastBuildDate>Mon, 28 Oct 2013 20:41:16 -0700</lastBuildDate>
+<pubDate>Mon, 28 Oct 2013 20:41:16 -0700</pubDate>
 <generator>http://thingamablog.sf.net</generator>
 <docs>http://en.wikipedia.org/wiki/Rss</docs>
 
 <item>
+<title>On Jackson: Serializing Lists, Maps with properties</title>
+<description>&lt;p&gt;
+      &lt;b&gt;1. Problem&lt;/b&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+      One of questions occasionally brought up is why Jackson ignores any 
+      properties that a java.util.List or java.util.Map may have. For example, 
+      for:
+    &lt;/p&gt;
+    &lt;hr&gt;
+    
+
+    &lt;pre&gt;public class StringList extends ArrayList&amp;lt;String&amp;gt; {&lt;br&gt;  public int id;&lt;br&gt;}&lt;/pre&gt;
+    &lt;hr&gt;
+    
+
+    &lt;p&gt;
+      the serialized version will just be a JSON array, without property &amp;quot;id&amp;quot;. 
+      This is also true for Java Maps: only contents are serialized, not 
+      properties. This is because serializers (and deserializers) have special 
+      handling; and in case of Lists, there isn't even any place to add 
+      properties in.
+    &lt;/p&gt;
+    &lt;p&gt;
+      &lt;b&gt;2. Solution&lt;/b&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+      But is there any way to add support for additional properties, without 
+      resorting to custom serializers and deserializers?
+    &lt;/p&gt;
+    &lt;p&gt;
+      Yes! With Jackson 2.1 and above there is a new annotation, @JsonFormat, 
+      and specifically its &amp;quot;shape&amp;quot; property.
+    &lt;/p&gt;
+    &lt;p&gt;
+      Like so:
+    &lt;/p&gt;
+    &lt;hr&gt;
+    
+
+    &lt;pre&gt;@JsonFormat(shape=JsonFormat.Shape.OBJECT)&lt;br&gt;public class StringListexten ds ArrayList&amp;lt;String&amp;gt; {&lt;br&gt;  public int id;&lt;br&gt;&lt;br&gt;  public Iterator&amp;lt;String&amp;gt; getValues() { return iterator(); }&lt;br&gt;  public void setValues(Collection&amp;lt;String&amp;gt; v) { addAll(v); }&lt;br&gt;}&lt;/pre&gt;
+    &lt;hr&gt;
+    
+
+    &lt;p&gt;
+      What does this do? It will basically instruct Jackson to forget about 
+      special handling for Collections and Maps, and instead consider them 
+      POJOs. This means that introspection is used to find logical properties 
+      to (de)serialize.
+    &lt;/p&gt;
+    &lt;p&gt;
+      One caveat: since there is no special handling for contents, you HAVE to 
+      add getter/setter to actually include contents.
+    &lt;/p&gt;
+    &lt;p&gt;
+      &lt;b&gt;3. Output&lt;/b&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+      For type like above, you would get something like:
+    &lt;/p&gt;
+    &lt;hr&gt;
+    
+
+    &lt;pre&gt;{ &amp;quot;id&amp;quot;:123, &amp;quot;values&amp;quot;:[&amp;quot;abc&amp;quot;,&amp;quot;xyz&amp;quot;]}&lt;/pre&gt;
+    &lt;hr&gt;
+    
+
+    &lt;p&gt;
+      Similarly for Maps, you would get properties at one JSON Object level, 
+      and values (if included) as a JSON Object-valued property:
+    &lt;/p&gt;
+    &lt;hr&gt;
+    
+
+    &lt;pre&gt;{ &amp;quot;id&amp;quot; : 345,&lt;br&gt;  &amp;quot;value&amp;quot; : {&lt;br&gt;    &amp;quot;key1&amp;quot;:&amp;quot;value1&amp;quot;,&lt;br&gt;    &amp;quot;key2&amp;quot;:&amp;quot;value2&amp;quot;
+  }&lt;br&gt;}&lt;/pre&gt;
+    &lt;hr&gt;
+    
+
+    &lt;p&gt;
+      Or, for extra credit, you can even try using &amp;quot;any setter&amp;quot; and &amp;quot;any 
+      getter&amp;quot;, to create a Map with flat set of values -- this works, since 
+      Map is just like any POJO from Jackson's point of view now.
+    &lt;/p&gt;</description>
+<link>http://www.cowtowncoder.com/blog/archives/10-01-2013_10-31-2013.html#482</link>
+<guid>http://www.cowtowncoder.com/blog/archives/10-01-2013_10-31-2013.html#482</guid>
+
+<category>Java</category>
+
+<category>JSON</category>
+
+<pubDate>Mon, 28 Oct 2013 20:06:22 -0700</pubDate>
+</item>
+
+<item>
 <title>Java Classmate 0.9 released -- getting ready for 1.0</title>
 <description>&lt;p&gt;
+      &lt;b&gt;UPDATE&lt;/b&gt;: (October 2013) -- Version 1.0 is now out!
+    &lt;/p&gt;
+    &lt;p&gt;
+      ----
+    &lt;/p&gt;
+    &lt;p&gt;
       &lt;b&gt;Getting close to Java Classmate 1.0: version 0.9 now out&lt;/b&gt;!
     &lt;/p&gt;
     &lt;p&gt;
@@ -2192,149 +2293,6 @@ public class HTMLCharacterEscapes extends CharacterEscapes
 <category>JSON</category>
 
 <pubDate>Tue, 10 Apr 2012 21:52:56 -0700</pubDate>
-</item>
-
-<item>
-<title>Data format auto-detection with Jackson (JSON, XML, Smile, YAML)</title>
-<description>&lt;p&gt;
-      There is one fairly advanced feature of Jackson that has been around a 
-      while (since version 1.8), but that has not really been publicized a 
-      lot: data format auto-detection. Let's see how it works, and what it 
-      could be used for.
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;1. Format detection?&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      By format detection I mean ability to figure out most likely data format 
-      that a piece of content has. Auto-detection means that a piece of code 
-      can try to automatically deduce this, given set of data formats to 
-      recognize, and accessor to content.
-    &lt;/p&gt;
-    &lt;p&gt;
-      Jackson 1.8 added such capability to Jackson, by adding one new method 
-      in JsonFactory abstract class:
-    &lt;/p&gt;
-    &lt;pre&gt;  public MatchStrength hasFormat(InputAccessor acc)&lt;/pre&gt;
-    &lt;p&gt;
-      as well as couple of supporting classes; and most importantly, a helper 
-      class:
-    &lt;/p&gt;
-    &lt;pre&gt;  com.fasterxml.jackson.core.format.DataFormatDetector&lt;/pre&gt;
-    &lt;p&gt;
-      that coordinates calls to produce somewhat convenience mini-API for 
-      format auto-detection.
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;2. Show Me Some Code!&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      Let's start with a simple demonstration, with known content that should 
-      be either JSON or XML:
-    &lt;/p&gt;
-    &lt;hr&gt;
-    
-
-    &lt;pre&gt;  JsonFactory jsonF = new JsonFactory();&lt;br&gt;  XmlFactory xmlF = new XmlFactory(); // from com.fasterxml.jackson.dataformat.xml (jackson-dataformat-xml)&lt;br&gt;  // note: ordering is importtant; first one that gives full match is chosen:&lt;br&gt;  DataFormatDetector det = new DataFormatDetector(new JsonFactory[] { jsonF, xmlF });&lt;br&gt;  // let's accept about any match; but only if no &amp;quot;solid match&amp;quot; found
-  det = det.withMinimalMatch(MatchStrength.WEAK_MATCH).withOptimalMatch(MatchStrength.SOLID_MATCH);&lt;br&gt;  // then see what we get:&lt;br&gt;  DataFormatMatcher match = det.findFormat(&amp;quot;{ \&amp;quot;name\&amp;quot; : \&amp;quot;Bob\&amp;quot; }&amp;quot;.getBytes(&amp;quot;UTF-8&amp;quot;));
-  assertEquals(jsonF.getFormatName(), match.getMatchedFormatName());&lt;br&gt;  match = det.findFormat(&amp;quot;&amp;lt;?xml version='1.0'?&amp;gt;&amp;lt;root/&amp;gt;&amp;quot;.getBytes(&amp;quot;UTF-8&amp;quot;));&lt;br&gt;  assertEquals(xmlF.getFormatName(), match.getMatchedFormatName();&lt;br&gt;  // or:&lt;br&gt;  match = det.findForm(&amp;quot;neither really...&amp;quot;.getBytes(&amp;quot;UTF-8&amp;quot;));&lt;br&gt;  assertNull(match);&lt;/pre&gt;
-    &lt;hr&gt;
-    
-
-    &lt;p&gt;
-      which is useful if we want to display information; but perhaps even more 
-      useful, we can conveniently process the data.&lt;br&gt;So let's assume we have 
-      file &amp;quot;data&amp;quot;, with format of either XML or JSON:
-    &lt;/p&gt;
-    &lt;hr&gt;
-    
-
-    &lt;pre&gt;  // note: can pass either byte[] or InputStream
-  match = det.findFormat(new File(&amp;quot;data&amp;quot;));&lt;br&gt;  JsonParser p = match.createParserWithMatch();&lt;br&gt;  // or; if we wanted to get factory: JsonFactory matchedFactory = p.getMatch();&lt;br&gt;  ObjectMapper mapper = new ObjectMapper();&lt;br&gt;  User user = mapper.readValue(p, User.class);&lt;/pre&gt;
-    &lt;hr&gt;
-    
-
-    &lt;p&gt;
-      Basically you can let &lt;i&gt;DataFormatMatcher&lt;/i&gt; construct a parser for 
-      the matched type (note: some data formats require specific kind of 
-      ObjectMapper to be used).
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;3. Works on... ?&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      Basically, any format for which there is JsonFactory that properly 
-      implements method &amp;quot;hasFormat()&amp;quot; can be auto-detected.
-    &lt;/p&gt;
-    &lt;p&gt;
-      Currently (Jackson 2.0.0) this includes following data formats:
-    &lt;/p&gt;
-    &lt;ol&gt;
-      &lt;li&gt;
-        JSON -- can detect standards-compliant data (main-level JSON Object or 
-        Array); and to some degree other variants (scalar values at root-level)
-      &lt;/li&gt;
-      &lt;li&gt;
-        Smile -- reliably detected, especially when the standard header is 
-        written (enabled by default)
-      &lt;/li&gt;
-      &lt;li&gt;
-        XML -- reliably detected either from XML declaration, or from first 
-        tag, PI or comment
-      &lt;/li&gt;
-      &lt;li&gt;
-        YAML: experimental &lt;a href=&quot;https://github.com/FasterXML/jackson-dataformat-yaml&quot;&gt;Jackson 
-        YAML module&lt;/a&gt; can detect document start marker (&amp;quot;---&amp;quot;) for reliable 
-        detection; otherwise inconclusive
-      &lt;/li&gt;
-    &lt;/ol&gt;
-    &lt;p&gt;
-      One existing dataformat for which auto-detection does not yet work is 
-      CSV: this is mostly due to inherent lack of header of any kind. However, 
-      some heuristic support will likely be added soon.
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;4. Most useful for? &lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      This feature was originally implemented to allow for automatic detection 
-      and parsing of content that would be in either JSON, or a binary JSON 
-      (Smile) representation. For this use case, things work reliably and 
-      efficiently.
-    &lt;/p&gt;
-    &lt;p&gt;
-      But fortunately system was designed to be pluggable, so it should 
-      actually work for a variety of other cases. Ideally this should nicely 
-      complement &amp;quot;universal data adapter&amp;quot; goal of Jackson project; so that you 
-      could usually simply just feed a data file, and as long as it is in one 
-      of supported formats, things would Just Work.
-    &lt;/p&gt;
-    &lt;p&gt;
-      &lt;b&gt;5. Caveats&lt;/b&gt;
-    &lt;/p&gt;
-    &lt;p&gt;
-      Some things to note:
-    &lt;/p&gt;
-    &lt;ol&gt;
-      &lt;li&gt;
-        Order of factories used for constructing &lt;i&gt;DataFormatDetector&lt;/i&gt; 
-        matters: first one that provides optimal match is taken; and if no 
-        optimal match is found, first of otherwise equal acceptable matches is 
-        given
-      &lt;/li&gt;
-      &lt;li&gt;
-        Some data formats require specific ObjectMapper implementation 
-        (sub-class) to be used: for those formats, automatic parser creation 
-        needs to be coupled with choosing of the right mapper (this may be 
-        improved in future)
-      &lt;/li&gt;
-    &lt;/ol&gt;</description>
-<link>http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html#472</link>
-<guid>http://www.cowtowncoder.com/blog/archives/04-01-2012_04-30-2012.html#472</guid>
-
-<category>Java</category>
-
-<pubDate>Mon, 09 Apr 2012 19:19:46 -0700</pubDate>
 </item>
 
 </channel>
