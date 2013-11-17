@@ -43,6 +43,244 @@ window.google_analytics_uacct = "UA-140287-10";
 <!-- entry -->
 
    
+     <h2 class="date-header">Sunday, November 17, 2013 </h2>
+<div class="entry" id="post-483">
+     <h3 class="entry-header">Jackson 2.3.0 released -- quick feature overview</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Now that Jackson 2.3.0 is finally finalized and released (official 
+      release date 14th November, 2013), it is time for a quick sampling of 
+      new features. Note that this is a very limited sampling -- across all 
+      core components and modules, there are close to 100 closed features; 
+      some fixes, but most improvements of some kind.
+    </p>
+    <p>
+      So here's my list of 6 notable features.
+    </p>
+    <p>
+      <b>1. JsonPointer support for Tree Model</b>
+    </p>
+    <p>
+      One of most often asked features for Jackson has been ability to support 
+      a path language to traverse JSON. So with 2.3 we chose the simplest 
+      standardized alternative, <a href="http://tools.ietf.org/html/draft-ietf-appsawg-json-pointer-03">JSON 
+      Pointer</a> (version 3), and made Tree Model (JsonNode) allow navigating 
+      using it.
+    </p>
+    <p>
+      Usage is simple: for JSON like
+    </p>
+    <hr>
+    
+
+    <pre>{ &quot;address&quot; : { &quot;street&quot; : &quot;2940 5th Ave&quot;, &quot;zip&quot; : 980021 }, 
+  &quot;dimensions&quot; : [ 10.0, 20.0, 15.0 ]<br>}</pre>
+    <hr>
+    
+
+    <p>
+      you could use expression like:
+    </p>
+    <hr>
+    
+
+    <pre>JsonNode root = mapper.readTree(src);<br>int zip =root. at(&quot;/address/zipcode&quot;).asIntValue();<br>double height = root.add(&quot;/dimensions/1&quot;).asDoubleValue(); // assuming it's the second number in there</pre>
+    <hr>
+    
+
+    <p>
+      Note, too, that you can pre-compile JSON Pointer expressions with 
+      &quot;JsonPointer.compile(...)&quot;, instead of passing Strings; however, pointer 
+      expressions are not particularly expensive to tokenize.<br>
+    </p>
+    <p>
+      <b>2. @JsonFilter improvements</b>
+    </p>
+    <p>
+      With earlier versions, it was only possible to define ids of filters to 
+      apply using @JsonFilter on classes. With 2.3.0 you can apply this 
+      annotation (as well as @JsonView) on properties as well, to use 
+      different filters for different instances of same class:
+    </p>
+    <hr>
+    
+
+    <pre>public class POJO {<br>@JsonFilter(&quot;filterA&quot;) public Value value1;<br>@JsonFilter(&quot;filterB&quot;)public Value value2;<br><br>// similarly with JsonView (was added in 2.2)<br>@JsonView(AlternateView.class)
+  public AnotherValue property;<br>}</pre>
+    <hr>
+    
+
+    <p>
+      But this is not all! Applicability of JSON Filters is also expanded, so 
+      that in addition to regular POJOs and their properties, it will now 
+      apply to:
+    </p>
+    <ol>
+      <li>
+        Any getters (they will get filtered just like regular properties)
+      </li>
+      <li>
+        Java Maps
+      </li>
+    </ol>
+    <p>
+      and in future we may also add ability to filter out List or array 
+      elements; this will be possible since the filtering interfaces were 
+      extended allow alternate calls that specify value index, instead of 
+      property name.
+    </p>
+    <p>
+      <b>3. Uniqueness checks</b>
+    </p>
+    <p>
+      Although JSON specification does not mandate enforcing uniqueness of 
+      Object property names (and use of databinder on serialization should 
+      prevent generation of duplicates), there are situations where one would 
+      want to be extra careful, and make parser check uniqueness.
+    </p>
+    <p>
+      With 2.3.0, there are two new features you can turn on to cause an 
+      exception to be thrown if duplicate property names are encountered:
+    </p>
+    <ol>
+      <li>
+        <i>DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY</i>: when 
+        reading JSON Trees (JsonNode), and encountering a duplicate name, 
+        throw a JsonMappingException
+      </li>
+      <li>
+        <i>JsonParser.Feature.STRICT_DUPLICATE_DETECTION</i> and <i>JsonGenerator.Feature.STRICT_DUPLICATE_DETECTION</i>: 
+        when reading or writing JSON using Streaming API (either directly, or 
+        for data-binding or building/serializing Tree instances), duplicates 
+        will be reported by a JsonParsingException
+      </li>
+    </ol>
+    <p>
+      The main difference (beyond applicability; first feature only affects 
+      cases of building a JsonNode out of JSON input) is that duplicate 
+      detection at Streaming API level does incur some overhead (up to 30-40% 
+      more time spent); whereas duplicate detection at Tree Model level has 
+      little if any overhead. Difference is due to additional storage and 
+      checking requirements, as Streaming API does not need to keep track of 
+      set of property names encountered unless checking is required, whereas 
+      Tree Model will have to keep track of properties anyway. As a 
+      consequence, tree level checks are basically close to free to add.
+    </p>
+    <p>
+      <b>4, Object Id handling</b>
+    </p>
+    <p>
+      There are two improvements to Object Identity handling.
+    </p>
+    <p>
+      First, by enabling, <i>SerializationFeature.USE_EQUALITY_FOR_OBJECT_ID</i> 
+      you can loosen checks so that all values that are deemed equal (by 
+      calling Object.equals()) are considered &quot;same object&quot;; basically this 
+      allows canonicalization of objects. It mostly makes sense when using ORM 
+      libraries, or other data sources that may not use exact object 
+      instances; or if you want to reconstruct shared references from sources 
+      that do not support it.
+    </p>
+    <p>
+      Second, when using <a href="https://github.com/FasterXML/jackson-dataformat-yaml">YAML 
+      data format module</a>, all Object Id references are now written using 
+      YAML native constructs called anchors, and references handled as native 
+      references. Same is also true for Type Ids; YAML module will now use 
+      tags for this purpose.<br>This change should not onlt make result more 
+      compact and &quot;YAML-looking&quot;, but should also improve interoperability 
+      with native YAML tools. Latter should be most useful for a common use 
+      case for YAML, that of configuration files, where you can more easily 
+      share common configuration blocks with anchors and references.
+    </p>
+    <p>
+      <b>5. Contextual Attributes for custom (de)serialization</b>
+    </p>
+    <p>
+      One thing that has been missing so far from both <i>SerializaterProvider</i> 
+      and <i>DeserializationContext</i> objects (both of which extends <i>DatabindContext</i> 
+      base class) has been ability to assign and access temporary values 
+      during serialization/deserialization. In absence of something like this, 
+      custom <i>JsonSerializer</i> and <i>JsonDeserializer</i> implementations 
+      have had to use ThreadLocal to retain such values, adding more 
+      complexity.
+    </p>
+    <p>
+      But not any more: starting with 2.3.0, there is concept of &quot;databind 
+      attributes&quot; (similar to, say, Servlet attributes), managed and accessed 
+      using two simple methods -- <i>getAttribute(Object key)</i> and <i>setAttribute(Object 
+      key, Object value).</i> These can be used for keeping track of per-call 
+      (serialization or deserialization) state, pass data between 
+      (de)serializers and so on. All values are cleared when context is 
+      created (for a readValue() or writeValue() call); and similarly values 
+      are cleared at the end, so that no explicit clean up is required.
+    </p>
+    <p>
+      This may not sound like a huge feature in itself, but it actually opens 
+      up interesting possibilities for future: specifically, it may make sense 
+      to add new &quot;standard attributes&quot; that are set by databind module itself, 
+      when specific feature is enabled. For example, perhaps it would make 
+      sense to keep track of POJO that is being currently 
+      serialized/deserialized, to be accessible to actual (de)serializers.
+    </p>
+    <p>
+      <b>6. Null handling for serialization</b>
+    </p>
+    <p>
+      Another relative small, but often requested feature is ability to 
+      control how Java nulls are serialized, using more granular control than 
+      global rules like &quot;all nulls to be serialized as empty Strings&quot; (which 
+      is possible to do already). This is supported by adding a new property 
+      for <i>@JsonSerialize</i> annotation:
+    </p>
+    <hr>
+    
+
+    <pre>public class POJO {<br>  @JsonSerialize(nullsUsing=MyNullSerializer.class)<br>  public Value value;<br>}</pre>
+    <hr>
+    
+
+    <p>
+      in which case instance of MyNullSerializer would be used to write a JSON 
+      value for property &quot;value&quot;, if POJO property has value null.
+    </p>
+    <p>
+      <b>7. Other miscallenous of improvements</b>
+    </p>
+    <p>
+      <a href="https://github.com/FasterXML/jackson-jaxrs-providers">JAX-RS 
+      module</a> has a new mechanisms for fully customizing <i>ObjectReader</i> 
+      and <i>ObjectWriter</i> instances, above and beyond what module itself 
+      can do. You can find more details on <a href="https://github.com/FasterXML/jackson-jaxrs-providers/issues/33">Issue#33</a>.
+    </p>
+    <p>
+      <a href="https://github.com/FasterXML/jackson-dataformat-xml">XML module</a> 
+      has been improved as well; it is finally possible to properly serialize 
+      root-level array and <i>java.util.Collection</i> values. <i>ObjectMapper.convertValue() 
+      </i>now works properly.
+    </p>
+    <p>
+      <a href="https://github.com/FasterXML/jackson-dataformat-csv">CSV module</a> 
+      now supports filtering using JSON Views and JSON Filters; this was not 
+      working correctly with earlier versions.
+    </p>
+    <p>
+      
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Sunday, November 17, 2013 3:27 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
      <h2 class="date-header">Tuesday, September 10, 2013 </h2>
 <div class="entry" id="post-481">
      <h3 class="entry-header">Java Classmate 0.9 released -- getting ready for 1.0</h3>
@@ -2304,335 +2542,6 @@ window.google_analytics_uacct = "UA-140287-10";
      </div>
 </div>
    
-     <h2 class="date-header">Saturday, December 10, 2011 </h2>
-<div class="entry" id="post-465">
-     <h3 class="entry-header">Sorting large data sets in Java using Java-merge-sort</h3>
-     
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      When sorting data sets in Java, life is easy if amount of data to 
-      process is not huge: JDK has the basic sorting covered well. But if your 
-      data is big enough not to fit in memory you are on your own.
-    </p>
-    <p>
-      This often means that developers use basic Unix 'sort' command line 
-      tool. But while it is a good package for basic textual sort -- and when 
-      combined with other Unix pipeline tools, on whole range of column-based 
-      alternatives -- it is limited in two sometimes crucial aspects:
-    </p>
-    <ol>
-      <li>
-        Defining custom sorting (collation) order is difficult
-      </li>
-      <li>
-        Interacting with external tools (including 'sort') from within JVM is 
-        inherently difficult
-      </li>
-    </ol>
-    <p>
-      But there is one less well-known alternative available: a relatively new 
-      Java Open Source library available from Github: <a href="https://github.com/cowtowncoder/java-merge-sort">java-merge-sort</a>.
-    </p>
-    <p>
-      <b>1. What is java-merge-sort</b>
-    </p>
-    <p>
-      Java-merge-sort library implements basic external <a href="http://en.wikipedia.org/wiki/Merge_sort">merge 
-      sort</a>, sorting algorithm typically used for disk-backed sorting. 
-      Input and output are not limited to files; any <i>java.io.InputStream</i> 
-      / <i>java.io.OutputStream</i> implementation will work just fine.
-    </p>
-    <p>
-      Sorting library is designed to work as an ad-hoc tool (in fact, Jar 
-      itself can be used as 'sort' tool) as well as a component of bigger data 
-      processing systems.
-    </p>
-    <p>
-      Notable features include:
-    </p>
-    <ul>
-      <li>
-        Fully customizable input and output handlers, used for reading 
-        external data into objects to be sorted and writing them back out 
-        (handlers defined by providing factories that create instances)
-      </li>
-      <li>
-        Optional custom comparators (if items read do not implement Comparable)
-      </li>
-      <li>
-        Configurable merge factor (number of inputs merged in each pass); max 
-        memory usage (which limits length of pre-sort segments -- more memory 
-        used, fewer rounds needed)
-      </li>
-      <li>
-        Configurable temporary file handling (defaults to using JDK default 
-        temp files, deletions)
-      </li>
-      <li>
-        Ability to cancel sorting jobs asynchronously
-      </li>
-    </ul>
-    <p>
-      <b>2. Using as command-line tool</b>
-    </p>
-    <p>
-      A simple way to use the library is as a stand-alone command tool; while 
-      there are no specific benefits over standard 'sort' command (assuming 
-      one is available), it can be used to test functionality. Usage is as 
-      simple as:
-    </p>
-    <pre>  java -jar java-merge-sort-[VERSION].jar [input-file]</pre>
-    <p>
-      where 'input-file' is optional (if it is missing, will read from 
-      standard input); and sorted output will be displayed to standard output.<br>Commonly 
-      one will then redirect output to a file:
-    </p>
-    <pre>  java -jar java-merge-sort-[VERSION].jar unsorted.txt &gt; sorted.txt</pre>
-    <p>
-      Under the hood, this will run code from class <i>com.fasterxml.sort.std.TextFileSorter</i>
-    </p>
-    <p>
-      which is both a concrete sorter implementation, and defines main() 
-      method to act as a command-line tool.<br>Sort will be done line-by-line, 
-      using basic lexicographic (~= alphabetic) sort which works for common 
-      encodings like ASCII, Latin-1 and UTF-8.<br>Command will limit memory 
-      usage to 50% of maximum heap.
-    </p>
-    <p>
-      <b>3. Simple programmatic usage: textual file sort </b>
-    </p>
-    <p>
-      More commonly java-merge-sort is used as a component of bigger 
-      processing system. So let's have a look at basic usage as 'sort' 
-      replacement, i.e. sorting text files.
-    </p>
-    <p>
-      Code to sort an input file into output file is:
-    </p>
-    <pre>  public void sort(InputFile in, OutputFile out) throws IOException<br>  {<br>    TextFileSorter sorter = new TextFileSorter(new SortConfig().withMaxMemoryUsage(20 * 1000 * 1000)); // use up to 20 megs<br>    sorter.sort(new FileInputStream(in), new FileOutputStream(out));<br>    // note: sort() will close InputStream, OutputStream after sorting<br>  }<br></pre>
-    <p>
-      which uses default configuration except for maximum memory usage 
-      (default is 40 megs: which often works just fine)
-    </p>
-    <p>
-      <b>4. Advanced usage: sort JSON files</b>
-    </p>
-    <p>
-      Above example showed one benefit -- easy integration from Java code -- 
-      but the real power comes from the fact that we can change input and 
-      output handlers to deal with all kinds of data, to support advanced 
-      sorting behavior. To demonstrate this, let's consider case where input 
-      is a file that contains JSON entries: each line contains a JSON Object 
-      like:
-    </p>
-    <p>
-      { &quot;firstName&quot; : &quot;Joe&quot;, &quot;lastName&quot; : &quot;Plumber&quot;, &quot;age&quot;:58 }
-    </p>
-    <p>
-      and which we want to sort primary by age, from lowest to highest, and 
-      than by name, alphabetic, first by last name, then by first name.<br>We 
-      can bind this to a Java class like:
-    </p>
-    <hr>
-    
-
-    <pre>  public class Person implements Comparable&lt;Person&gt;
-  {
-    public int age;
-    public String firstName, lastName;
-
-    public int compareTo(Person other) {
-     int diff = age - other.age;
-     if (diff == 0) {
-      diff = lastName.compareTo(other.lastName);
-      if (diff == 0) {
-       diff = firstName.compareTo(other.firstName);
-      }
-     }
-     return diff;
-    }
-  }</pre>
-    <hr>
-    
-
-    <p>
-      using Jackson JSON processor, and then sort entries using 
-      java-merge-sort.
-    </p>
-    <p>
-      Code to do this is bit more complicated; let's start with Sorter 
-      implementation:
-    </p>
-    <hr>
-    
-
-    <pre>import java.io.*;
-
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.map.*;
-import org.codehaus.jackson.type.JavaType;
-
-import com.fasterxml.sort.std.StdComparator;
-
-public class JsonPersonSorter extends Sorter&lt;Person&gt;
-{
-  public JsonFileSorter() throws IOException {
-    this(entryType, new SortConfig(), new ObjectMapper());
-  }
-
-  public JsonFileSorter(SortConfig config, ObjectMapper mapper) throws IOException {
-    this(mapper.constructType(Person.class), config, mapper);
-  }
-
-  public JsonFileSorter(JavaType entryType, SortConfig config, ObjectMapper mapper) throws IOException {
-    super(config, new ReaderFactory(mapper.reader(entryType)),
-      new WriterFactory(mapper),
-      new StdComparator&lt;Person&gt;());
-  }
-}</pre>
-    <hr>
-    and supporting reading-related classes are:<hr>
-
-    <pre>public class ReaderFactory extends DataReaderFactory&lt;Person&gt;
-{
-  private final ObjectReader _reader;
-  public ReaderFactory(ObjectReader r) {
-    _reader = r;
-  }
-
-  @Override
-  public DataReader&lt;Person&gt; constructReader(InputStream in) throws IOException {
-    MappingIterator&lt;Person&gt; it = _reader.readValues(in);
-    return new Reader&lt;Person&gt;(it);
-  }
-}
-
-public class Reader&lt;E&gt; extends DataReader&lt;E&gt;
-{
-  protected final MappingIterator&lt;E&gt; _iterator;
- 
-  public Reader(MappingIterator&lt;E&gt; it) {_i terator = it; }
-
-  @Override
-  public E readNext() throws IOException {
-    if (_iterator.hasNext()) {
-      return _iterator.nextValue();
-    }
-    return null;
-  }
-<br>  // not a good estimation, has to do for now (should count String lengths, estimate)
-  @Override public int estimateSizeInBytes(E item) { return 100; }
-  @Overridepu blic void close() throws IOException { } // auto-closes when we reach end
-}</pre>
-    <p>
-      
-    </p>
-    <hr>
-    and writing-related classes:<hr>
-
-    <pre>static class WriterFactory&lt;W&gt; extends DataWriterFactory&lt;W&gt;
-{
-  protected final ObjectMapper _mapper;
-
-  public WriterFactory(ObjectMapper m) {
-    _mapper = m;
-  }
-
-  @Override
-  public DataWriter&lt;W&gt; constructWriter(OutputStream out) throws IOException {
-    return new Writer&lt;W&gt;(_mapper, out);
-  }
-}
-
-static class Writer&lt;E&gt; extends DataWriter&lt;E&gt;
-{
-  protected final ObjectMapper _mapper;
-  protected final JsonGenerator _generator;
-
-  public Writer(ObjectMapper mapper, OutputStream out) throws IOException {
-    _mapper = mapper;
-    _generator = _mapper.getJsonFactory().createJsonGenerator(out);
-  }
-
-  @Override
-  public void writeEntry(E item) throws IOException {
-    _mapper.writeValue(_generator, item);
-    // not 100% necesary, but for readability, add linefeeds
-    _generator.writeRaw('\n');
-  }
-
-  @Override
-  public void close() throws IOException {
-    _generator.close();
-  }
-}<br><br>So with all of above, we could sort a file using:
-
-   JsonFileSorter sorter = new JsonFileSorter();
-   sorter.sort(inputFile, outputFile);</pre>
-    <p>
-      Which is pretty much identical to earlier code to sort a File; just with 
-      different reader+writer configuration.
-    </p>
-    <p>
-      <b>5. Even more advanced: compress intermediate files?</b>
-    </p>
-    <p>
-      There are many ways to customize processing; and one interesting idea is 
-      to actually compress intermediate files (results of pre-sort, inputs to 
-      later merge rounds); preferably using ultra-fast Java compressor like <a href="https://github.com/ning/compress">Ning 
-      LZF</a>.
-    </p>
-    <p>
-      Code to do this would not be long -- it's just matter of changing 
-      DataReaderFactory and DataWriterFactory to read/write files -- but I 
-      will leave this up as an exercise to reader. :-)
-    </p>
-    <p>
-      <b>6. More speed: configurations</b>
-    </p>
-    <p>
-      There are two main configuration switches that can be used to improve 
-      speed:
-    </p>
-    <ol>
-      <li>
-        Amount of memory used for pre-sorting: more memory to use, fewer 
-        sorted segments are needed -- in fact, it may be possible to do the 
-        whole sort in memory. Default memory to use is 40 megabytes (to 
-        accomodate for default JDK max heap size of 64 megs)
-      </li>
-      <li>
-        Number of inputs merged per round: default is 16 inputs, which should 
-        be enough; but you can increase this to reduce number of merge rounds 
-        needed (or reduce if you want to minimize number of open files, in 
-        case you encounter problems)
-      </li>
-    </ol>
-    <p>
-      <b>7. Future ideas</b>
-    </p>
-    <p>
-      Looking at JSON sorting code, I realize that it would be easy to create 
-      a generic sorter that uses Jackson. And not only would this support 
-      sorting JSON files, but also files that use any other format Jackson 
-      supports, such as Smile (out of the box, with 'SmileFactory'), <a href="https://github.com/FasterXML/jackson-xml-databind">XML</a>, 
-      <a href="https://github.com/FasterXML/jackson-dataformat-csv">CSV</a> 
-      and <a href="https://github.com/michel-kraemer/bson4jackson">BSON</a>!
-    </p></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, December 10, 2011 7:23 PM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2011/12/entry_465.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2011/12/entry_465.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2011/12/entry_465.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-   
             </div>
         </div>
 <div id="beta">
@@ -2676,7 +2585,7 @@ static class Writer&lt;E&gt; extends DataWriter&lt;E&gt;
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html">Java Classmate 0.9 released -- getting ready for 1.0</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/05/entry_475.html">Doing actual non-blocking, incremental HTTP access with async-http-client</a></li>
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html">Jackson 2.3.0 released -- quick feature overview</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html">Java Classmate 0.9 released -- getting ready for 1.0</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li>
                </ul>
           </div>
      </div>
@@ -2729,6 +2638,8 @@ static class Writer&lt;E&gt; extends DataWriter&lt;E&gt;
           <h2 class="module-header">Archives</h2>
           <div class="module-content">
                <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2013_11-30-2013.html'>November 2013</a></li>
               
                 <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2013_10-31-2013.html'>October 2013</a></li>
               

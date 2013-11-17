@@ -43,6 +43,244 @@ window.google_analytics_uacct = "UA-140287-10";
 <!-- entry -->
 
    
+     <h2 class="date-header">Sunday, November 17, 2013 </h2>
+<div class="entry" id="post-483">
+     <h3 class="entry-header">Jackson 2.3.0 released -- quick feature overview</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Now that Jackson 2.3.0 is finally finalized and released (official 
+      release date 14th November, 2013), it is time for a quick sampling of 
+      new features. Note that this is a very limited sampling -- across all 
+      core components and modules, there are close to 100 closed features; 
+      some fixes, but most improvements of some kind.
+    </p>
+    <p>
+      So here's my list of 6 notable features.
+    </p>
+    <p>
+      <b>1. JsonPointer support for Tree Model</b>
+    </p>
+    <p>
+      One of most often asked features for Jackson has been ability to support 
+      a path language to traverse JSON. So with 2.3 we chose the simplest 
+      standardized alternative, <a href="http://tools.ietf.org/html/draft-ietf-appsawg-json-pointer-03">JSON 
+      Pointer</a> (version 3), and made Tree Model (JsonNode) allow navigating 
+      using it.
+    </p>
+    <p>
+      Usage is simple: for JSON like
+    </p>
+    <hr>
+    
+
+    <pre>{ &quot;address&quot; : { &quot;street&quot; : &quot;2940 5th Ave&quot;, &quot;zip&quot; : 980021 }, 
+  &quot;dimensions&quot; : [ 10.0, 20.0, 15.0 ]<br>}</pre>
+    <hr>
+    
+
+    <p>
+      you could use expression like:
+    </p>
+    <hr>
+    
+
+    <pre>JsonNode root = mapper.readTree(src);<br>int zip =root. at(&quot;/address/zipcode&quot;).asIntValue();<br>double height = root.add(&quot;/dimensions/1&quot;).asDoubleValue(); // assuming it's the second number in there</pre>
+    <hr>
+    
+
+    <p>
+      Note, too, that you can pre-compile JSON Pointer expressions with 
+      &quot;JsonPointer.compile(...)&quot;, instead of passing Strings; however, pointer 
+      expressions are not particularly expensive to tokenize.<br>
+    </p>
+    <p>
+      <b>2. @JsonFilter improvements</b>
+    </p>
+    <p>
+      With earlier versions, it was only possible to define ids of filters to 
+      apply using @JsonFilter on classes. With 2.3.0 you can apply this 
+      annotation (as well as @JsonView) on properties as well, to use 
+      different filters for different instances of same class:
+    </p>
+    <hr>
+    
+
+    <pre>public class POJO {<br>@JsonFilter(&quot;filterA&quot;) public Value value1;<br>@JsonFilter(&quot;filterB&quot;)public Value value2;<br><br>// similarly with JsonView (was added in 2.2)<br>@JsonView(AlternateView.class)
+  public AnotherValue property;<br>}</pre>
+    <hr>
+    
+
+    <p>
+      But this is not all! Applicability of JSON Filters is also expanded, so 
+      that in addition to regular POJOs and their properties, it will now 
+      apply to:
+    </p>
+    <ol>
+      <li>
+        Any getters (they will get filtered just like regular properties)
+      </li>
+      <li>
+        Java Maps
+      </li>
+    </ol>
+    <p>
+      and in future we may also add ability to filter out List or array 
+      elements; this will be possible since the filtering interfaces were 
+      extended allow alternate calls that specify value index, instead of 
+      property name.
+    </p>
+    <p>
+      <b>3. Uniqueness checks</b>
+    </p>
+    <p>
+      Although JSON specification does not mandate enforcing uniqueness of 
+      Object property names (and use of databinder on serialization should 
+      prevent generation of duplicates), there are situations where one would 
+      want to be extra careful, and make parser check uniqueness.
+    </p>
+    <p>
+      With 2.3.0, there are two new features you can turn on to cause an 
+      exception to be thrown if duplicate property names are encountered:
+    </p>
+    <ol>
+      <li>
+        <i>DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY</i>: when 
+        reading JSON Trees (JsonNode), and encountering a duplicate name, 
+        throw a JsonMappingException
+      </li>
+      <li>
+        <i>JsonParser.Feature.STRICT_DUPLICATE_DETECTION</i> and <i>JsonGenerator.Feature.STRICT_DUPLICATE_DETECTION</i>: 
+        when reading or writing JSON using Streaming API (either directly, or 
+        for data-binding or building/serializing Tree instances), duplicates 
+        will be reported by a JsonParsingException
+      </li>
+    </ol>
+    <p>
+      The main difference (beyond applicability; first feature only affects 
+      cases of building a JsonNode out of JSON input) is that duplicate 
+      detection at Streaming API level does incur some overhead (up to 30-40% 
+      more time spent); whereas duplicate detection at Tree Model level has 
+      little if any overhead. Difference is due to additional storage and 
+      checking requirements, as Streaming API does not need to keep track of 
+      set of property names encountered unless checking is required, whereas 
+      Tree Model will have to keep track of properties anyway. As a 
+      consequence, tree level checks are basically close to free to add.
+    </p>
+    <p>
+      <b>4, Object Id handling</b>
+    </p>
+    <p>
+      There are two improvements to Object Identity handling.
+    </p>
+    <p>
+      First, by enabling, <i>SerializationFeature.USE_EQUALITY_FOR_OBJECT_ID</i> 
+      you can loosen checks so that all values that are deemed equal (by 
+      calling Object.equals()) are considered &quot;same object&quot;; basically this 
+      allows canonicalization of objects. It mostly makes sense when using ORM 
+      libraries, or other data sources that may not use exact object 
+      instances; or if you want to reconstruct shared references from sources 
+      that do not support it.
+    </p>
+    <p>
+      Second, when using <a href="https://github.com/FasterXML/jackson-dataformat-yaml">YAML 
+      data format module</a>, all Object Id references are now written using 
+      YAML native constructs called anchors, and references handled as native 
+      references. Same is also true for Type Ids; YAML module will now use 
+      tags for this purpose.<br>This change should not onlt make result more 
+      compact and &quot;YAML-looking&quot;, but should also improve interoperability 
+      with native YAML tools. Latter should be most useful for a common use 
+      case for YAML, that of configuration files, where you can more easily 
+      share common configuration blocks with anchors and references.
+    </p>
+    <p>
+      <b>5. Contextual Attributes for custom (de)serialization</b>
+    </p>
+    <p>
+      One thing that has been missing so far from both <i>SerializaterProvider</i> 
+      and <i>DeserializationContext</i> objects (both of which extends <i>DatabindContext</i> 
+      base class) has been ability to assign and access temporary values 
+      during serialization/deserialization. In absence of something like this, 
+      custom <i>JsonSerializer</i> and <i>JsonDeserializer</i> implementations 
+      have had to use ThreadLocal to retain such values, adding more 
+      complexity.
+    </p>
+    <p>
+      But not any more: starting with 2.3.0, there is concept of &quot;databind 
+      attributes&quot; (similar to, say, Servlet attributes), managed and accessed 
+      using two simple methods -- <i>getAttribute(Object key)</i> and <i>setAttribute(Object 
+      key, Object value).</i> These can be used for keeping track of per-call 
+      (serialization or deserialization) state, pass data between 
+      (de)serializers and so on. All values are cleared when context is 
+      created (for a readValue() or writeValue() call); and similarly values 
+      are cleared at the end, so that no explicit clean up is required.
+    </p>
+    <p>
+      This may not sound like a huge feature in itself, but it actually opens 
+      up interesting possibilities for future: specifically, it may make sense 
+      to add new &quot;standard attributes&quot; that are set by databind module itself, 
+      when specific feature is enabled. For example, perhaps it would make 
+      sense to keep track of POJO that is being currently 
+      serialized/deserialized, to be accessible to actual (de)serializers.
+    </p>
+    <p>
+      <b>6. Null handling for serialization</b>
+    </p>
+    <p>
+      Another relative small, but often requested feature is ability to 
+      control how Java nulls are serialized, using more granular control than 
+      global rules like &quot;all nulls to be serialized as empty Strings&quot; (which 
+      is possible to do already). This is supported by adding a new property 
+      for <i>@JsonSerialize</i> annotation:
+    </p>
+    <hr>
+    
+
+    <pre>public class POJO {<br>  @JsonSerialize(nullsUsing=MyNullSerializer.class)<br>  public Value value;<br>}</pre>
+    <hr>
+    
+
+    <p>
+      in which case instance of MyNullSerializer would be used to write a JSON 
+      value for property &quot;value&quot;, if POJO property has value null.
+    </p>
+    <p>
+      <b>7. Other miscallenous of improvements</b>
+    </p>
+    <p>
+      <a href="https://github.com/FasterXML/jackson-jaxrs-providers">JAX-RS 
+      module</a> has a new mechanisms for fully customizing <i>ObjectReader</i> 
+      and <i>ObjectWriter</i> instances, above and beyond what module itself 
+      can do. You can find more details on <a href="https://github.com/FasterXML/jackson-jaxrs-providers/issues/33">Issue#33</a>.
+    </p>
+    <p>
+      <a href="https://github.com/FasterXML/jackson-dataformat-xml">XML module</a> 
+      has been improved as well; it is finally possible to properly serialize 
+      root-level array and <i>java.util.Collection</i> values. <i>ObjectMapper.convertValue() 
+      </i>now works properly.
+    </p>
+    <p>
+      <a href="https://github.com/FasterXML/jackson-dataformat-csv">CSV module</a> 
+      now supports filtering using JSON Views and JSON Filters; this was not 
+      working correctly with earlier versions.
+    </p>
+    <p>
+      
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Sunday, November 17, 2013 3:27 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
      <h2 class="date-header">Monday, October 28, 2013 </h2>
 <div class="entry" id="post-482">
      <h3 class="entry-header">On Jackson: Serializing Lists, Maps with properties</h3>
@@ -2152,205 +2390,6 @@ mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeVal
      </div>
 </div>
    
-     <h2 class="date-header"> </h2>
-<div class="entry" id="post-469">
-     <h3 class="entry-header">Notes on upgrading Jackson from 1.9 to 2.0</h3>
-     
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      If you have existing code that uses Jackson version 1.x, and you would 
-      like to see how to upgrade to 2.0, there isn't much documentation around 
-      yet; although <a href="http://wiki.fasterxml.com/JacksonRelease20">Jackson 
-      2.0 release</a> page does outline all the major changes that were made.
-    </p>
-    <p>
-      So let's try to see what kind of steps are typically needed (note: this 
-      is based on Jackson 2.0 upgrade experiences by <a href="https://twitter.com/#!/pamonrails">@pamonrails</a> 
-      -- thanks Pierre!)
-    </p>
-    <p>
-      <b>0. Pre-requisite: start with 1.9</b>
-    </p>
-    <p>
-      At this point, I assume code to upgrade works with Jackson 1.9, and does 
-      not use any deprecated interfaces (many methods and some classes were 
-      deprecated during course of 1.x; all deprecated things went away with 
-      2.0). So if your code is using an older 1.x version, the first step is 
-      usually to upgrade to 1.9, as this simplifies later steps.
-    </p>
-    <p>
-      <b>1. Update Maven / JAR dependencies</b>
-    </p>
-    <p>
-      The first thing to do is to upgrade jars. Depending on your build 
-      system, you can either get jars from <a href="http://wiki.fasterxml.com/JacksonDownload">Jackson 
-      Download</a> page, or update Maven dependencies. New Maven dependencies 
-      are:
-    </p>
-    <pre>
-&lt;dependency&gt;
-  &lt;groupId&gt;com.fasterxml.jackson.core&lt;/groupId&gt;
-  &lt;artifactId&gt;jackson-annotations&lt;/artifactId&gt;
-  &lt;version&gt;2.0.0&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-  &lt;groupId&gt;com.fasterxml.jackson.core&lt;/groupId&gt;
-  &lt;artifactId&gt;jackson-core&lt;/artifactId&gt;
-  &lt;version&gt;2.0.0&lt;/version&gt;
-&lt;/dependency&gt;<br>&lt;dependency&gt;
-  &lt;groupId&gt;com.fasterxml.jackson.core&lt;/groupId&gt;
-  &lt;artifactId&gt;jackson-databind&lt;/artifactId&gt;
-  &lt;version&gt;2.0.0&lt;/version&gt;
-&lt;/dependency&gt;</pre>
-    <p>
-      The main thing to note is that instead of 2 jars (&quot;core&quot;, &quot;mapper&quot;), 
-      there are now 3: former core has been split into separate &quot;annotations&quot; 
-      package and remaining &quot;core&quot;; latter contains streaming/incremental 
-      parser/generator components. And &quot;databind&quot; is a direct replacement of 
-      &quot;mapper&quot; jar.
-    </p>
-    <p>
-      Similarly, you will need to update dependencies to supporting jars like:
-    </p>
-    <ul>
-      <li>
-        Mr Bean: com.fasterxml.jackson.module / jackson-module-mrbean
-      </li>
-      <li>
-        Smile binary JSON format: com.fasterxml.jackson.dataformat / 
-        jackson-dataformat-smile
-      </li>
-      <li>
-        JAX-RS JSON provider: com.fasterxml.jackson.jaxrs / 
-        jackson-jaxrs-json-provider
-      </li>
-      <li>
-        JAXB annotation support (&quot;xc&quot;): com.fasterxml.jackson.module / 
-        jackson-module-jaxb-annotations
-      </li>
-    </ul>
-    <p>
-      these, and many many more extension modules have their own project pages 
-      under <a href="https://github.com/FasterXML/">FasterXML Git repo</a>.
-    </p>
-    <p>
-      <b>2. Import statements</b>
-    </p>
-    <p>
-      Since Jackson 2.0 code lives in Java packages, you will need to change 
-      import statements. Although most changes are mechanical, there isn't 
-      strict set of mappings.
-    </p>
-    <p>
-      The way I have done this is to simply use an IDE like Eclipse, and 
-      remove all invalid import statements; and then use Eclipse functionality 
-      to find new packages. Typical import changes include:
-    </p>
-    <ul>
-      <li>
-        Core types: org.codehaus.jackson.JsonFactory/JsonParser/JsonGenerator 
-        -&gt; com.fasterxml.jackson.core.JsonFactory/JsonParser/JsonGenerator
-      </li>
-      <li>
-        Databind types: org.codehaus.jackson.map.ObjectMapper -&gt; 
-        com.fasterxml.jackson.databind.ObjectMapper
-      </li>
-      <li>
-        Standard annotations: org.codehaus.jackson.annotate.JsonProperty -&gt; 
-        com.fasterxml.jackson.annotation.JsonProperty
-      </li>
-    </ul>
-    <p>
-      It is often convenient to just use wildcards imports for main categories 
-      (com.fasterxml.jackson.core.*, com.fasterxml.jackson.databind.*, 
-      com.fasterxml.jackson.annotation.*)
-    </p>
-    <p>
-      <b>3. SerializationConfig.Feature, DeserializationConfig.Feature</b>
-    </p>
-    <p>
-      The next biggest change was that of refactoring on/off Features, 
-      formerly defined as inner Enums of SerializationConfig and 
-      DeserializationConfig classes. For 2.0, enums were moved to separate 
-      stand-alone enums:
-    </p>
-    <ol>
-      <li>
-        <i>DeserializationFeature</i> contains most of entries from former 
-        DeserializationConfig.Feature
-      </li>
-      <li>
-        <i>SerializationFeature</i> contains most of entries from former 
-        SerializationConfig.Feature
-      </li>
-    </ol>
-    <p>
-      Entries that were NOT moved along are ones that were shared by both, and 
-      instead were added into new <i>MapperFeature</i> enumeration, for 
-      example:
-    </p>
-    <ul>
-      <li>
-        SerializationConfig.Feature.DEFAULT_VIEW_INCLUSION became 
-        MapperFeature.DEFAULT_VIEW_INCLUSION
-      </li>
-    </ul>
-    <p>
-      <b>4. Tree model method name changes (JsonNode)</b>
-    </p>
-    <p>
-      Although many methods (and some classes) were renamed here and there, 
-      mostly these were one-offs. But one area where major naming changes were 
-      done was with Tree Model -- this because 1.x names were found to be 
-      rather unwieldy and unnecessarily verbose. So we decided that it would 
-      make sense to try to do a &quot;big bang&quot; name change with 2.0, to get to a 
-      clean(er) baseline.
-    </p>
-    <p>
-      Changes made were mostly of following types:
-    </p>
-    <ul>
-      <li>
-        <i>getXxxValue</i>() changes to <i>xxValue</i>(): getTextValue() -&gt; 
-        textValue(), getFieldNames() -&gt; fieldNames() and so on.
-      </li>
-      <li>
-        getXxxAsYyy() changes to asYyy(): getValueAsText() -&gt; asText()<b>
-</b>      </li>
-    </ul>
-    <p>
-      <b>5. Miscellaneous</b>
-    </p>
-    <p>
-      Some classes were removed:
-    </p>
-    <ul>
-      <li>
-        CustomSerializerFactory, CustomDeserializerFactory: should instead use 
-        Module (like SimpleModule) for adding custom serializers, deserializers
-      </li>
-    </ul>
-    <p>
-      <b>6. What else?</b>
-    </p>
-    <p>
-      This is definitely an incomplete list. Please let me know what I missed, 
-      when you try upgrading!
-    </p></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Friday, April 06, 2012 9:33 AM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_469.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-   
             </div>
         </div>
 <div id="beta">
@@ -2394,7 +2433,7 @@ mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeVal
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html">On Jackson: Serializing Lists, Maps with properties</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2012/08/entry_477.html">Replacing standard JDK serialization using Jackson (JSON/Smile), java.io.Externalizable</a></li>
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html">Jackson 2.3.0 released -- quick feature overview</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html">On Jackson: Serializing Lists, Maps with properties</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li>
                </ul>
           </div>
      </div>
@@ -2447,6 +2486,8 @@ mapper.registerModule(new AfterburnerModule());<br>String json = mapper.writeVal
           <h2 class="module-header">Archives</h2>
           <div class="module-content">
                <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2013_11-30-2013.html'>November 2013</a></li>
               
                 <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2013_10-31-2013.html'>October 2013</a></li>
               

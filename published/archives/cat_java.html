@@ -43,6 +43,244 @@ window.google_analytics_uacct = "UA-140287-10";
 <!-- entry -->
 
    
+     <h2 class="date-header">Sunday, November 17, 2013 </h2>
+<div class="entry" id="post-483">
+     <h3 class="entry-header">Jackson 2.3.0 released -- quick feature overview</h3>
+     
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Now that Jackson 2.3.0 is finally finalized and released (official 
+      release date 14th November, 2013), it is time for a quick sampling of 
+      new features. Note that this is a very limited sampling -- across all 
+      core components and modules, there are close to 100 closed features; 
+      some fixes, but most improvements of some kind.
+    </p>
+    <p>
+      So here's my list of 6 notable features.
+    </p>
+    <p>
+      <b>1. JsonPointer support for Tree Model</b>
+    </p>
+    <p>
+      One of most often asked features for Jackson has been ability to support 
+      a path language to traverse JSON. So with 2.3 we chose the simplest 
+      standardized alternative, <a href="http://tools.ietf.org/html/draft-ietf-appsawg-json-pointer-03">JSON 
+      Pointer</a> (version 3), and made Tree Model (JsonNode) allow navigating 
+      using it.
+    </p>
+    <p>
+      Usage is simple: for JSON like
+    </p>
+    <hr>
+    
+
+    <pre>{ &quot;address&quot; : { &quot;street&quot; : &quot;2940 5th Ave&quot;, &quot;zip&quot; : 980021 }, 
+  &quot;dimensions&quot; : [ 10.0, 20.0, 15.0 ]<br>}</pre>
+    <hr>
+    
+
+    <p>
+      you could use expression like:
+    </p>
+    <hr>
+    
+
+    <pre>JsonNode root = mapper.readTree(src);<br>int zip =root. at(&quot;/address/zipcode&quot;).asIntValue();<br>double height = root.add(&quot;/dimensions/1&quot;).asDoubleValue(); // assuming it's the second number in there</pre>
+    <hr>
+    
+
+    <p>
+      Note, too, that you can pre-compile JSON Pointer expressions with 
+      &quot;JsonPointer.compile(...)&quot;, instead of passing Strings; however, pointer 
+      expressions are not particularly expensive to tokenize.<br>
+    </p>
+    <p>
+      <b>2. @JsonFilter improvements</b>
+    </p>
+    <p>
+      With earlier versions, it was only possible to define ids of filters to 
+      apply using @JsonFilter on classes. With 2.3.0 you can apply this 
+      annotation (as well as @JsonView) on properties as well, to use 
+      different filters for different instances of same class:
+    </p>
+    <hr>
+    
+
+    <pre>public class POJO {<br>@JsonFilter(&quot;filterA&quot;) public Value value1;<br>@JsonFilter(&quot;filterB&quot;)public Value value2;<br><br>// similarly with JsonView (was added in 2.2)<br>@JsonView(AlternateView.class)
+  public AnotherValue property;<br>}</pre>
+    <hr>
+    
+
+    <p>
+      But this is not all! Applicability of JSON Filters is also expanded, so 
+      that in addition to regular POJOs and their properties, it will now 
+      apply to:
+    </p>
+    <ol>
+      <li>
+        Any getters (they will get filtered just like regular properties)
+      </li>
+      <li>
+        Java Maps
+      </li>
+    </ol>
+    <p>
+      and in future we may also add ability to filter out List or array 
+      elements; this will be possible since the filtering interfaces were 
+      extended allow alternate calls that specify value index, instead of 
+      property name.
+    </p>
+    <p>
+      <b>3. Uniqueness checks</b>
+    </p>
+    <p>
+      Although JSON specification does not mandate enforcing uniqueness of 
+      Object property names (and use of databinder on serialization should 
+      prevent generation of duplicates), there are situations where one would 
+      want to be extra careful, and make parser check uniqueness.
+    </p>
+    <p>
+      With 2.3.0, there are two new features you can turn on to cause an 
+      exception to be thrown if duplicate property names are encountered:
+    </p>
+    <ol>
+      <li>
+        <i>DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY</i>: when 
+        reading JSON Trees (JsonNode), and encountering a duplicate name, 
+        throw a JsonMappingException
+      </li>
+      <li>
+        <i>JsonParser.Feature.STRICT_DUPLICATE_DETECTION</i> and <i>JsonGenerator.Feature.STRICT_DUPLICATE_DETECTION</i>: 
+        when reading or writing JSON using Streaming API (either directly, or 
+        for data-binding or building/serializing Tree instances), duplicates 
+        will be reported by a JsonParsingException
+      </li>
+    </ol>
+    <p>
+      The main difference (beyond applicability; first feature only affects 
+      cases of building a JsonNode out of JSON input) is that duplicate 
+      detection at Streaming API level does incur some overhead (up to 30-40% 
+      more time spent); whereas duplicate detection at Tree Model level has 
+      little if any overhead. Difference is due to additional storage and 
+      checking requirements, as Streaming API does not need to keep track of 
+      set of property names encountered unless checking is required, whereas 
+      Tree Model will have to keep track of properties anyway. As a 
+      consequence, tree level checks are basically close to free to add.
+    </p>
+    <p>
+      <b>4, Object Id handling</b>
+    </p>
+    <p>
+      There are two improvements to Object Identity handling.
+    </p>
+    <p>
+      First, by enabling, <i>SerializationFeature.USE_EQUALITY_FOR_OBJECT_ID</i> 
+      you can loosen checks so that all values that are deemed equal (by 
+      calling Object.equals()) are considered &quot;same object&quot;; basically this 
+      allows canonicalization of objects. It mostly makes sense when using ORM 
+      libraries, or other data sources that may not use exact object 
+      instances; or if you want to reconstruct shared references from sources 
+      that do not support it.
+    </p>
+    <p>
+      Second, when using <a href="https://github.com/FasterXML/jackson-dataformat-yaml">YAML 
+      data format module</a>, all Object Id references are now written using 
+      YAML native constructs called anchors, and references handled as native 
+      references. Same is also true for Type Ids; YAML module will now use 
+      tags for this purpose.<br>This change should not onlt make result more 
+      compact and &quot;YAML-looking&quot;, but should also improve interoperability 
+      with native YAML tools. Latter should be most useful for a common use 
+      case for YAML, that of configuration files, where you can more easily 
+      share common configuration blocks with anchors and references.
+    </p>
+    <p>
+      <b>5. Contextual Attributes for custom (de)serialization</b>
+    </p>
+    <p>
+      One thing that has been missing so far from both <i>SerializaterProvider</i> 
+      and <i>DeserializationContext</i> objects (both of which extends <i>DatabindContext</i> 
+      base class) has been ability to assign and access temporary values 
+      during serialization/deserialization. In absence of something like this, 
+      custom <i>JsonSerializer</i> and <i>JsonDeserializer</i> implementations 
+      have had to use ThreadLocal to retain such values, adding more 
+      complexity.
+    </p>
+    <p>
+      But not any more: starting with 2.3.0, there is concept of &quot;databind 
+      attributes&quot; (similar to, say, Servlet attributes), managed and accessed 
+      using two simple methods -- <i>getAttribute(Object key)</i> and <i>setAttribute(Object 
+      key, Object value).</i> These can be used for keeping track of per-call 
+      (serialization or deserialization) state, pass data between 
+      (de)serializers and so on. All values are cleared when context is 
+      created (for a readValue() or writeValue() call); and similarly values 
+      are cleared at the end, so that no explicit clean up is required.
+    </p>
+    <p>
+      This may not sound like a huge feature in itself, but it actually opens 
+      up interesting possibilities for future: specifically, it may make sense 
+      to add new &quot;standard attributes&quot; that are set by databind module itself, 
+      when specific feature is enabled. For example, perhaps it would make 
+      sense to keep track of POJO that is being currently 
+      serialized/deserialized, to be accessible to actual (de)serializers.
+    </p>
+    <p>
+      <b>6. Null handling for serialization</b>
+    </p>
+    <p>
+      Another relative small, but often requested feature is ability to 
+      control how Java nulls are serialized, using more granular control than 
+      global rules like &quot;all nulls to be serialized as empty Strings&quot; (which 
+      is possible to do already). This is supported by adding a new property 
+      for <i>@JsonSerialize</i> annotation:
+    </p>
+    <hr>
+    
+
+    <pre>public class POJO {<br>  @JsonSerialize(nullsUsing=MyNullSerializer.class)<br>  public Value value;<br>}</pre>
+    <hr>
+    
+
+    <p>
+      in which case instance of MyNullSerializer would be used to write a JSON 
+      value for property &quot;value&quot;, if POJO property has value null.
+    </p>
+    <p>
+      <b>7. Other miscallenous of improvements</b>
+    </p>
+    <p>
+      <a href="https://github.com/FasterXML/jackson-jaxrs-providers">JAX-RS 
+      module</a> has a new mechanisms for fully customizing <i>ObjectReader</i> 
+      and <i>ObjectWriter</i> instances, above and beyond what module itself 
+      can do. You can find more details on <a href="https://github.com/FasterXML/jackson-jaxrs-providers/issues/33">Issue#33</a>.
+    </p>
+    <p>
+      <a href="https://github.com/FasterXML/jackson-dataformat-xml">XML module</a> 
+      has been improved as well; it is finally possible to properly serialize 
+      root-level array and <i>java.util.Collection</i> values. <i>ObjectMapper.convertValue() 
+      </i>now works properly.
+    </p>
+    <p>
+      <a href="https://github.com/FasterXML/jackson-dataformat-csv">CSV module</a> 
+      now supports filtering using JSON Views and JSON Filters; this was not 
+      working correctly with earlier versions.
+    </p>
+    <p>
+      
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Sunday, November 17, 2013 3:27 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+   
      <h2 class="date-header">Monday, October 28, 2013 </h2>
 <div class="entry" id="post-482">
      <h3 class="entry-header">On Jackson: Serializing Lists, Maps with properties</h3>
@@ -2232,244 +2470,6 @@ out.write(data, offset, len);
      </div>
 </div>
    
-     <h2 class="date-header">Saturday, April 07, 2012 </h2>
-<div class="entry" id="post-471">
-     <h3 class="entry-header">Java Type Erasure not a Total Loss -- use Java Classmate for resolving generic signatures</h3>
-     
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      As I have written before (&quot;<a href="/blog/archives/2010/12/entry_436.html">Why 
-      'java.lang.reflect.Type' Just Does Not Cut It</a>&quot;), Java's Type Erasure 
-      can be a royal PITA.
-    </p>
-    <p>
-      But things are actually not quite as bleak as one might think. But let's 
-      start with an actual somewhat unsolvable problem; and then proceed with 
-      another important, similar, yet solvable problem.
-    </p>
-    <p>
-      <b>1. Actual Unsolvable problem: Java.util Collections</b>
-    </p>
-    <p>
-      Here is piece of code that illustrates a problem that most Java 
-      developers either understand, or think they understand:
-    </p>
-    <pre>  List&lt;String,Integer&gt; stringsToInts = new ArrayList&lt;String,Integer&gt;();<br>  List&lt;byte[],Boolean&gt; bytesToBools = new ArrayList&lt;byte[], Boolean&gt;();<br>  assertSame(stringsToInts.getclass(), bytesToBools.getClass();</pre>
-    <p>
-      The problem is that although conceptually two collections seem to act 
-      different, at source code level, they are instances of the very same 
-      class (Java does not generate new classes for genericized types, unlike 
-      C++).
-    </p>
-    <p>
-      So while compiler helps in keeping typing straight, there is little 
-      runtime help to either enforce this, or allow other code to deduce 
-      expected type; there just isn't any difference from type perspective.
-    </p>
-    <p>
-      <b>2. All Lost? Not at all</b>
-    </p>
-    <p>
-      But let's look at another example. Starting with a simple interface
-    </p>
-    <hr>
-    
-
-    <pre>public interface Callable&lt;IN, OUT&gt; {<br>  public OUT call(IN argument);<br>}</pre>
-    <hr>
-    
-
-    <p>
-      do you think following is true also?
-    </p>
-    <hr>
-    
-
-    <pre>public void compare(Callable&lt;?,?&gt; callable1, Callable&lt;?,?&gt; callable2) {<br>  assertSame(callable1.getClass(), callable2.getClass());<br>}</pre>
-    <hr>
-    
-
-    <p>
-      Nope. Not necessarilly; classes may well be different. WTH?
-    </p>
-    <p>
-      The difference here is that since Callable is an interface (and you can 
-      not instantiate an interface), instances must be of some other type; and 
-      there is a good chance they are different.
-    </p>
-    <p>
-      But more importantly, if you use <a href="https://github.com/cowtowncoder/java-classmate">Java 
-      ClassMate</a> library (more on this in just a bit), we can even figure 
-      out parameterization (unlike with earlier example, where all you could 
-      see is that parameters are &quot;a subtype of java.lang.Object&quot;), so for 
-      example we can do
-    </p>
-    <div>
-      <hr>
-      // Assume 'callable1' was of type:
-    </div>
-    <div>
-      // class MyStringToIntList implements Callable&lt;String, List&lt;Integer&gt;&gt; { 
-      ... }
-    </div>
-    <pre>  TypeResolver resolver = new TypeResolver();
-  ResolvedType type = resolver.resolve(callable1.getClass());
-  List&lt;ResolvedType&gt; params = type.typeParametersFor(Callable.class);<br>  // so we know it has 2 parameters; from above, 'String' and 'List&lt;Integer&gt;'<br>  assertEquals(2, params.size());
-  assertSame(String.class, params.get(0).getErasedType();<br>  // and second type is generic itself; in this case can directly access<br>  ResolvedType resultType = params.get(1);<br>  assertSame(List.class, resultType.getErasedType());<br>  List&lt;ResolvedType&gt; listParams = resultType.getTypeParameters();<br>  assertSame(Integer.class, listParams.get(0).getErasedType();<br>  //or, just to see types visually, try:<br>  String desc = type.getSignature(); // or 'getFullDescription'</pre>
-    <hr>
-    
-
-    <p>
-      How is THIS possible? (fun exercise: pick 5 of your favorite Java 
-      experts; ask if above is possible, observe how most of them would have 
-      said &quot;nope, not a chance&quot; :-) )
-    </p>
-    <p>
-      <b>3. Long live generics -- hidden deep, deep within</b>
-    </p>
-    <p>
-      Basically generic type information is actually stored in class 
-      definitions, in 3 places:
-    </p>
-    <ol>
-      <li>
-        When defining parent type information (&quot;super type&quot;); parameterization 
-        for base class and base interface(s) if any
-      </li>
-      <li>
-        For generic field declarations
-      </li>
-      <li>
-        For generic method declarations (return, parameter and exception types)
-      </li>
-    </ol>
-    <p>
-      It is the first place where ClassMate finds its stuff. When resolving a 
-      Class, it will traverse the inheritance hierarchy, recomposing type 
-      parameterizations. This is a rather involved process, mostly due to type 
-      aliasing, ability for interfaces to use different signatures and so on. 
-      In fact, trying to do this manually first looks feasible, but if you try 
-      it via all wildcarding, you will soon realize why having a library do it 
-      for you is a nice thing...
-    </p>
-    <p>
-      So the important thing to learn is this: <i><b>to retain run-time 
-      generic type information, you MUST pass concrete sub-types which resolve 
-      generic types via inheritance</b></i>.
-    </p>
-    <p>
-      And this is where JDK collection types bring in the problem (wrt this 
-      particular issue): concerete types like ArrayList still take generic 
-      parameters; and this is why runtime instances do not have generic type 
-      available.
-    </p>
-    <p>
-      Another way to put this is that when using a subtype, say:
-    </p>
-    <hr>
-    
-
-    <pre>  MyStringList list = new ArrayList&lt;String&gt;() { }<br>  // can use ClassMate now, a la:<br>  ResolvedType type = resolver.resolve(list.getClass());<br>  // type itself has no parameterization (concrete non-generic class); but it does implement List so:
-  List&lt;ResolvedType&gt; params = type.typeParametersFor(List.class);<br>  assertSame(String.class, params.get(0).getErasedType());  </pre>
-    <hr>
-    
-
-    <p>
-      which once again would retain usable amount of generic type information.
-    </p>
-    <p>
-      <b>4. Real world usage?</b>
-    </p>
-    <p>
-      Above might seem as an academic exercise; but it is not. When designing 
-      typed APIs, many callbacks would actually benefit from proper generic 
-      typing. And of special interest are callbacks or handlers that need to 
-      do type conversions.
-    </p>
-    <p>
-      As an example, my favorite Database access library, jDBI, makes use of 
-      this functionality (using embedded ClassMate) to figure out data-binding 
-      information without requiring extra Class argument. That is, you could 
-      pass something like (not an actual code sample):
-    </p>
-    <pre>  MyPojo value = dbThingamabob.query(queryString, handler);</pre>
-    <p>
-      instead of what would more commonly requested:
-    </p>
-    <pre>  MyPojo value = dbThingamabob.query(queryString, handler, MyPojo.class);</pre>
-    <p>
-      and framework could still figure out what kind of thing 'handler' would 
-      handle, assuming it was a generic interface caller has to implement.
-    </p>
-    <p>
-      difference may seem minute, but this can actually help a lot by 
-      simplifying some aspects of type passing, and remove one particular mode 
-      of error.
-    </p>
-    <p>
-      <b>5. More on ClassMate</b>
-    </p>
-    <p>
-      Above actually barely scratch surface of what <a href="https://github.com/cowtowncoder/java-classmate">ClassMate</a> 
-      provides. Although it is already tricky to find &quot;simple&quot; 
-      parameterization for main-level classes, there are much more trickier 
-      things. Specifically, resolving types of Fields and Methods (return 
-      types, parameters). Given classes like:
-    </p>
-    <pre>  public interface Base&lt;T&gt; {
-    public T getStuff();
-  }
-  public class ListBase&lt;T&gt; implements Base&lt;List&lt;T&gt;&gt; {<br>    protected T value;<br>    protected ListBase(T v) { value = v; }<br>    public T getstuff() { return value; }<br>  }
-  public class Actual implements ListBase&lt;String&gt; {<br>    public Actual(List&lt;String&gt; value) { super(value; }<br>  }</pre>
-    <p>
-      you might be interested in figuring out, exactly what is the type of 
-      return value of &quot;getStuff()&quot;. By eyeballing, you know it should be 
-      &quot;List&lt;String&gt;&quot;, but bytecode does not tell this -- in fact, it just 
-      tells it's &quot;T&quot;, basically.
-    </p>
-    <p>
-      But with ClassMate you can resolve it:
-    </p>
-    <pre>  // start with ResolvedType; need MemberResolver
-  ResolvedType classType = resolver.resolve(Actual.class);<br>  MemberResolver mr = new MemberResolver(resolver);<br>  ResolvedTypeWithMembers beanDesc = mr.resolve(classType, null, null);<br>  ResolvedMethod[] members = bean.getMemberMethods();<br>  ResolvedType returnType = null;<br>  for (ResolvedMethod m : members) {<br>    if (&quot;getStuff&quot;.equals(m.getName())) {<br>      returnType = m.getReturnType();<br>    }<br>  }<br>  // so, we should get<br>  assertSame(List.class, returnType.getErasedType());<br>  ResolvedType elemType = returnType.getTypeParameters().get(0);<br>  assertSame(String.class, elemType.getErasedType();<br></pre>
-    <p>
-      and get the information you need.
-    </p>
-    <p>
-      <b>6. Why so complicated for nested types? </b>
-    </p>
-    <p>
-      One thing that is obvious from code samples is that code that uses 
-      ClassMate is not as simple as one might hope. Handling of nested generic 
-      types, specifically, is bit verbose in some cases (specifically: when 
-      type we are resolving does not directly implement type we are interested 
-      in)<br>Why is that?
-    </p>
-    <p>
-      The reason is that there is a wide variety of interfaces that any class 
-      can (and often does) implement. Further, parameterizations may vary at 
-      different levels, due to co-variance (ability to override methods with 
-      more refined return types). This means that it is not practical to &quot;just 
-      resolve it all&quot; -- and even if this was done, it is not in general 
-      obvious what the &quot;main type&quot; would be. For these reasons, you need to 
-      manually request parameterization for specific generic classes and 
-      interfaces as you traverse type hierarchy: there is no other way to do 
-      it.
-    </p></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Saturday, April 07, 2012 1:51 PM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_471.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-   
             </div>
         </div>
 <div id="beta">
@@ -2513,7 +2513,7 @@ out.write(data, offset, len);
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html">On Jackson: Serializing Lists, Maps with properties</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html">Java Classmate 0.9 released -- getting ready for 1.0</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li>
+                  <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html">Jackson 2.3.0 released -- quick feature overview</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html">On Jackson: Serializing Lists, Maps with properties</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html">Java Classmate 0.9 released -- getting ready for 1.0</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li>
                </ul>
           </div>
      </div>
@@ -2566,6 +2566,8 @@ out.write(data, offset, len);
           <h2 class="module-header">Archives</h2>
           <div class="module-content">
                <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2013_11-30-2013.html'>November 2013</a></li>
               
                 <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2013_10-31-2013.html'>October 2013</a></li>
               

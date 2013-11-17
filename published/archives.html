@@ -42,6 +42,245 @@ window.google_analytics_uacct = "UA-140287-10";
 <!-- entry -->
 
    
+     <h2 class="date-header">Sunday, November 17, 2013 </h2>
+<div class="entry" id="post-483">
+     <h3 class="entry-header">Jackson 2.3.0 released -- quick feature overview</h3>
+     <div class="entry-content">
+          <div class="entry-body">
+               <p><p>
+      Now that Jackson 2.3.0 is finally finalized and released (official 
+      release date 14th November, 2013), it is time for a quick sampling of 
+      new features. Note that this is a very limited sampling -- across all 
+      core components and modules, there are close to 100 closed features; 
+      some fixes, but most improvements of some kind.
+    </p>
+    <p>
+      So here's my list of 6 notable features.
+    </p>
+    <p>
+      <b>1. JsonPointer support for Tree Model</b>
+    </p>
+    <p>
+      One of most often asked features for Jackson has been ability to support 
+      a path language to traverse JSON. So with 2.3 we chose the simplest 
+      standardized alternative, <a href="http://tools.ietf.org/html/draft-ietf-appsawg-json-pointer-03">JSON 
+      Pointer</a> (version 3), and made Tree Model (JsonNode) allow navigating 
+      using it.
+    </p>
+    <p>
+      Usage is simple: for JSON like
+    </p>
+    <hr>
+    
+
+    <pre>{ &quot;address&quot; : { &quot;street&quot; : &quot;2940 5th Ave&quot;, &quot;zip&quot; : 980021 }, 
+  &quot;dimensions&quot; : [ 10.0, 20.0, 15.0 ]<br>}</pre>
+    <hr>
+    
+
+    <p>
+      you could use expression like:
+    </p>
+    <hr>
+    
+
+    <pre>JsonNode root = mapper.readTree(src);<br>int zip =root. at(&quot;/address/zipcode&quot;).asIntValue();<br>double height = root.add(&quot;/dimensions/1&quot;).asDoubleValue(); // assuming it's the second number in there</pre>
+    <hr>
+    
+
+    <p>
+      Note, too, that you can pre-compile JSON Pointer expressions with 
+      &quot;JsonPointer.compile(...)&quot;, instead of passing Strings; however, pointer 
+      expressions are not particularly expensive to tokenize.<br>
+    </p>
+    <p>
+      <b>2. @JsonFilter improvements</b>
+    </p>
+    <p>
+      With earlier versions, it was only possible to define ids of filters to 
+      apply using @JsonFilter on classes. With 2.3.0 you can apply this 
+      annotation (as well as @JsonView) on properties as well, to use 
+      different filters for different instances of same class:
+    </p>
+    <hr>
+    
+
+    <pre>public class POJO {<br>@JsonFilter(&quot;filterA&quot;) public Value value1;<br>@JsonFilter(&quot;filterB&quot;)public Value value2;<br><br>// similarly with JsonView (was added in 2.2)<br>@JsonView(AlternateView.class)
+  public AnotherValue property;<br>}</pre>
+    <hr>
+    
+
+    <p>
+      But this is not all! Applicability of JSON Filters is also expanded, so 
+      that in addition to regular POJOs and their properties, it will now 
+      apply to:
+    </p>
+    <ol>
+      <li>
+        Any getters (they will get filtered just like regular properties)
+      </li>
+      <li>
+        Java Maps
+      </li>
+    </ol>
+    <p>
+      and in future we may also add ability to filter out List or array 
+      elements; this will be possible since the filtering interfaces were 
+      extended allow alternate calls that specify value index, instead of 
+      property name.
+    </p>
+    <p>
+      <b>3. Uniqueness checks</b>
+    </p>
+    <p>
+      Although JSON specification does not mandate enforcing uniqueness of 
+      Object property names (and use of databinder on serialization should 
+      prevent generation of duplicates), there are situations where one would 
+      want to be extra careful, and make parser check uniqueness.
+    </p>
+    <p>
+      With 2.3.0, there are two new features you can turn on to cause an 
+      exception to be thrown if duplicate property names are encountered:
+    </p>
+    <ol>
+      <li>
+        <i>DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY</i>: when 
+        reading JSON Trees (JsonNode), and encountering a duplicate name, 
+        throw a JsonMappingException
+      </li>
+      <li>
+        <i>JsonParser.Feature.STRICT_DUPLICATE_DETECTION</i> and <i>JsonGenerator.Feature.STRICT_DUPLICATE_DETECTION</i>: 
+        when reading or writing JSON using Streaming API (either directly, or 
+        for data-binding or building/serializing Tree instances), duplicates 
+        will be reported by a JsonParsingException
+      </li>
+    </ol>
+    <p>
+      The main difference (beyond applicability; first feature only affects 
+      cases of building a JsonNode out of JSON input) is that duplicate 
+      detection at Streaming API level does incur some overhead (up to 30-40% 
+      more time spent); whereas duplicate detection at Tree Model level has 
+      little if any overhead. Difference is due to additional storage and 
+      checking requirements, as Streaming API does not need to keep track of 
+      set of property names encountered unless checking is required, whereas 
+      Tree Model will have to keep track of properties anyway. As a 
+      consequence, tree level checks are basically close to free to add.
+    </p>
+    <p>
+      <b>4, Object Id handling</b>
+    </p>
+    <p>
+      There are two improvements to Object Identity handling.
+    </p>
+    <p>
+      First, by enabling, <i>SerializationFeature.USE_EQUALITY_FOR_OBJECT_ID</i> 
+      you can loosen checks so that all values that are deemed equal (by 
+      calling Object.equals()) are considered &quot;same object&quot;; basically this 
+      allows canonicalization of objects. It mostly makes sense when using ORM 
+      libraries, or other data sources that may not use exact object 
+      instances; or if you want to reconstruct shared references from sources 
+      that do not support it.
+    </p>
+    <p>
+      Second, when using <a href="https://github.com/FasterXML/jackson-dataformat-yaml">YAML 
+      data format module</a>, all Object Id references are now written using 
+      YAML native constructs called anchors, and references handled as native 
+      references. Same is also true for Type Ids; YAML module will now use 
+      tags for this purpose.<br>This change should not onlt make result more 
+      compact and &quot;YAML-looking&quot;, but should also improve interoperability 
+      with native YAML tools. Latter should be most useful for a common use 
+      case for YAML, that of configuration files, where you can more easily 
+      share common configuration blocks with anchors and references.
+    </p>
+    <p>
+      <b>5. Contextual Attributes for custom (de)serialization</b>
+    </p>
+    <p>
+      One thing that has been missing so far from both <i>SerializaterProvider</i> 
+      and <i>DeserializationContext</i> objects (both of which extends <i>DatabindContext</i> 
+      base class) has been ability to assign and access temporary values 
+      during serialization/deserialization. In absence of something like this, 
+      custom <i>JsonSerializer</i> and <i>JsonDeserializer</i> implementations 
+      have had to use ThreadLocal to retain such values, adding more 
+      complexity.
+    </p>
+    <p>
+      But not any more: starting with 2.3.0, there is concept of &quot;databind 
+      attributes&quot; (similar to, say, Servlet attributes), managed and accessed 
+      using two simple methods -- <i>getAttribute(Object key)</i> and <i>setAttribute(Object 
+      key, Object value).</i> These can be used for keeping track of per-call 
+      (serialization or deserialization) state, pass data between 
+      (de)serializers and so on. All values are cleared when context is 
+      created (for a readValue() or writeValue() call); and similarly values 
+      are cleared at the end, so that no explicit clean up is required.
+    </p>
+    <p>
+      This may not sound like a huge feature in itself, but it actually opens 
+      up interesting possibilities for future: specifically, it may make sense 
+      to add new &quot;standard attributes&quot; that are set by databind module itself, 
+      when specific feature is enabled. For example, perhaps it would make 
+      sense to keep track of POJO that is being currently 
+      serialized/deserialized, to be accessible to actual (de)serializers.
+    </p>
+    <p>
+      <b>6. Null handling for serialization</b>
+    </p>
+    <p>
+      Another relative small, but often requested feature is ability to 
+      control how Java nulls are serialized, using more granular control than 
+      global rules like &quot;all nulls to be serialized as empty Strings&quot; (which 
+      is possible to do already). This is supported by adding a new property 
+      for <i>@JsonSerialize</i> annotation:
+    </p>
+    <hr>
+    
+
+    <pre>public class POJO {<br>  @JsonSerialize(nullsUsing=MyNullSerializer.class)<br>  public Value value;<br>}</pre>
+    <hr>
+    
+
+    <p>
+      in which case instance of MyNullSerializer would be used to write a JSON 
+      value for property &quot;value&quot;, if POJO property has value null.
+    </p>
+    <p>
+      <b>7. Other miscallenous of improvements</b>
+    </p>
+    <p>
+      <a href="https://github.com/FasterXML/jackson-jaxrs-providers">JAX-RS 
+      module</a> has a new mechanisms for fully customizing <i>ObjectReader</i> 
+      and <i>ObjectWriter</i> instances, above and beyond what module itself 
+      can do. You can find more details on <a href="https://github.com/FasterXML/jackson-jaxrs-providers/issues/33">Issue#33</a>.
+    </p>
+    <p>
+      <a href="https://github.com/FasterXML/jackson-dataformat-xml">XML module</a> 
+      has been improved as well; it is finally possible to properly serialize 
+      root-level array and <i>java.util.Collection</i> values. <i>ObjectMapper.convertValue() 
+      </i>now works properly.
+    </p>
+    <p>
+      <a href="https://github.com/FasterXML/jackson-dataformat-csv">CSV module</a> 
+      now supports filtering using JSON Views and JSON Filters; this was not 
+      working correctly with earlier versions.
+    </p>
+    <p>
+      
+    </p></p>
+     <p class="entry-footer">
+          <span class="post-footers">Posted by Tatu Saloranta  at Sunday, November 17, 2013 3:27 PM </span>
+<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_java.html">Java</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>, <a href="http://www.cowtowncoder.com/blog/archives/cat_opensource.html">Open Source</a>
+<br />
+<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html">Permalink</a>
+<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html#disqus_thread">Comments</a>
+<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html#links">links to this post</a></BlogItemBacklinksEnabled> 
+
+     </p>
+          </div>
+     </div>
+</div>
+
+
+   
      <h2 class="date-header">Monday, October 28, 2013 </h2>
 <div class="entry" id="post-482">
      <h3 class="entry-header">On Jackson: Serializing Lists, Maps with properties</h3>
@@ -2225,177 +2464,6 @@ public class HTMLCharacterEscapes extends CharacterEscapes
 
 
    
-     <h2 class="date-header">Tuesday, April 10, 2012 </h2>
-<div class="entry" id="post-473">
-     <h3 class="entry-header">What me like YAML? (Confessions of a JSON advocate)</h3>
-     <div class="entry-content">
-          <div class="entry-body">
-               <p><p>
-      Ok. I have to admit that I learnt something new and gained bit more 
-      respect for YAML data format recently, when working on the 
-      proof-of-concept for YAML-on-Jackson (<a href="https://github.com/FasterXML/jackson-dataformat-yaml">jackson-dataformat-yaml</a>; 
-      more on this on yet another Jackson 2.0 article, soon).<br>And since it 
-      would be intellectually dishonest not to mention that my formerly 
-      negative view on YAML has brightened up a notch, here's my write-up on 
-      this bit of enlightenment.
-    </p>
-    <p>
-      <b>1. Bad First Impressions Stick</b>
-    </p>
-    <p>
-      My first look at YAML via its definition basically made my stomach turn. 
-      It just looked so much like a bad American Ice Cream: &quot;Too Much of 
-      Everything&quot; -- hey, if it isn't enough to have chocolate, banana and 
-      walnut, let's throw in bit of caramel, root beer essence and touch of 
-      balsamic vinegar; along with bit of organic arugula to spice things 
-      up!&quot;. That isn't the official motto, I thought, but might as well be. If 
-      there is an O'Reilly book on YAML it surely must have platypus as the 
-      cover animal.
-    </p>
-    <p>
-      That was my thinking up until few weeks ago.
-    </p>
-    <p>
-      <b>2. Tale of the Two Goals</b>
-    </p>
-    <p>
-      I have read most of YAML specification (which is not badly written at 
-      all) multiple times, as well as shorter descriptions. My overall 
-      conclusion has always been that there are multiple high-level design 
-      decisions that I disagree with, and that these can mostly be summarized 
-      that it tries to do too many things, tries to solve multiple conflicting 
-      use cases.
-    </p>
-    <p>
-      But recently when working on adding YAML support as Jackson module 
-      (based on nice <a href="http://code.google.com/p/snakeyaml/">SnakeYAML</a> 
-      library, solid piece of code, very unlike most parsers/generators I have 
-      seen), I realized that fundamentally there are just two conflicting 
-      goals:
-    </p>
-    <ol>
-      <li>
-        Define a Wiki-style markup for data (assuming it is easier to not only 
-        write prose in, but also data)
-      </li>
-      <li>
-        Create a straight-forward Object serialization data format
-      </li>
-    </ol>
-    <p>
-      (it is worth noting that these goals are orthogonal, functionality-wise; 
-      but they conflict at level of syntax, visual appearance and complicate 
-      handling significantly, mostly because there is always &quot;more than one 
-      way to do it&quot; (Perl motto!))
-    </p>
-    <p>
-      I still think that one could solve the problem better by defining two, 
-      not one, format: first one with a Wiki dialect; and second one with a 
-      clean data format.<br>But this lead me to think about something: what if 
-      those weird Wiki-style aspects were removed from YAML? Would I still 
-      dislike the format?
-    </p>
-    <p>
-      And I came to conclusion that no, I would not dislike it. In fact, I 
-      might like it. A lot.
-    </p>
-    <p>
-      Why? Let's see which things I like in YAML; things that JSON does not 
-      have, but really really should have in the ideal world.
-    </p>
-    <p>
-      <b>3. Things that YAML has and JSON should have</b>
-    </p>
-    <p>
-      Here's the quick rundown:
-    </p>
-    <ol>
-      <li>
-        Comments: oh lord, what kind of textual data format does NOT have 
-        comments? JSON is the only one I know of; and even it had them before 
-        spec was finalized. I can only imagine a brain fart of colossal 
-        proportions caused it to be removed from the spec...
-      </li>
-      <li>
-        (optional) Document start and end markers (&quot;---&quot; header, &quot;...&quot; 
-        footer&quot;). This is such a nice thing to have; both for format 
-        auto-detection purpose as well as for framing for data feeds. It's bit 
-        of a no-brainer; but suspiciously, JSON has nothing of sort (XML does 
-        have XML declaration which _almost_ works well, but not quite; but I 
-        digress)
-      </li>
-      <li>
-        Type tags for type metadata: in YAML, one can add optional type tags, 
-        to further indicate type of an Object (or any value actually). This is 
-        such an essential thing to have; and with JSON one must use in-band 
-        constructs that can conflict with data. XML at least has attributes 
-        (&quot;xsi:type&quot;).
-      </li>
-      <li>
-        Aliases/anchors for Object Identity (aka &quot;id / idref&quot;): although data 
-        is data, not objects with identity, having means to optionally pass 
-        identity information is very, very useful. And here too XML has some 
-        support (having attributes for metadata is convenient); and JSON has 
-        nada.
-      </li>
-    </ol>
-    <p>
-      The common theme with above is that all extra information is optional; 
-      but if used, it is included discreetly and can be used as appropriate by 
-      encoders, decoders, with or without using language- or platform-specific 
-      resolution mechanisms.<br>And I think YAML actually declares these 
-      things pretty well: it is neither over nor under engineered with respect 
-      to these features. This is surprisingly delicate balance, and very well 
-      chosen. I have seen over-complicated data formats (at Amazon, for 
-      example) that didn't know where to stop; and we can see how JSON stopped 
-      too short of even most rudimentary things (... comments). Interestingly, 
-      XML almost sort-of has these features; but they come about with extra 
-      constructs (xsi:type via XML Schema), or are side effects of otherwise 
-      quirky features (element/attribute separation).
-    </p>
-    <p>
-      Having had to implement equivalent functionality on top of simplistic 
-      JSON construct (&quot;add yet another meta-property, in-line with actual 
-      data; allow a way to configure it to reduce conflicts&quot;), I envy having 
-      these constructs as first-level concepts, convenient little additions 
-      that allow proper separation of data and metadata (type, object id; 
-      comments).
-    </p>
-    <p>
-      <b>4. Uses for YAML</b>
-    </p>
-    <p>
-      Still, having solved/worked around all of above problems -- Jackson 1.5 
-      added full support for polymorphic types (&quot;type tags&quot;); 2.0 finally 
-      added Object Identity (&quot;alias/anchor&quot;), use of linefeeds for framing can 
-      substitute for document boundaries -- I do not have compelling case for 
-      using YAML for data transfer. It's almost a pity -- I have come to 
-      realize that YAML could have been a great data format (it is also old 
-      enough to have challenged popularity of JSON, both seem to have been 
-      conceived at about same time). As is, it is almost one.
-    </p>
-    <p>
-      Somewhat ironically, then, is that maybe Wiki features are acceptable 
-      for the other main use case: that of configuration files. This is the 
-      use case I have for YAML; and the main reason for writing compatibility 
-      module (inspired by libs/frameworks like <a href="https://github.com/codahale/dropwizard">DropWizard</a> 
-      which use YAML as the main config file format).
-    </p></p>
-     <p class="entry-footer">
-          <span class="post-footers">Posted by Tatu Saloranta  at Tuesday, April 10, 2012 9:52 PM </span>
-<br />     Categories: <a href="http://www.cowtowncoder.com/blog/archives/cat_json.html">JSON</a>
-<br />
-<span class="separator">|</span> <a class="permalink" href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_473.html">Permalink</a>
-<span class="separator">|</span><a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_473.html#disqus_thread">Comments</a>
-<BlogItemBacklinksEnabled> | <a href="http://www.cowtowncoder.com/blog/archives/2012/04/entry_473.html#links">links to this post</a></BlogItemBacklinksEnabled> 
-
-     </p>
-          </div>
-     </div>
-</div>
-
-
-   
             </div>
         </div>
         <div id="beta">
@@ -2439,7 +2507,7 @@ public class HTMLCharacterEscapes extends CharacterEscapes
           <h2 class="module-header">Last posts</h2>
           <div class="module-content">
                <ul class="module-list">
-                   <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html">On Jackson: Serializing Lists, Maps with properties</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html">Java Classmate 0.9 released -- getting ready for 1.0</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_478.html">Jackson 2.1 was released... quite a while ago :)</a></li>
+                   <li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/11/entry_483.html">Jackson 2.3.0 released -- quick feature overview</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/10/entry_482.html">On Jackson: Serializing Lists, Maps with properties</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/09/entry_481.html">Java Classmate 0.9 released -- getting ready for 1.0</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_480.html">On Jackson 2.2</a></li><li class="module-list-item"><a href="http://www.cowtowncoder.com/blog/archives/2013/08/entry_479.html">Brief History of Jackson the JSON processor</a></li>
                </ul>
           </div>
      </div>
@@ -2460,6 +2528,8 @@ google_ad_height = 240;
           <h2 class="module-header">Archives</h2>
           <div class="module-content">
                <ul class="module-list">
+              
+                <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/11-01-2013_11-30-2013.html'>November 2013</a></li>
               
                 <li class="module-list-item"><a href='http://www.cowtowncoder.com/blog/archives/10-01-2013_10-31-2013.html'>October 2013</a></li>
               
